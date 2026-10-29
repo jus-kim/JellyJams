@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams sheet Rectangle icon - original artwork (rectangle over a sheet corner).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- sheet corner -->
+  <rect x="5" y="5" width="40" height="34" rx="3" fill="#ffffff" stroke="#5a6572" stroke-width="3"/>
+  <!-- shape -->
+  <rect x="21" y="27" width="36" height="29" fill="#e8f2fb" stroke="#1a76c4" stroke-width="5"/>
+</svg>

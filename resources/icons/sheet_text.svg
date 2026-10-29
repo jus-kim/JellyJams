@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams Text icon - original artwork (sheet with the letter A drawn as a path).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- sheet -->
+  <rect x="5" y="9" width="54" height="46" rx="3" fill="#ffffff" stroke="#5a6572" stroke-width="3"/>
+  <!-- letter A -->
+  <path d="M 17 48 L 28.5 16 L 35.5 16 L 47 48 L 40.5 48 L 38 41 L 26 41 L 23.5 48 Z M 28.2 35 L 35.8 35 L 32 24.4 Z"
+        fill="#1a76c4" fill-rule="evenodd"/>
+</svg>

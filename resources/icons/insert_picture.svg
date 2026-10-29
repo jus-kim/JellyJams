@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams Insert Picture icon - original artwork (sheet with a landscape picture).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- sheet -->
+  <rect x="5" y="9" width="54" height="46" rx="3" fill="#ffffff" stroke="#5a6572" stroke-width="3"/>
+  <!-- picture: sky, sun, hills -->
+  <rect x="11" y="15" width="42" height="34" fill="#e8f2fb"/>
+  <circle cx="21" cy="24" r="5" fill="#d9822b"/>
+  <path d="M 11 49 L 26 30 L 41 49 Z" fill="#1a76c4"/>
+  <path d="M 30 49 L 42 35 L 53 49 Z" fill="#115a99"/>
+</svg>

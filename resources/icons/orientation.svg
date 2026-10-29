@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams View Orientation icon - original artwork (panel with a shaded cube).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect x="5" y="9" width="54" height="46" rx="4" fill="#ffffff" stroke="#5a6572" stroke-width="3"/>
+  <line x1="5" y1="19" x2="59" y2="19" stroke="#5a6572" stroke-width="3"/>
+  <path d="M32 25 L46 32 L46 46 L32 53 L18 46 L18 32 Z" fill="#cfe6f8" stroke="#115a99" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M18 32 L32 39 L46 32 M32 39 L32 53" fill="none" stroke="#115a99" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M32 25 L46 32 L32 39 L18 32 Z" fill="#1a76c4"/>
+</svg>

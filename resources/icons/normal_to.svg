@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams Normal To icon - original artwork (flat face seen square-on, with a normal arrow).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect x="10" y="14" width="36" height="36" rx="2" fill="#cfe6f8" stroke="#115a99" stroke-width="3"/>
+  <circle cx="28" cy="32" r="5" fill="#1a76c4"/>
+  <path d="M28 32 L54 32" fill="none" stroke="#1a76c4" stroke-width="4" stroke-linecap="round"/>
+  <path d="M46 24 L55 32 L46 40" fill="none" stroke="#1a76c4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

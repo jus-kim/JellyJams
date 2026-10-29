@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams New Assembly icon - original artwork (two joined blocks with a "+" badge).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <g stroke="#115a99" stroke-width="3" stroke-linejoin="round">
+    <!-- back block -->
+    <path d="M 6 24 L 14 16 H 36 L 28 24 Z" fill="#e8f2fb"/>
+    <path d="M 28 24 L 36 16 V 38 L 28 46 Z" fill="#115a99"/>
+    <rect x="6" y="24" width="22" height="22" fill="#1a76c4"/>
+    <!-- front block -->
+    <path d="M 26 34 L 33 27 H 53 L 46 34 Z" fill="#e8f2fb"/>
+    <path d="M 46 34 L 53 27 V 47 L 46 54 Z" fill="#115a99"/>
+    <rect x="26" y="34" width="20" height="20" fill="#1a76c4"/>
+  </g>
+  <!-- new badge -->
+  <circle cx="51" cy="13" r="10" fill="#d9822b"/>
+  <path d="M 51 7.5 V 18.5 M 45.5 13 H 56.5" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams Export PDF icon - original artwork (page with a "PDF" band, letters drawn as paths).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- page -->
+  <path d="M 12 4 H 40 L 52 16 V 60 H 12 Z" fill="#ffffff" stroke="#5a6572" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M 40 4 V 16 H 52 Z" fill="#c9ced6" stroke="#5a6572" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M 19 13 H 33 M 19 21 H 45" fill="none" stroke="#c9ced6" stroke-width="3"/>
+  <!-- band -->
+  <rect x="4" y="28" width="56" height="26" rx="3" fill="#c0392b"/>
+  <!-- letters P D F -->
+  <path d="M 13 48 V 34 H 17 C 19.8 34 21.5 35.8 21.5 38 C 21.5 40.2 19.8 42 17 42 H 13 M 28 34 V 48 H 31 C 35 48 37.5 45 37.5 41 C 37.5 37 35 34 31 34 Z M 51.5 34 H 43.5 V 48 M 43.5 41 H 50"
+        fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

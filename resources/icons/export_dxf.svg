@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams Export DXF icon - original artwork (page with a "DXF" band, letters drawn as paths).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- page -->
+  <path d="M 12 4 H 40 L 52 16 V 60 H 12 Z" fill="#ffffff" stroke="#5a6572" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M 40 4 V 16 H 52 Z" fill="#c9ced6" stroke="#5a6572" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M 19 13 H 33 M 19 21 H 45" fill="none" stroke="#c9ced6" stroke-width="3"/>
+  <!-- band -->
+  <rect x="4" y="28" width="56" height="26" rx="3" fill="#1a76c4"/>
+  <!-- letters D X F -->
+  <path d="M 12.5 34 V 48 H 15.5 C 19.5 48 22 45 22 41 C 22 37 19.5 34 15.5 34 Z M 28.5 34 L 37 48 M 37 34 L 28.5 48 M 51.5 34 H 43.5 V 48 M 43.5 41 H 50"
+        fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams Diagnostics icon - original artwork (report clipboard with a pulse line).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- clipboard -->
+  <rect x="12" y="8" width="40" height="52" rx="4" fill="#ffffff" stroke="#5a6572" stroke-width="3"/>
+  <rect x="22" y="4" width="20" height="9" rx="2.5" fill="#115a99"/>
+  <!-- pulse line -->
+  <path d="M 17 35 H 24 L 28 23 L 34 47 L 39 29 L 42 35 H 47"
+        fill="none" stroke="#1a76c4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- report line -->
+  <path d="M 20 53 H 44" fill="none" stroke="#c9ced6" stroke-width="3" stroke-linecap="round"/>
+</svg>

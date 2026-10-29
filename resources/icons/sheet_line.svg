@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams sheet Line icon - original artwork (line over a sheet corner).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- sheet corner -->
+  <rect x="5" y="5" width="40" height="34" rx="3" fill="#ffffff" stroke="#5a6572" stroke-width="3"/>
+  <!-- shape -->
+  <path d="M 19 55 L 55 23" fill="none" stroke="#1a76c4" stroke-width="5" stroke-linecap="round"/>
+  <g fill="#115a99">
+    <circle cx="19" cy="55" r="5"/>
+    <circle cx="55" cy="23" r="5"/>
+  </g>
+</svg>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+-->
+<package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
+  <name>JellyJams</name>
+  <description>A SolidWorks-style UI for FreeCAD: a CommandManager-style ribbon, SolidWorks tool and FeatureManager tree names, a light theme, and SolidWorks mouse navigation and keyboard shortcuts. Not affiliated with or endorsed by Dassault Systèmes.</description>
+  <version>0.1.0</version>
+  <date>2026-10-28</date>
+  <maintainer email="hi@jus.kim">jus-kim</maintainer>
+  <license file="LICENSE">LGPL-3.0-or-later</license>
+  <url type="repository" branch="main">https://github.com/jus-kim/JellyJams</url>
+  <url type="readme">https://github.com/jus-kim/JellyJams/blob/main/README.md</url>
+  <icon>resources/icons/jellyjams.svg</icon>
+  <freecadmin>1.1.0</freecadmin>
+  <tag>ribbon</tag>
+  <tag>ui</tag>
+  <tag>theme</tag>
+  <tag>solidworks-style</tag>
+  <tag>commandmanager</tag>
+  <content>
+    <workbench>
+      <name>JellyJams</name>
+      <classname>JellyJamsWorkbench</classname>
+      <subdirectory>./</subdirectory>
+      <icon>resources/icons/jellyjams.svg</icon>
+      <description>SolidWorks-style UI for FreeCAD</description>
+    </workbench>
+  </content>
+</package>

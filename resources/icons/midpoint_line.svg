@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams Midpoint Line icon - original artwork (line drawn out from its midpoint).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <path d="M 10 54 L 54 10" fill="none" stroke="#1a76c4" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- fixed end and free (hollow) end -->
+  <circle cx="10" cy="54" r="5" fill="#115a99"/>
+  <circle cx="54" cy="10" r="5" fill="#ffffff" stroke="#115a99" stroke-width="3"/>
+  <!-- start point at the middle -->
+  <rect x="25" y="25" width="14" height="14" fill="#d9822b"/>
+</svg>

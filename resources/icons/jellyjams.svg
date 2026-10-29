@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams workbench icon - original artwork (a jellyfish).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- bell -->
+  <path d="M 12 30 C 12 16 21 8 32 8 C 43 8 52 16 52 30 L 52 33 C 48 36 44 34 41 33 C 38 36 35 36 32 33 C 29 36 26 36 23 33 C 20 34 16 36 12 33 Z"
+        fill="#1a76c4"/>
+  <!-- bell highlight -->
+  <path d="M 17 27 C 18 18 24 12 31 12 C 26 14 21 19 20 28 C 19 30 17 29 17 27 Z"
+        fill="#5ea8dd"/>
+  <!-- tentacles -->
+  <g fill="none" stroke="#115a99" stroke-width="3.2" stroke-linecap="round">
+    <path d="M 20 38 C 19 44 23 46 21 52"/>
+    <path d="M 28 39 C 27 46 31 48 29 56"/>
+    <path d="M 36 39 C 37 46 33 48 35 56"/>
+    <path d="M 44 38 C 45 44 41 46 43 52"/>
+  </g>
+  <!-- eyes -->
+  <circle cx="26" cy="24" r="2.6" fill="#ffffff"/>
+  <circle cx="38" cy="24" r="2.6" fill="#ffffff"/>
+  <circle cx="26.8" cy="24.6" r="1.2" fill="#115a99"/>
+  <circle cx="38.8" cy="24.6" r="1.2" fill="#115a99"/>
+</svg>

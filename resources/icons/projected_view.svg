@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams Projected View icon - original artwork (a view projected to an aligned view).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- parent view -->
+  <path d="M 4 50 H 27 V 36 H 15 V 14 H 4 Z" fill="#1a76c4"/>
+  <!-- projected view -->
+  <rect x="45.5" y="15.5" width="14" height="33" fill="#e8f2fb" stroke="#1a76c4" stroke-width="3"/>
+  <path d="M 45.5 36 H 59.5" fill="none" stroke="#1a76c4" stroke-width="3"/>
+  <!-- projection arrow -->
+  <path d="M 30 32 H 36" fill="none" stroke="#d9822b" stroke-width="4.5"/>
+  <path d="M 35 24.5 L 43 32 L 35 39.5 Z" fill="#d9822b"/>
+</svg>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams Collinear relation icon - original artwork (two segments on one axis).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- shared axis -->
+  <path d="M 4 60 L 60 4" fill="none" stroke="#d9822b" stroke-width="3.5" stroke-dasharray="5 4"/>
+  <!-- two segments -->
+  <g fill="none" stroke="#1a76c4" stroke-width="6" stroke-linecap="round">
+    <path d="M 11 53 L 24 40"/>
+    <path d="M 40 24 L 53 11"/>
+  </g>
+</svg>

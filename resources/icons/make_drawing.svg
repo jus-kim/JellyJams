@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams Make Drawing icon - original artwork (sheet with three views of one part).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- sheet -->
+  <rect x="5" y="9" width="54" height="46" rx="3" fill="#ffffff" stroke="#5a6572" stroke-width="3"/>
+  <!-- top, front and side views -->
+  <g fill="#1a76c4">
+    <rect x="12" y="15" width="22" height="11"/>
+    <path d="M 12 49 H 34 V 40 H 23 V 30 H 12 Z"/>
+    <rect x="39" y="30" width="11" height="19"/>
+  </g>
+  <g fill="none" stroke="#ffffff" stroke-width="3">
+    <path d="M 23 15 V 26"/>
+    <path d="M 39 40 H 50"/>
+  </g>
+</svg>

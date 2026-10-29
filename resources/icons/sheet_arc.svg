@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams sheet Arc icon - original artwork (arc over a sheet corner).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- sheet corner -->
+  <rect x="5" y="5" width="40" height="34" rx="3" fill="#ffffff" stroke="#5a6572" stroke-width="3"/>
+  <!-- shape -->
+  <path d="M 21 52 A 18 18 0 0 1 57 52" fill="none" stroke="#1a76c4" stroke-width="5"/>
+  <g fill="#115a99">
+    <circle cx="21" cy="52" r="5"/>
+    <circle cx="57" cy="52" r="5"/>
+    <circle cx="39" cy="52" r="3.5"/>
+  </g>
+</svg>

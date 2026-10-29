@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams Midpoint relation icon - original artwork (point at the middle of a line).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <path d="M 10 54 L 54 10" fill="none" stroke="#1a76c4" stroke-width="6" stroke-linecap="round"/>
+  <g fill="#115a99">
+    <circle cx="10" cy="54" r="4.5"/>
+    <circle cx="54" cy="10" r="4.5"/>
+  </g>
+  <!-- midpoint -->
+  <circle cx="32" cy="32" r="7" fill="#d9822b"/>
+</svg>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams View Scale icon - original artwork (a small view and the ratio 1:2 drawn as paths).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- view -->
+  <path d="M 5 27 H 26 V 18 H 15 V 5 H 5 Z" fill="#1a76c4"/>
+  <!-- ratio 1:2 -->
+  <g fill="none" stroke="#115a99" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 18.5 37 L 24 32 V 58"/>
+    <path d="M 41 38 C 41 33.5 44.5 31 49 31 C 53.5 31 57 33.5 57 38 C 57 43.5 50.5 48 41 58 H 58"/>
+  </g>
+  <g fill="#115a99">
+    <circle cx="32.5" cy="40" r="3"/>
+    <circle cx="32.5" cy="52" r="3"/>
+  </g>
+</svg>

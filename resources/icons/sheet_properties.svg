@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams Sheet Properties icon - original artwork (sheet with a highlighted title block).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- sheet -->
+  <rect x="5" y="9" width="54" height="46" rx="3" fill="#ffffff"/>
+  <!-- view placeholder -->
+  <rect x="12.5" y="16.5" width="16" height="14" fill="#e8f2fb" stroke="#5a6572" stroke-width="3"/>
+  <!-- title block -->
+  <rect x="27" y="35" width="32" height="20" fill="#1a76c4"/>
+  <g fill="none" stroke="#ffffff" stroke-width="3">
+    <path d="M 27 45 H 58"/>
+    <path d="M 42 35 V 45"/>
+  </g>
+  <rect x="5" y="9" width="54" height="46" rx="3" fill="none" stroke="#5a6572" stroke-width="3"/>
+</svg>

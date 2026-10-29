@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
+JellyJams Save View icon - original artwork (camera with a plus badge).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect x="6" y="20" width="40" height="30" rx="4" fill="#cfe6f8" stroke="#115a99" stroke-width="3"/>
+  <path d="M16 20 L20 13 L32 13 L36 20" fill="#cfe6f8" stroke="#115a99" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="26" cy="35" r="8" fill="#ffffff" stroke="#115a99" stroke-width="3"/>
+  <circle cx="49" cy="47" r="12" fill="#1a76c4"/>
+  <path d="M49 40 V54 M42 47 H56" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+</svg>
