@@ -1,6 +1,6 @@
 # Implementation and test status
 
-Status of JellyJams **0.1.0** as of **2026-10-28**, measured on **FreeCAD 1.1.4 (Windows)**.
+Status of JellyJams **0.1.0** as of **2026-10-30**, measured on **FreeCAD 1.1.4 (Windows)**.
 This page is the record of what is built, what is verified, and what is open. The behavior
 it is measured against is defined in the [specifications](specs/README.md). How to run every
 test mentioned here: [testing.md](testing.md).
@@ -8,8 +8,298 @@ test mentioned here: [testing.md](testing.md).
 After any code change, re-run the suites and update this page (see
 [Updating this page](#updating-this-page)).
 
+## GitHub PR and hosted CI (2026-10-30)
+
+[PR #1](https://github.com/jus-kim/JellyJams/pull/1) contains the audit, theme,
+orbit and native-crash regression work on `codex/theme-orbit-regression-coverage`.
+Commits are authored and committed solely by `jus-kim <hi@jus.kim>`.
+
+The first hosted Windows job passed 506 headless tests (3 installed-template
+checks skipped because FreeCAD is absent) and all 10 runner tests. Ubuntu first
+failed before test discovery because the hosted image lacked `libEGL.so.1`.
+The workflow now explicitly installs `libegl1` and `libopengl0` on Linux and uses
+maintained checkout/setup-python v7 actions. The corrected hosted push run
+[41057025971](https://github.com/jus-kim/JellyJams/actions/runs/41057025971) passed
+on both Windows and Ubuntu: 506 headless tests with the same 3 expected template
+skips, plus all 10 runner tests. Current results are also available in the
+[PR checks](https://github.com/jus-kim/JellyJams/pull/1/checks). The local GUI
+results below remain Windows FreeCAD 1.1.4 results.
+
+## Native crash after extrusion — orbit watcher fix (2026-10-30)
+
+The orbit change below introduced a native crash. The user reported it after
+extruding and orbiting a body; Windows recorded it at **07:35:49 America/Toronto**
+with exception **0xc0000374**. The original dump was analyzed locally. It shows
+FreeCAD resetting a Part Design edit and destroying its task dialog, a focus-change
+signal calling Python, and PySide child traversal/QObject type wrapping failing.
+
+- Root cause: the new orbit watcher directly scanned the Qt widget tree from
+  `focusChanged`, which FreeCAD emits while native task widgets are being destroyed.
+  A Python exception guard cannot contain this native failure.
+- Before-fix reproduction crashed on the **first** Pad OK click with the same
+  exception and matching relevant native stack offsets (`scratch/feature_crash_6ihakdnp/`).
+  After deferring discovery, the same reproduction completed **20/20**, exit 0
+  (`scratch/feature_fixed_scooeom0/`).
+- Focus callbacks and initial installation now only schedule/coalesce a zero-delay
+  discovery timer, capturing no focus widgets. Uninstall cancels both timers.
+  The orbit response correction and native mouse controls are retained. No
+  preference, backup format or recovery file was changed by the fix.
+- Headless **506/506**, no failures/errors/skips; GUI-result validator **10/10**.
+  The new unit regression checks deferred/coalesced discovery and cancellation.
+- Real FreeCAD orbit regression: **49/49**, including 20 native Pad accept-and-orbit
+  cycles (`scratch/gui_zy_27jqn/`, runner exit **0**). Orbit response, native pan/
+  zoom, modifier changes and cleanup checks remain passing.
+- Sketch **20/20**, feature integration **51/51**, smoke **31/31**, quit-cancel
+  **16/16**, discard **9/9**, relaunch **5/5**, autoload **6/6**, crash **2/2**,
+  recovery **3/3** and saved-config checker **7/7** also passed
+  (`scratch/gui_bbes_4vn/`). That first combined run exited 1: its orbit cleanup
+  check injected a synthetic drag before deferred installation had an event-loop
+  turn. The harness now waits for installation; the separate 49/49 rerun passes.
+  All 20 feature-close/orbit cycles passed in that first run too; no native crash
+  occurred with the fix.
+- `git diff --check` is clean. Actual user/system config modification times and
+  sizes remain unchanged; the original crash dump is preserved. Details and dump
+  provenance: `scratch/crash_investigation_2026-10-30.md`.
+
+The older orbit results below did not cover native feature task-panel teardown
+and therefore did not establish safety for the workflow that crashed.
+
+## Middle-button orbit follow-up (2026-10-30)
+
+The user reported stiff model rotation, especially unlike SolidWorks. Native
+FreeCAD uses viewport width for X normalization and height for Y. Tests confirmed
+that changing orbit modes alone did not fix the resulting ultrawide imbalance.
+
+- On a 3571×902 viewport, a 100-pixel native Rounded Arcball drag produced about
+  **5.82° horizontally / 24.06° vertically**. With balanced orbit input it produced
+  about **23.91° / 24.06°**. The correction passed the equal-response check in all
+  five native orbit modes at both normal and ultrawide sizes.
+- `orbit_rules.py` provides pure drag-coordinate logic; `orbit.py` forwards balanced
+  middle-drag coordinates to FreeCAD's own engine. It preserves native pan, zoom,
+  middle clicks and modifier transitions. It leaves orbit/pivot/sensitivity
+  preferences unchanged. Cursor-warp navigation bypasses the correction.
+- `navigation` owns installation/removal through its existing lifecycle. Filters,
+  focus watcher and discovery timer are removed on leave/quit and reinstalled after
+  cancelled quit. Removing a transformed drag releases native orbiting without
+  moving the camera. No persistent override or backup key was added.
+- Headless: **505/505**, no failures/errors/skips. Covers aspect ratios, negative
+  motion, resize/degenerate dimensions, modifier deltas, idempotent hook removal
+  and runtime cleanup during recovery. GUI-result validator: **10/10**.
+- Real FreeCAD 1.1.4: orbit **29/29**, smoke **31/31**, quit-cancel **16/16**,
+  discard **9/9**, relaunch **5/5**, autoload **6/6**, crash **2/2**, recovery
+  **3/3**, saved config **7/7**. Lifecycle checks additionally require the orbit
+  hook to disappear inside the quit prompt and reappear after Cancel/autoload.
+  The focused GUI runner exited **0**. Evidence: `scratch/gui_t3tc5rfa/`.
+- `git diff --check` is clean. The tests measure real FreeCAD camera response to
+  Qt mouse/key events; exact SolidWorks feel and physical mouse latency are not
+  verified. The separate orientation pointer-placement issue below remains open;
+  this focused run did not rerun that suite.
+
+## Dark sketch visibility follow-up (2026-10-30)
+
+The widget-only theme fix below left JellyJams' viewport light, making FreeCAD
+Dark's pale sketch cursor overlays hard to see. That behavior was incomplete and
+is superseded by [D-20](decisions.md#d-20-match-viewport-and-sketch-colors-to-the-native-theme-too).
+
+- Widget and viewport palettes now share `theme.is_dark()`. Dark mode uses a dark
+  gradient, bright blue unconstrained geometry, green fully constrained geometry,
+  pale construction geometry and white/grey driving/reference dimensions.
+- The same 14 managed View keys, types and persisted backup format are retained.
+  No application theme setting, new backup key or real user profile is changed.
+- Headless: **498/498**, no failures/errors/skips. Added dark viewport contrast
+  checks and custom-value/absent-key exact restore plus fresh-module crash recovery.
+  Result-validator tests: **10/10**.
+- Actual FreeCAD 1.1.4, separate native Dark/Light scratch profiles: **22/22 each**.
+  Tests now open a real sketch and assert the rendered pixels for unconstrained,
+  blocked and construction geometry, driving/reference dimensions and background.
+  All 14 color keys restore their original presence/type/value after leaving.
+  Rendered sketch images were inspected. Evidence: `scratch/gui_nrn1dimj/`,
+  `theme_dark.json`, `theme_light.json` and `<mode>_sketch.png`.
+- Other actual GUI checks passed: smoke **31/31**, quit-cancel **16/16**, discard
+  **9/9**, relaunch **5/5**, autoload **6/6**, crash **2/2**, recovery **3/3** and
+  saved-config checker **7/7** (`scratch/gui_nrn1dimj/`). `git diff --check` is clean.
+- **Open GUI-test issue:** orientation was **82/84**, so the combined runner
+  exited **1**, not a clean pass. The first run hit pointer/Pad Space assertions;
+  a separate repeat (`scratch/gui_n96gzor7/`) failed the two Pad pointer-over-view
+  checks. Their pre-key diagnostic was `under_pointer: None`, so the focused
+  check box received Space rather than the view. A bounded pointer-settle wait
+  did not resolve this (`scratch/gui_f9dacr2a/`) and was removed. The pointer setup
+  needs investigation; do not claim all keyboard GUI acceptance checks pass on
+  this change. No production Space-routing behavior was changed by this fix.
+
+## Dark/light theme follow-up (2026-10-29)
+
+The user reported a light ribbon/tree/dock area mixed with FreeCAD Dark's native
+menus, property editor and Start page, and explicitly chose to have JellyJams
+follow FreeCAD's dark/light theme. The previous look spec accepted that mixture;
+that policy is superseded by this change.
+
+- `palette.py` now defines a dark widget palette alongside the existing light
+  palette. `theme.widget_colors()` compares the native menu bar's effective
+  background/text luminance, outside JellyJams' styled scope, to choose the mode.
+  Repeated activation cannot read its own override and flip modes.
+- Ribbon, tree, dock titles and JellyJams panels use that palette. Orientation
+  and Sketch context popups use the same choice and refresh it on opening.
+- Only the main-window's existing marked stylesheet block and JellyJams-owned
+  popup stylesheets are changed. The application stylesheet/palette and native
+  Theme/StyleSheet preferences are untouched. No mode preference or backup key
+  was added. Viewport/sketch drawing colors remain the existing independent colors.
+- Headless: **496/496**, no failures/errors/skips, including new dark-palette
+  contrast checks, dark/light/dark repeated apply/restore and Sketch popup colors.
+  Orientation's dark-theme assertion now requires readable light text on dark.
+- Actual FreeCAD 1.1.4: `gui_theme.py` with native FreeCAD Dark and FreeCAD Light
+  in separate disposable profiles: **16/16 each**. Native theme loading, ribbon
+  surface/text, dock titles, Orientation/Sketch popup surfaces, unchanged native
+  menu/application stylesheet/theme preferences and exact restore all passed.
+  Screenshots were inspected in both modes. Local evidence:
+  `scratch/gui_f75vcffs/theme_dark.json`, `theme_light.json` and their screenshots.
+- Smoke **31/31**, orientation **84/84**, quit-cancel **16/16**, discard **9/9**,
+  relaunch **5/5**, autoload **6/6**, and saved config **7/7** also passed on the
+  theme-following code. The theme/lifecycle runner exited 0.
+- Feature integration **51/51** and all five tab captures also passed after this
+  change (`scratch/gui_uuzahgto/summary.json`). The result-validator suite remains
+  **10/10**; `git diff --check` is clean.
+
+The GUI runner includes `theme_dark` and `theme_light` in its default suites;
+those tests seed only scratch XML configs before launching FreeCAD. Tests never
+change the user's real theme preferences.
+
+## 2026-10-29 audit
+
+The repository already contained 489 headless tests and GUI acceptance scripts;
+it had no CI workflow. The tests were strongest around lifecycle, settings and
+orientation. Import/API checks and pinned ribbon tables accounted for a substantial
+part of the headless count, and did not prove that individual tools worked in FreeCAD.
+The earlier per-feature tables below describe the 2026-10-28 baseline; the results
+and added coverage in this section supersede their statements about absent GUI tests.
+
+### Confirmed defects fixed
+
+1. **Drawing sheet not opened (high impact).** Make Drawing created a drawing and
+   saved its projections, but left the 3D window active. `drawing_common` called
+   `page.ViewObject.doubleClicked()`. FreeCAD 1.1.4 gates the entire handler on
+   TechDraw's `SwitchToWB`, which JellyJams sets false. This also affected the shared
+   opener used by sheet-sketch return and export preparation. The helper and export
+   fallback now call `ViewObject.show()`, which opens/raises the sheet directly.
+   A new headless regression and a real Make Drawing/Drawing-tab check cover it.
+   The matching [FreeCAD source](https://github.com/FreeCAD/FreeCAD/blob/4fd3bf320d9566a27e60069fc8387448aaa3a094/src/Mod/TechDraw/Gui/ViewProviderPage.cpp#L265)
+   confirms the preference gate.
+2. **Unreadable dock titles (medium impact).** A full-window capture showed white
+   Model/Tasks/Report titles against the light background. FreeCAD's custom
+   `Gui::OverlayTitleBar` children bypass the existing `QDockWidget::title` rules.
+   The main-window stylesheet now scopes the palette foreground/background to those
+   children too. The real GUI checks all five stock title-widget foregrounds;
+   no FreeCAD-owned widget receives its own stylesheet.
+3. **No automatic regression gate (medium impact).** Added GitHub Actions on push,
+   pull request and manual dispatch for Windows/Ubuntu, Python 3.11, PySide6 6.8.3.
+   Hosted execution has not been run from this local audit. It exercises stubbed
+   FreeCAD APIs; installed-template tests skip without FreeCAD resources.
+4. **Autoload toolbars restored late (medium impact).** A repeat run failed the
+   six-second startup check with stock toolbars visible; a second pre-fix run
+   reproduced it. The delayed layout passes previously re-docked panels only.
+   They now also hide newly visible non-kept toolbars, record each once for restore,
+   and stop when another workbench is active or the activation generation changes.
+   Three headless regressions cover late bars, restore, stale timers and the
+   interval before the next workbench calls `Deactivated()`.
+
+### Verification and additions
+
+- Baseline headless: **489/489**, no skips. After the fixes and new regression:
+  **493/493**, no skips (one drawing-opener and three layout regressions added).
+  A separate venv also passed the original 489 with the
+  PySide6 alias fallback, rather than FreeCAD's PySide shim.
+  The final 493-test suite also passed with the PySide6 alias and FreeCAD resources
+  deliberately removed: **3 expected template skips**, no failures or errors.
+- New GUI result-validator suite: **10/10**. It rejects empty/incomplete results,
+  exceptions, failed/missing check statuses and incomplete tab captures.
+- Added `tests/run_gui.py`: unique scratch configs, sequential processes,
+  per-process timeout, exit-code and JSON checks, saved-config inspection and a
+  machine-readable summary. It uses fresh configs rather than copying the user's
+  profile. Installed add-ons and caches remain shared, as with all `-u`/`-s` runs.
+- Real GUI baseline rerun: smoke **31/31**, sketch first **20/20**, orientation
+  **84/84**, cancel **16/16**, discard **9/9**, after **5/5**, autoload **6/6**;
+  saved config **7/7**. All five tabs rendered with counts **21/22/22/13/31**.
+- New real feature suite passed **51/51** after the fixes. It checks all
+  custom and relation/mate command IDs are registered and no ribbon entries are
+  skipped; relation Horizontal/Delete clicks; real Sketcher Centerline/Midpoint
+  processing; Make Drawing, linked projections, Drawing context, scale and text;
+  Surface Finish Cancel/OK and Weld Symbol OK; SVG Insert Picture command/OK; single/multiple
+  PDF and DXF export; New Assembly, Rotate Component start/stop, Add Mate panel and
+  Parallel button/OK with a real joint, sheet projection changes and Sheet Properties
+  Cancel, file component insertion and grounding.
+- New actual abrupt-exit/restart test: **2/2 + 3/3**. Parameters were saved while
+  overrides were active, then the process exited without the quit guard. The next
+  process restored every checked View value (including a custom background),
+  navigation, shortcut presence/values (including a custom `T` for Top), and all
+  three SwitchToWB states; all six backups cleared and the ribbon stayed hidden.
+- Final-code full GUI runner: **exit 0**, all 11 suites successful, **227 GUI
+  assertions plus 7 saved-config checks**, and complete five-tab captures. Local
+  evidence is in `scratch/gui_txxaeigc/summary.json` and the per-suite JSON/logs in
+  that directory. Autoload also passed a separate targeted post-fix run; the two
+  earlier failures are retained in scratch rather than being silently discarded.
+- PDF inspection: Poppler recognized the merged export as **two A4 pages** and
+  rendered the first page with model geometry, title block, annotations and symbols.
+  It emitted `No current point in closepath` warnings on both a direct native
+  single-sheet export and the merged export; the cause is not established.
+
+### Custom-button coverage after the audit
+
+Every custom command registers, has resources and an original icon, and is covered
+by the headless command contract. The table distinguishes real GUI command invocation
+from tests of an internal helper; it does not promote helper checks into button tests.
+
+| Tool | Real FreeCAD coverage | Still unverified |
+|---|---|---|
+| View Orientation, Normal To | Existing 84-check orientation script, key presses and view changes | Some split-view and unusual selection cases listed below |
+| New Assembly | Command creates a separate document and assembly | Every coexistence/nesting/error case |
+| Rotate Component | Command enabled for a floating link, starts and stops | Actual pointer drag and placement undo |
+| Make Drawing | Command, deterministic format/file pickers, saved drawing, linked views, title block, sheet in front | Native file dialogs and every model/template variant |
+| Sheet Properties | Command opens, Cancel closes; helper changes group/page projection | Editing every field through the panel, format change gestures |
+| Insert Picture | Command reads an SVG from a patched file picker, panel opens and OK keeps it | Raster inputs, resize/drag, Cancel after an early transaction commit |
+| Surface Finish | Command, Cancel removes the object, OK keeps it | Every editable field and on-sheet double-click |
+| Weld Symbol | Command, panel and OK, symbol created | Pointer placement, arrow following through save/reload, every weld form |
+| Projected View | Helper adds a real Left projection | Command pick mode and every direction |
+| Scale | Helper changes a real projection group's scale | Popup choice and custom-input gestures |
+| Text | Helper creates a real multiline annotation | Sheet pick and modal editor gestures |
+| Centerline, Midpoint Line | Processing modes modify real Sketcher geometry/constraints | Full command + pointer drawing + end gesture |
+| Line/Rectangle/Circle/Arc/Polygon on sheet | Headless helpers and resources | Full edit/frame/undo workflow in FreeCAD |
+| Line Format | Headless selection helper and resources | Native decoration panel and ISO preset clicks |
+| Save as PDF, Export DXF | Helpers produce real single/multi-sheet PDF and DXF; PDF independently rendered | Export button + native save dialog, DXF round trip, merge fallback collisions |
+| Diagnostics | Headless formatting/resources | Opening and copying from the live dialog |
+
+Add Relations and Add Mate are selection-driven panels rather than custom command
+IDs. Horizontal/Delete and Parallel/OK now have real button checks; the complete
+relation/mate matrices remain headless-only.
+
+### Remaining limits and open findings
+
+- **Native page double-click remains gated by FreeCAD.** The fixed JellyJams
+  helper opens sheets, but holding `SwitchToWB=false` also makes FreeCAD's own
+  tree double-click a no-op in 1.1.4. Use the page's native **Show Drawing** context
+  action to reopen an existing sheet. A replacement tree gesture is not implemented
+  by this audit; the three-preference exact-restore contract is unchanged.
+- Registration and ribbon completeness are checked for every entry; **every native
+  command has not been functionally exercised**. Individual Part Design features,
+  all relation/mate selection combinations, dimension/section/detail workflows,
+  motion study, sheet-sketch pointer tools, every flyout variant and file dialogs
+  still need more end-to-end coverage. Some new tests drive the shared helper
+  directly and do not prove pointer interaction.
+- Full-window `QWidget.grab()` images showed 3D framebuffer corruption, so they
+  cannot certify viewport appearance. The ribbon captures were readable; independent
+  exported PDF rendering was usable. GPU/driver behavior was not diagnosed.
+- Only FreeCAD **1.1.4 on Windows** was exercised. Hosted CI, Addon Manager install,
+  macOS/Linux GUI, other FreeCAD releases, unusual profiles/add-ons and every crash
+  interruption point remain unverified. The suite uses fixed timer delays.
+- Existing known limitations below remain, including shortcuts registered after
+  activation and early commits of Insert Picture's persistent undo step.
+
+No release bump, commit or push was made. Scratch configs, documents, logs and
+screenshots are git-ignored. See [testing.md](testing.md#automated-runner-and-ci-2026-10-29)
+for the reproducible commands.
+
 ## Contents
 
+- [2026-10-29 audit](#2026-10-29-audit)
 - [Test results](#test-results)
 - [How to read the tables](#how-to-read-the-tables)
 - [Area summary](#area-summary)

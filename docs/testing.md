@@ -3,7 +3,7 @@
 JellyJams has two test layers:
 
 1. **Headless suite**: [`tests/test_headless.py`](../tests/test_headless.py) with
-   [`tests/headless_stubs.py`](../tests/headless_stubs.py). About 489 fast tests against stubbed
+   [`tests/headless_stubs.py`](../tests/headless_stubs.py). 506 tests against stubbed
    `FreeCAD` / `FreeCADGui` modules and an offscreen Qt. No FreeCAD window, no profile touched.
    Run it before every commit.
 2. **GUI acceptance scripts**: [`tests/gui_smoke.py`](../tests/gui_smoke.py),
@@ -14,6 +14,84 @@ JellyJams has two test layers:
 
 Current results and what is still unverified: [status.md](status.md). Behavior the tests check
 against: [specs/README.md](specs/README.md).
+
+## Automated runner and CI (2026-10-29)
+
+The GitHub Actions workflow [tests.yml](../.github/workflows/tests.yml) runs the
+headless suite and GUI-result validator tests on pushes, pull requests and manual
+dispatch, on Windows and Ubuntu with Python 3.11 and PySide6 6.8.3. FreeCAD APIs are
+stubbed; this does **not** certify real FreeCAD behavior on either platform.
+Linux job installs `libegl1` and `libopengl0` before importing Qt, including with
+the offscreen platform. The checkout/Python setup actions use maintained v7 releases.
+The three installed-template checks skip when FreeCAD's ISO templates are absent.
+Hosted CI execution must be checked after pushing; a local passing test is not a
+hosted CI result.
+
+To run all real FreeCAD suites locally, with JellyJams already installed:
+
+```powershell
+& "C:/Program Files/FreeCAD 1.1/bin/python.exe" tests/run_gui.py
+```
+
+The standard-library runner creates a unique `scratch/gui_*` directory, starts
+each GUI process sequentially with fresh `-u` / `-s` paths, waits for that exact
+process, and reads its JSON. It never copies or writes the real user/system
+configuration. FreeCAD still loads installed add-ons and uses its usual caches.
+Use `--freecad <exe>` for another installation, `--timeout <seconds>` (default
+240 per process), or `--suites smoke sketch orientation features tabs cancel
+discard after autoload crash recover` to select suites. `after` must follow
+`discard`, and `recover` must follow `crash`; each pair shares only its disposable
+config files. Keep other FreeCAD windows closed and avoid input during tests.
+
+The runner exits nonzero for a failed process, timeout, missing result, exception,
+failed assertion, insufficient check count or incomplete five-tab capture. It also
+runs `check_saved_cfg.py` after Discard and writes `summary.json`. The `crash`
+process deliberately exits 86 after saving active preferences; only that suite
+accepts that exit code. `test_gui_runner.py` tests result validation without Qt.
+
+`gui_features.py` adds real integration checks for command availability, custom
+dock-title colors, Add Relations (Horizontal and Delete button clicks), Centerline
+and Midpoint Line processing against real Sketcher geometry, Make Drawing with
+scratch file/format pickers, Drawing context, projections, scale, text, sheet
+properties, symbol panels, picture insertion, PDF/DXF, New Assembly, Rotate
+Component, Add Mate and component insertion. Some checks call the same helpers the
+buttons use; they do not simulate every pointer gesture or native file dialog.
+
+`gui_crash.py` saves parameters while JellyJams is active and exits without close
+events or the quit guard. A second process compares the 14 managed color keys,
+navigation, managed shortcuts and conflicting native shortcuts, and all three
+SwitchToWB preferences, including absent keys, with their pre-activation state.
+It also checks cleared backups and a hidden ribbon. It does not simulate every
+possible crash point or assert the complete toolbar geometry.
+
+`--suites theme_dark theme_light` seeds fresh scratch profiles with the installed
+FreeCAD Dark/Light themes and runs `gui_theme.py` (22 checks per mode). It checks
+actual native theme loading, ribbon/dock/popup colors, unchanged application
+stylesheet and theme settings, and exact restoration on leave. A real sketch has
+unconstrained, blocked and construction lines plus driving/reference dimensions;
+rendered pixels verify their actual colors and the viewport background, and all
+14 managed color keys are checked before/after leaving. The native theme
+settings are written only into disposable XML configs before starting FreeCAD.
+Screenshots are `<mode>_active.png`, `<mode>_orientation.png` and
+`<mode>_restored.png`, `<mode>_sketch.png` (the rendered 3D view) and
+`<mode>_sketch_window.png`. These two suites are included in the default full run.
+
+`--suites orbit` runs `gui_orbit.py` (49 checks) against real FreeCAD mouse/key
+event handling. It compares horizontal/vertical camera angles in all five orbit
+modes at normal and ultrawide sizes; checks native Ctrl-pan, Shift-zoom and middle
+clicks against a deterministic camera fixture; tests modifier transitions, cursor
+warp bypass and removal mid-drag; then checks the original native response after
+leaving. It discovers a view created after activation and verifies no orbit/pivot/
+sensitivity preferences changed. It sends Qt events directly to the actual 3D
+widget, avoiding dependence on desktop pointer placement. It measures software
+response, not physical mouse latency or exact parity with SolidWorks. It also
+accepts a native Pad edit dialog with its OK button focused and then orbits the
+body, repeating 20 times. The immediate-focus-scan implementation crashed on the
+first acceptance; deferring discovery until the event loop resumes passes this
+regression. Headless tests additionally check deferral, coalescing and cancellation.
+
+The lifecycle suites also require the runtime orbit hook to be absent inside the
+quit prompt, restored after Cancel, and correctly installed/removed with autoload.
 
 ## Contents
 

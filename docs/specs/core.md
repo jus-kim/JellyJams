@@ -213,6 +213,39 @@ FreeCAD calls Deactivated when the user switches **away** from JellyJams to anot
 - FreeCAD's dock overlay manager rearranges docks about 100 ms after changes. Entering and leaving therefore need a delayed second pass. After the delayed pass on leaving (about 250 ms), the ribbon dock must be hidden again if JellyJams is no longer active (layout and ribbon areas).
 - FreeCAD's asynchronous window-state restore can re-show a dock. The ribbon guards against this by watching its own visibility.
 
+### 4.7.1 Middle-button orbit response (A4, D15)
+
+The native SolidWorks navigation preset supplies the button mapping: middle drag
+orbits, Ctrl+middle drag pans, Shift+middle drag zooms. JellyJams MUST additionally
+balance orbit movement against the shorter viewport dimension. FreeCAD divides
+horizontal and vertical deltas by width and height separately; without correction
+an ultrawide viewport makes horizontal orbiting much slower.
+
+- Only 3D OpenGL widgets under `Gui::View3DInventorViewer` are mouse-filtered.
+  Viewer widgets are also watched for key events that require position rebasing.
+  New, split and undocked views use the same discovery rule.
+- During an unmodified middle drag, scale each physical delta by
+  `(axis_size - 1) / (shorter_size - 1)`, with denominators at least one pixel.
+  Forward the resulting coordinate stream to FreeCAD's own navigation engine.
+  Native orbit mode, sensitivity and pivot settings MUST NOT be overridden.
+- Ctrl-pan and Shift-zoom keep physical movement deltas. At modifier/key changes,
+  rebase the native mouse position with a middle press before movement, without
+  moving the camera. Middle clicks retain native recenter behavior.
+- Native cursor-warp navigation (`ResetCursorPosition=True`) bypasses correction.
+  A wheel event uses the physical cursor and ends correction for that held drag.
+- No application-wide event filter is installed. A focus watcher plus a one-second
+  discovery timer finds later view widgets; both stop on leave/quit. Removing a
+  transformed drag ends native orbiting before physical coordinates resume.
+- The focus callback MUST only schedule/coalesce a zero-delay discovery timer.
+  It MUST NOT traverse Qt children synchronously: FreeCAD emits focus changes
+  while native task widgets are being destroyed, when PySide child wrapping can
+  crash outside Python exception handling. Initial discovery is deferred too.
+  No old/new focus widget is captured for queued delivery. Stop MUST cancel both
+  the deferred focus timer and periodic discovery timer.
+- `navigation.install/uninstall/recover` own the runtime hook. Existing quit-revert
+  and quit-reapply steps remove/reinstall it, including a cancelled quit. A crash
+  leaves no hook behind. No new persistent setting or backup format is introduced.
+
 ### 4.8 SolidWorks keyboard shortcuts (A5, D14)
 
 While JellyJams is active, `Preferences/Shortcut` holds these overrides (`shortcuts.SHORTCUTS`, in this order):
@@ -641,3 +674,16 @@ Unless a criterion says otherwise, start FreeCAD 1.1.x with a fresh profile (for
 37. `CHANGELOG.md` contains `## <version> — <date>` matching `package.xml`. `README.md` and the `package.xml` description both carry the "not affiliated with or endorsed by Dassault Systèmes" note.
 38. No file name, icon file name, Qt objectName, command id, parameter key or workbench key of the add-on contains "solidworks" in any case. A search over the add-on's file names, its registered `JellyJams_*` ids and its `JellyJams*` objectNames finds none.
 39. Removing one command icon file and restarting still registers that command, which shows without an icon. No exception appears in the Report view.
+40. In normal and ultrawide native 3D views, equal 100-pixel horizontal and vertical
+    middle drags turn the camera by angles within 8% of each other in all five
+    native orbit modes. Ctrl-pan, Shift-zoom and an unmoved middle click produce
+    the same camera state as the native preset without correction. Ctrl/orbit
+    transitions while held MUST NOT jump the camera. Removal mid-drag MUST NOT
+    move the camera and MUST release native orbiting. After leaving, the native
+    unbalanced response and original navigation preferences return. Quit/cancel
+    and autoload checks MUST verify the runtime hook is removed/reinstalled too.
+41. With JellyJams active, open a native Pad edit dialog, focus its OK button,
+    accept the feature, then orbit the extruded body. Repeat 20 times without a
+    native crash, a stuck edit dialog or invalid geometry. A headless test MUST
+    verify focus discovery is deferred/coalesced and cancelled on stop. This
+    covers the focus-change signal emitted inside native task-widget destruction.

@@ -257,7 +257,7 @@ CONSTANT_VALUES = {
 
 EXPECTED_MODULES = [
     "constants", "console", "params", "paths", "fcgui", "doc_utils", "commands", "recovery",
-    "navigation", "shortcuts", "lifecycle", "quit_guard", "qt_filter", "diagnostics", "palette",
+    "navigation", "orbit", "orbit_rules", "shortcuts", "lifecycle", "quit_guard", "qt_filter", "diagnostics", "palette",
     "theme", "viewport", "layout", "ribbon", "ribbon_layout", "ribbon_model", "ribbon_text",
     "ribbon_widgets", "icons", "naming", "naming_rules", "dialog_terms", "dialog_terms_data",
     "sketch_edit", "edit_guard", "sketch_gesture", "sketch_tools", "context_sketch", "panel_host",
@@ -269,7 +269,7 @@ EXPECTED_MODULES = [
 ]
 
 PURE_MODULES = ["__init__", "constants", "palette", "ribbon_layout", "ribbon_model", "ribbon_text",
-                "naming_rules", "relations_rules", "mate_rules", "dialog_terms_data", "pdf_merge"]
+                "naming_rules", "relations_rules", "mate_rules", "dialog_terms_data", "pdf_merge", "orbit_rules"]
 NOT_IN_PURE = {"FreeCAD", "FreeCADGui", "PySide", "PySide2", "PySide6", "shiboken2", "shiboken6"}
 
 API_NAMES = {
@@ -2278,7 +2278,7 @@ class Test10Look(HarnessCase):
         selectors = " ".join(selector for selector, _declarations in rules)
         for needed in ("JellyJamsCommandManager", "JellyJamsCommandManagerTabs", "JellyJamsGroupDivider", "JellyJamsPropertyManager",
                        "JellyJamsPropertyManagerTitle", "JellyJamsSectionCaption", "JellyJamsItemList", "popupMode",
-                       "MainWindow", "QDockWidget", "Model"):
+                       "MainWindow", "QDockWidget", "Gui--OverlayTitleBar", "Model"):
             self.assertIn(needed, selectors)
 
     def test_theme_apply_remove_exact(self):
@@ -2302,6 +2302,54 @@ class Test10Look(HarnessCase):
         self.assertEqual(window.styleSheet(), base)
         self.assertEqual(STUBS.qapp.styleSheet(), app_sheet)
         self.assertNoJellyJamsProblems()
+
+    def test_dark_widget_palette_contrast_and_role_coverage(self):
+        palette = self.palette_module()
+        self.assertEqual(set(palette.DARK_WIDGET_PALETTE), set(palette.WIDGET_PALETTE))
+        colors = palette.widget_colors(dark=True)
+        for text in (colors.TEXT, colors.TEXT_SECONDARY, colors.TREE_TEXT):
+            for background in (colors.WINDOW, colors.PANEL, colors.RIBBON_SURFACE,
+                               colors.TAB_STRIP, colors.HOVER, colors.SELECTION):
+                self.assertGreaterEqual(w3c_contrast(text, background), 4.5, (text, background))
+        for background in (colors.PANEL, colors.RIBBON_SURFACE, colors.HOVER, colors.PRESSED):
+            self.assertGreaterEqual(w3c_contrast(colors.ACCENT, background), 3.0)
+
+    def test_theme_follows_native_dark_light_and_restores_exactly(self):
+        theme = self.module("jellyjams.theme", fresh=True)
+        palette = self.palette_module()
+        app, window = STUBS.qapp, STUBS.main_window
+        original = app.styleSheet()
+        self.addCleanup(app.setStyleSheet, original)
+        self.addCleanup(theme.remove)
+        base = "QLabel#Foreign { padding: 3px; }"
+        window.setStyleSheet(base)
+        for dark, background, foreground in ((True, "#191919", "#ffffff"),
+                                              (False, "#ffffff", "#191919"),
+                                              (True, "#191919", "#ffffff")):
+            with self.subTest(dark=dark):
+                native = "* { background: %s; color: %s; }" % (background, foreground)
+                app.setStyleSheet(native)
+                expected = palette.widget_colors(dark)
+                self.assertEqual(theme.widget_colors().RIBBON_SURFACE, expected.RIBBON_SURFACE)
+                theme.apply()
+                first = window.styleSheet()
+                self.assertIn("background-color: " + expected.RIBBON_SURFACE, first)
+                theme.apply()
+                self.assertEqual(window.styleSheet(), first, "mode detection must not read our override")
+                self.assertEqual(first.count(THEME_BEGIN), 1)
+                self.assertEqual(app.styleSheet(), native)
+                theme.remove()
+                self.assertEqual(window.styleSheet(), base)
+                self.assertEqual(app.styleSheet(), native)
+
+    def test_floating_sketch_popup_uses_native_dark_colors(self):
+        context = self.module("jellyjams.context_sketch")
+        palette = self.palette_module().widget_colors(dark=True)
+        app = STUBS.qapp
+        self.addCleanup(app.setStyleSheet, app.styleSheet())
+        app.setStyleSheet("* { background: #191919; color: #ffffff; }")
+        self.assertEqual(context._colors()["PANEL"], palette.PANEL)
+        self.assertIn(palette.PANEL, context._style_sheet())
 
     def test_stale_and_truncated_blocks(self):
         theme = self.module("jellyjams.theme", fresh=True)
@@ -2366,6 +2414,44 @@ class Test10Look(HarnessCase):
         self.assertEqual([tuple(entry) for entry in viewport.MANAGED_KEYS], MANAGED_KEYS)
         self.assertEqual(palette.packed_rgba(palette.GRADIENT_TOP), 4261281279)
         self.assertEqual(palette.packed_rgba(palette.SKETCH_CONSTRUCTION), 1550569983)
+
+    def test_dark_viewport_palette_is_readable_and_manages_the_same_keys(self):
+        palette = self.palette_module()
+        viewport = self.module("jellyjams.viewport")
+        colors = palette.DARK_VIEWPORT_PALETTE
+        self.assertEqual(set(colors), set(palette.VIEWPORT_PALETTE))
+        for role, color in colors.items():
+            if role.startswith("gradient_"):
+                continue
+            for background in (colors["gradient_top"], colors["gradient_bottom"]):
+                minimum = 4.5 if "dimension" in role else 3.0
+                self.assertGreaterEqual(w3c_contrast(color, background), minimum, role)
+        self.assertEqual([(key, suffix) for key, suffix, _value in viewport.managed_keys(True)],
+                         [(key, suffix) for key, suffix, _value in MANAGED_KEYS])
+
+    def test_dark_viewport_round_trip_and_crash_recovery(self):
+        viewport = self.module("jellyjams.viewport", fresh=True)
+        app = STUBS.qapp
+        self.addCleanup(app.setStyleSheet, app.styleSheet())
+        app.setStyleSheet("* { background: #191919; color: #ffffff; }")
+        view = param(P_VIEW)
+        view.SetUnsigned("BackgroundColor2", 123456)
+        view.SetUnsigned("ConstrainedDimColor", 654321)
+        before = list(view.GetContents() or [])
+        viewport.apply()
+        for key, suffix, value in viewport.managed_keys(True):
+            self.assertEqual(getattr(view, "Get" + suffix)(key), value, key)
+        saved = param(P_OWN).GetString("OriginalViewColors")
+        viewport.apply()
+        self.assertEqual(param(P_OWN).GetString("OriginalViewColors"), saved)
+        viewport.restore()
+        self.assertEqual(list(view.GetContents() or []), before)
+        viewport.apply()
+        # A fresh module must recover from the stable persisted backup alone.
+        viewport = self.module("jellyjams.viewport", fresh=True)
+        viewport.recover()
+        self.assertEqual(list(view.GetContents() or []), before)
+        self.assertFalse(param(P_OWN).GetString("OriginalViewColors"))
 
     def test_viewport_apply_restore_absent_keys(self):
         viewport = self.module("jellyjams.viewport", fresh=True)
@@ -2598,6 +2684,46 @@ class Test11Layout(HarnessCase):
         self.assertLess(tasks.geometry().top(), report.geometry().top())
         self.assertTrue(self.docks["Python console"].isHidden())
 
+    def test_delayed_pass_hides_late_toolbars_and_restores_them_once(self):
+        window = self.build_window()
+        self.layout.apply()
+        self.toolbars["View"].show()
+        late = QtWidgets.QToolBar("Late", window)
+        late.setObjectName("HarnessLateTools")
+        late.addAction("Late")
+        window.addToolBar(late)
+        late.show()
+        self.layout._redock(self.layout._generation)
+        self.assertTrue(late.isHidden())
+        self.assertTrue(self.toolbars["View"].isHidden())
+        self.assertTrue(self.toolbars["Navigation"].isHidden())
+        self.assertTrue(self.inner.isVisible())
+        self.toolbars["View"].show()
+        self.layout._redock(self.layout._generation)
+        self.assertEqual(sum(bar is self.toolbars["View"] for bar in self.layout._hidden), 1)
+        self.layout.revert()
+        self.assertTrue(late.isVisible())
+        self.assertTrue(self.toolbars["View"].isVisible())
+        self.assertTrue(self.toolbars["Navigation"].isHidden())
+
+    def test_delayed_pass_leaves_the_next_workbenchs_toolbars_alone(self):
+        self.build_window()
+        self.layout.apply()
+        self.toolbars["View"].show()
+        STUBS.set_active_workbench("PartDesignWorkbench")
+        self.layout._redock(self.layout._generation)
+        self.assertTrue(self.toolbars["View"].isVisible())
+
+    def test_stale_delayed_pass_does_not_hide_toolbars_after_reentry(self):
+        self.build_window()
+        self.layout.apply()
+        previous = self.layout._generation
+        self.layout.revert()
+        self.layout.apply()
+        self.toolbars["View"].show()
+        self.layout._redock(previous)
+        self.assertTrue(self.toolbars["View"].isVisible())
+
     def test_revert_restores_only_what_was_hidden(self):
         window = self.build_window()
         self.layout.apply()
@@ -2716,6 +2842,78 @@ class Test11Layout(HarnessCase):
 
 
 class Test12NavigationShortcuts(HarnessCase):
+
+    def test_orbit_drag_uses_the_shorter_dimension_on_both_axes(self):
+        rules = self.module("jellyjams.orbit_rules")
+        for width, height in ((1001, 1001), (4001, 1001), (1001, 4001)):
+            with self.subTest(size=(width, height)):
+                drag = rules.OrbitDrag(0, 0)
+                x, y = drag.move(100, 100, width, height)
+                self.assertAlmostEqual(x / (width - 1), 0.1)
+                self.assertAlmostEqual(y / (height - 1), 0.1)
+
+    def test_orbit_drag_modifier_changes_preserve_native_pan_deltas(self):
+        rules = self.module("jellyjams.orbit_rules")
+        drag = rules.OrbitDrag(100, 100)
+        self.assertEqual(drag.move(120, 110, 4001, 1001), (180, 110))
+        # Ctrl-pan starts from the same virtual position, with physical deltas.
+        self.assertEqual(drag.move(125, 115, 4001, 1001, orbit=False), (185, 115))
+        self.assertEqual(drag.move(130, 120, 4001, 1001), (205, 120))
+        self.assertEqual(drag.move(130, 120, 4001, 1001, orbit=False), (205, 120))
+
+    def test_orbit_drag_negative_motion_resize_and_degenerate_sizes(self):
+        rules = self.module("jellyjams.orbit_rules")
+        drag = rules.OrbitDrag(100, 100)
+        self.assertEqual(drag.move(90, 80, 4001, 1001), (60, 80))
+        self.assertEqual(drag.move(90, 70, 1001, 4001), (60, 40))
+        self.assertEqual(drag.move(90, 70, 0, 0), (60, 40))
+
+    def test_orbit_filter_scope_and_lifecycle(self):
+        orbit = self.module("jellyjams.orbit", fresh=True)
+        self.addCleanup(orbit.uninstall)
+        orbit.install()
+        first = orbit._filter
+        self.assertIsNotNone(first)
+        orbit.install()
+        self.assertIs(orbit._filter, first)
+        self.assertFalse(orbit._is_viewport(QtWidgets.QWidget()))
+        orbit.uninstall()
+        self.assertIsNone(orbit._filter)
+        self.assertFalse(first.running)
+        self.assertFalse(first.watched)
+        self.assertFalse(first.timer.isActive())
+        orbit.uninstall()
+
+    def test_navigation_recovery_removes_runtime_orbit_filter(self):
+        orbit = self.module("jellyjams.orbit")
+        self.addCleanup(orbit.uninstall)
+        self.navigation.install()
+        self.assertIsNotNone(orbit._filter)
+        self.navigation.recover()
+        self.assertIsNone(orbit._filter)
+        self.assertFalse(self.navigation.is_installed())
+
+    def test_orbit_focus_discovery_is_deferred_coalesced_and_cancelled_on_stop(self):
+        orbit = self.module("jellyjams.orbit", fresh=True)
+        self.addCleanup(orbit.uninstall)
+        orbit.install()
+        watcher = orbit._filter
+        calls = []
+        # The focus callback must schedule discovery without traversing widgets
+        # while a native task control may still be inside its destructor.
+        self.patch(watcher, "refresh", lambda: calls.append("scanned"))
+        watcher.focus_timer.timeout.disconnect()
+        watcher.focus_timer.timeout.connect(watcher.refresh)
+        watcher.schedule_refresh()
+        watcher.schedule_refresh()
+        self.assertEqual(calls, [])
+        STUBS.qapp.processEvents()
+        self.assertEqual(calls, ["scanned"])
+        watcher.schedule_refresh()
+        orbit.uninstall()
+        STUBS.qapp.processEvents()
+        self.assertEqual(calls, ["scanned"])
+
     def setUp(self):
         super().setUp()
         self.navigation = self.module("jellyjams.navigation", fresh=True)
@@ -4715,6 +4913,15 @@ def svg_doc(attributes):
 
 
 class Test19DrawingHelpers(HarnessCase):
+    def test_open_sheet_bypasses_workbench_switch_preference(self):
+        common = self.module("jellyjams.drawing_common")
+        calls = []
+        provider = types.SimpleNamespace(
+            show=lambda: calls.append("show"),
+            doubleClicked=lambda: self.fail("doubleClicked is a no-op with SwitchToWB false"))
+        common.open_sheet_window(types.SimpleNamespace(ViewObject=provider))
+        self.assertEqual(calls, ["show"])
+
     def test_scale_text_and_parse(self):
         common = self.module("jellyjams.drawing_common")
         for value, text in ((2, "2:1"), (1, "1:1"), (0.5, "1:2"), (0.4, "1:2.5"), (0.3, "1:3.33"), (2.5, "2.5:1"),
@@ -9062,8 +9269,8 @@ class Test24Orientation(HarnessCase):
                 self.assertIn("background", rule, "a background of its own in this state too")
         self.assertEqual(declared["%s QLabel" % panel_id].get("color"), palette.TEXT)
 
-    def test_panel_text_stays_dark_under_a_light_on_dark_theme(self):
-        palette = self.module("jellyjams.palette")
+    def test_panel_text_follows_dark_theme_and_stays_readable(self):
+        palette = self.module("jellyjams.palette").widget_colors(dark=True)
         app = STUBS.qapp
         self.addCleanup(app.setStyleSheet, app.styleSheet())
         app.setStyleSheet("* { color: #ffffff; background: #202020; }")   # as FreeCAD's dark themes do
@@ -9086,7 +9293,10 @@ class Test24Orientation(HarnessCase):
         title[0].ensurePolished()
         self.assertEqual(title[0].palette().color(role.WindowText).name(), palette.TEXT)
         pin.setChecked(True)
-        self.assertGreater(dark_pixels(pin), 0, "the checked Pin shows dark text on its light background")
+        rendered = pin.grab().toImage()
+        self.assertTrue(any(rendered.pixelColor(x, y).lightness() > 180
+                            for x in range(rendered.width()) for y in range(rendered.height())),
+                        "the checked Pin shows light text on its dark background")
 
     def test_leaving_jellyjams_closes_the_panel(self):
         lifecycle = self.module("jellyjams.lifecycle", fresh=True)

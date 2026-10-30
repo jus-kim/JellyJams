@@ -93,9 +93,9 @@ closes it when it is open. Running Normal To runs the command of 2.6.
   | Tool buttons, keyboard focus | | `ACCENT` frame |
   | Tool buttons, disabled | `TEXT_DISABLED` | transparent |
 
-  So FreeCAD's dark themes (FreeCAD Dark among them) and a dark system palette, which give
-  widgets light text, cannot leave light text on the light panel. FreeCAD's widgets are not
-  styled.
+  The panel follows the native light/dark widget palette from [look](look.md).
+  Its own stylesheet supplies readable foreground/background pairs in either mode
+  and is refreshed whenever the panel opens. FreeCAD's widgets are not styled.
 - **Placement:** its top-left corner is 12 px right of and 12 px below the pointer
   (`CURSOR_OFFSET_PX`). If the panel would leave the available area of the screen under the
   pointer (the primary screen when no screen is under it), it is moved back inside, so the whole
@@ -549,8 +549,10 @@ check the logic headlessly (see [../status.md](../status.md)).
 28. With the panel unpinned, clicking another window (FreeCAD's main window or another program)
     more than 0.3 s after it opened closes it; with Pin checked it stays open. After a click into
     another program, that program stays in front.
-29. With FreeCAD's dark theme ("FreeCAD Dark") or a dark system palette, the panel's title and
-    buttons show dark text on the light panel in every state (normal, hover, checked, disabled).
+29. With FreeCAD Dark or a dark system palette, the panel's title and buttons show
+    light text on a dark panel in every state (normal, hover, checked, disabled).
+    With FreeCAD Light, they show dark text on a light panel. The active palette
+    supplies every state explicitly; reopening refreshes its light/dark choice.
 30. **G** Tab to a view button in the panel and press Space, with the pointer still over the 3D
     view beside the panel: that view is applied and the unpinned panel closes. The same with the
     pointer over the panel.

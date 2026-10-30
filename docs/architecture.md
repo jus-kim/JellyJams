@@ -2,7 +2,7 @@
 
 JellyJams is a FreeCAD 1.1+ workbench that gives FreeCAD a SolidWorks-style user interface
 while it is the active workbench (a CommandManager-style ribbon, SolidWorks tool and tree
-names, a light theme, SolidWorks mouse navigation and keyboard shortcuts) and leaves stock
+names, light/dark widget colors matching FreeCAD, SolidWorks mouse navigation and keyboard shortcuts) and leaves stock
 FreeCAD exactly as it was otherwise. Not affiliated with or endorsed by Dassault Systèmes.
 
 This document describes the **structure and contracts** of the code in
@@ -103,7 +103,9 @@ interpreter and never imports FreeCAD, FreeCADGui, PySide or shiboken, not even 
 | [`doc_utils.py`](../jellyjams/doc_utils.py) | document helpers: liveness, type checks, root and primary model objects (2D profiles excluded), pages, property add, the `transaction` undo-step context manager | runtime | core |
 | [`commands.py`](../jellyjams/commands.py) | `BaseCommand` for every JellyJams command (`cmd_type`, when set, becomes FreeCAD's `CmdType` resource); once-per-process registration (`PROVIDERS`) | runtime | core 8 |
 | [`recovery.py`](../jellyjams/recovery.py) | startup crash recovery orchestrator | runtime | core 7 |
-| [`navigation.py`](../jellyjams/navigation.py) | SolidWorks navigation style while active: `install()`, `uninstall()`, `recover()`, `is_installed()`; persisted backup `OriginalNavigationStyle`, exact restore; uses `console`, `constants` and `params` like every other module | runtime | core |
+| [`navigation.py`](../jellyjams/navigation.py) | SolidWorks navigation style while active: `install()`, `uninstall()`, `recover()`, `is_installed()`; persisted backup `OriginalNavigationStyle`, exact restore; owns the runtime orbit hook | runtime | core |
+| [`orbit.py`](../jellyjams/orbit.py) | balanced native middle-button orbit input; 3D viewport mouse filters and viewer key filters, deferred/coalesced focus discovery plus periodic discovery, removal on leave/quit; never scan synchronously inside focusChanged/native widget destruction; no persistent preferences | runtime | core 4.7.1 |
+| [`orbit_rules.py`](../jellyjams/orbit_rules.py) | physical-to-native drag coordinates, normalized against the shorter viewport dimension | pure | core 4.7.1 |
 | [`shortcuts.py`](../jellyjams/shortcuts.py) | SolidWorks shortcuts (`SHORTCUTS`); unbinds the commands that own one of those keys at install time; `install()`, `uninstall()`, `recover()`, `is_installed()`; persisted backup `OriginalShortcuts`, exact restore; uses `console`, `constants` and `params` | runtime | core |
 
 ### 3.2 Lifecycle
@@ -440,9 +442,11 @@ and before FreeCAD restores its saved window state.
 * A2 to A18 apply immediately (theme, viewport, navigation, shortcuts, ribbon, ...).
 * When the deferred layout finally applies, layout calls `ribbon.show_if_requested()`, because
   FreeCAD's restore of the saved window state may have hidden the ribbon dock.
-* After every apply, layout re-checks the Tasks / Report view docking at `REDOCK_DELAYS_MS`
-  (350, 1200, 3000 ms), because FreeCAD may move docks shortly after a change. Each pass runs
-  only while the layout is still applied.
+* After every apply, layout re-checks the Tasks / Report view docking and hides any
+  non-kept toolbar restored late at `REDOCK_DELAYS_MS` (350, 1200, 3000 ms).
+  Newly hidden bars join the restore list once. Each pass runs only for the same
+  activation generation, while the layout is applied and JellyJams is still the
+  active workbench; it cannot hide the next workbench's bars before deactivation.
 
 ### 5.8 Process-wide hooks
 
@@ -939,6 +943,25 @@ headless tests, `SWITCH_GROUPS` in the GUI scripts and `check_saved_cfg.py`).
 ---
 
 ## 13. Tests and current status
+
+Widgets and the viewport share the read-only `theme.is_dark()` native menu-palette
+decision. `palette.viewport_colors(dark)` and `viewport.managed_keys(dark)` choose
+matching background/sketch values without changing the 14-key backup contract.
+
+The theme-following update adds `tests/gui_theme.py` and the `theme_dark` /
+`theme_light` GUI runner suites. `theme.widget_colors()` reads the native menu
+palette; `palette.widget_colors(dark)` returns a pure widget palette. The
+main-window block and JellyJams popups share the selected colors (decision D-19).
+No application stylesheet/palette or native theme preference is modified.
+
+The 2026-10-29 audit adds GitHub Actions (`.github/workflows/tests.yml`), a
+standard-library GUI runner (`tests/run_gui.py`), its result-validation tests
+(`tests/test_gui_runner.py`), real feature integration (`tests/gui_features.py`)
+and abrupt-exit/restart recovery (`tests/gui_crash.py`). The runner owns disposable
+config paths, executes scripts sequentially, validates JSON and enforces timeouts.
+See [testing.md](testing.md#automated-runner-and-ci-2026-10-29) for the full command
+and [status.md](status.md#2026-10-29-audit) for current results. The older baseline
+table below is retained as historical evidence.
 
 | Layer | How to run | What it covers |
 |---|---|---|

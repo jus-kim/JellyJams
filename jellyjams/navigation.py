@@ -39,6 +39,9 @@ def install():
         if _current(view) != (True, SW_STYLE):
             params.set_value(view, "String", STYLE_KEY, SW_STYLE)
         _installed = True
+        from jellyjams import orbit
+
+        orbit.install()
 
 
 def uninstall():
@@ -49,6 +52,7 @@ def uninstall():
     """
     global _installed
     _installed = False
+    _stop_orbit()
     with console.guard("restore the navigation style"):
         _put_back()
 
@@ -57,6 +61,7 @@ def recover():
     """Startup crash recovery: undo a navigation style change an earlier session left behind."""
     global _installed
     _installed = False
+    _stop_orbit()
     with console.guard("restore the navigation style left over from the previous session",
                        level="warning"):
         if _put_back():
@@ -75,6 +80,13 @@ def is_installed():
 
 
 # --- helpers ---------------------------------------------------------------------------
+
+
+def _stop_orbit():
+    with console.guard("stop balanced middle-button orbiting"):
+        from jellyjams import orbit
+
+        orbit.uninstall()
 
 
 def _current(view):

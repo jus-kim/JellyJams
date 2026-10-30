@@ -197,6 +197,10 @@ area uses the same rule.
      views.
    - It becomes the active document, and its sheet window opens in front, as
      if the sheet were double-clicked in the tree.
+     The opener MUST use `page.ViewObject.show()` directly. In FreeCAD 1.1.4,
+     `doubleClicked()` does not open a page while TechDraw's `SwitchToWB` is
+     false, which JellyJams requires while active. Opening the sheet MUST NOT
+     change the active workbench or temporarily change that preference.
    - The Report view gets one message containing the path and the format.
 10. Any exception during steps 5 to 9 is reported in the Report view as an
     error. The command then ends without further dialogs.

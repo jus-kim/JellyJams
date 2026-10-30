@@ -111,6 +111,15 @@ Related: [architecture.md](architecture.md) (where each behavior is used),
 
 ### Navigation
 
+FreeCAD 1.1.4 normalizes mouse X by viewport width and Y by viewport height before
+passing movement to its native sphere projector. On an ultrawide 3571×902 viewport,
+a 100-pixel native Rounded Arcball drag measured 5.82° horizontally and 24.06°
+vertically. Other orbit modes had the same axis imbalance. `orbit.py` balances
+the input deltas; it does not replace the native rotation algorithm or write
+orbit, sensitivity or pivot preferences. Verified by `tests/gui_orbit.py`.
+Source for the installed revision:
+[NavigationStyle::normalizePixelPos](https://github.com/FreeCAD/FreeCAD/blob/4fd3bf320d9566a27e60069fc8387448aaa3a094/src/Gui/Navigation/NavigationStyle.cpp#L1370).
+
 | Fact | Relied on by | Evidence |
 |---|---|---|
 | `Preferences/View` String `NavigationStyle`; the SolidWorks style is `Gui::SolidWorksNavigationStyle`; FreeCAD's default (key absent) is `Gui::CADNavigationStyle`. A change applies live to open 3D views | [`navigation.py`](../jellyjams/navigation.py) | Verified 1.1.4; GUI tests `nav_is_solidworks`, `nav_restored` |
@@ -135,6 +144,7 @@ Related: [architecture.md](architecture.md) (where each behavior is used),
 | Fact | Relied on by | Evidence |
 |---|---|---|
 | `FreeCADGui.getMainWindow().setStyleSheet()` layers on top of the application stylesheet and reverts cleanly. The `StyleSheet` / `Theme` preferences need a restart to take effect, so they are unsuitable for a per-workbench theme (and JellyJams never calls `QApplication.setStyleSheet`) | [`theme.py`](../jellyjams/theme.py) | Verified 1.1.4; GUI tests `theme_marker`, `theme_removed` |
+| Dock titles are painted by `Gui::OverlayTitleBar` children; `QDockWidget::title` alone does not style their foreground | `theme.py` | Verified 1.1.4, 2026-10-29: custom title widgets found on all five stock docks; `gui_features: dock_titles_use_readable_color` checks their foreground |
 
 ## Assembly
 
@@ -180,7 +190,7 @@ Related: [architecture.md](architecture.md) (where each behavior is used),
 | Fact | Relied on by | Evidence |
 |---|---|---|
 | Pages are `TechDraw::DrawPage`, templates `TechDraw::DrawSVGTemplate` | drawing modules | Verified 1.1.4 |
-| `Preferences/Mod/TechDraw/General` Bool `SwitchToWB`: while true or missing, double-clicking a page switches to the TechDraw workbench | [`switch_prefs.py`](../jellyjams/switch_prefs.py) | Verified 1.1.4; not exercised by a GUI test |
+| `Preferences/Mod/TechDraw/General` Bool `SwitchToWB`: while true or missing, double-clicking a page switches to TechDraw and shows it. When false, the entire native `doubleClicked()` handler does nothing. `page.ViewObject.show()` opens or raises the sheet without switching workbenches | [`switch_prefs.py`](../jellyjams/switch_prefs.py), `drawing_common.open_sheet_window` | Verified 1.1.4, 2026-10-29: Make Drawing's sheet was absent before the fix, active afterwards (`gui_features: drawing_context_tab`). [Matching FreeCAD source](https://github.com/FreeCAD/FreeCAD/blob/4fd3bf320d9566a27e60069fc8387448aaa3a094/src/Mod/TechDraw/Gui/ViewProviderPage.cpp#L265) |
 | FreeCAD ships ISO templates under `<FreeCAD.getResourceDir()>/Mod/TechDraw/Templates/` (ISO formats in the `ISO/` subfolder, for example `A4_Portrait_ISO5457_advanced.svg`, `A3_Landscape_ISO5457_advanced.svg`) | [`templates.py`](../jellyjams/templates.py) | Verified 1.1.4; Headless test (catalog, when installed) |
 | The ISO `*_ISO5457_advanced/minimal.svg` projection symbol has five elements with ids containing spaces: `first_angle_trapezoid`, `first_angle_inner circle`, `first_angle_outer circle`, `first_angle_horizontal`, `first_angle_vertical` | `templates.transform_symbol` (third-angle derivation) | Headless test `test_third_angle_symbol_on_installed_template` (skips when the template is not installed) |
 | Editable title-block fields include `title`, `drawing_number`, `scale`, `creator`, `date_of_issue`, `language_code`, `part_material`, `legal_owner_1..4` | `sheet_properties`, `make_drawing`, `drawing_export` | Recorded from the installed 1.1.4 templates; not verified by a test |

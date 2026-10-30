@@ -29,6 +29,10 @@ To change a decision, add a new entry that supersedes the old one and mark the o
 | [D-16](#d-16-stay-in-jellyjams-while-features-are-edited-with-a-deferred-guard) | Stay in JellyJams while features are edited, with a deferred guard | Accepted |
 | [D-17](#d-17-space-opens-an-orientation-panel-ctrl8-is-jellyjams-normal-to-and-both-sit-in-the-jellyjams-menu) | Space opens an Orientation panel, `Ctrl+8` is JellyJams' Normal To, and both sit in the JellyJams menu | Accepted, extended by D-18 |
 | [D-18](#d-18-the-orientation-commands-are-3d-view-commands-and-the-pointer-decides-who-gets-space) | The orientation commands are 3D-view commands, and the pointer decides who gets Space | Accepted |
+| [D-19](#d-19-match-the-native-lightdark-widget-theme) | Match native light/dark widgets | Extended by D-20 |
+| [D-20](#d-20-match-viewport-and-sketch-colors-to-the-native-theme-too) | Match viewport/sketch colors too | Accepted |
+| [D-21](#d-21-balance-orbit-input-without-replacing-native-navigation) | Balance orbit input without replacing native navigation | Accepted |
+| [D-22](#d-22-defer-orbit-discovery-outside-native-focus-change-callbacks) | Defer orbit discovery outside native focus-change callbacks | Accepted |
 
 ---
 
@@ -662,3 +666,85 @@ Status: Accepted. Extends D-17. Code: [`commands.py`](../jellyjams/commands.py)
   panel.
 * The filter lives in memory only; leaving JellyJams removes it from every widget it was
   installed on, and a repeated activation never adds a second one.
+
+## D-19. Match the native light/dark widget theme
+
+Status: Accepted, 2026-10-29. Code: `palette`, `theme`, `orientation`, `context_sketch`.
+
+**Context.** The original look spec explicitly accepted light JellyJams surfaces
+mixed with dark native menus, editors and Start page. The user reported that
+mixture as a bug and chose to follow FreeCAD's selected dark/light theme.
+
+**Decision.** Keep the existing light widget colors and add a dark palette. Read
+the effective native menu bar background/text luminances to select between them.
+The menu bar is outside JellyJams' overrides, so repeated apply cannot detect its
+own background and change modes. Ribbon/tree/dock/panel colors and floating
+Orientation/Sketch popup colors follow the selected mode. Popups refresh on open.
+
+**Consequences.** Theme selection is read-only and not persisted by JellyJams.
+No new override or backup contract is needed: the main-window block is removed
+exactly as before, and only JellyJams-owned popups have their own stylesheet.
+Viewport and sketch drawing colors remain independent. Native Dark/Light tests
+run in fresh scratch profiles and check colors and exact restoration.
+
+## D-20. Match viewport and sketch colors to the native theme too
+
+Status: Accepted, 2026-10-30. Code: `palette`, `theme`, `viewport`.
+
+**Context.** D-19 left the viewport light. Native dark-theme cursor overlays
+remained pale, making sketch creation hard to read. Widget-only theme following
+was incomplete.
+
+**Decision.** Use the same `theme.is_dark()` decision for the drawing palette.
+Keep existing light colors, add a dark gradient with bright geometry and pale
+driving/reference dimensions. Fully Defined geometry becomes bright green on
+dark. Leave native cursor/overlay colors under FreeCAD's control.
+
+**Consequences.** Supersedes D-19's independent-viewport policy. The same 14 keys,
+types and backup format remain in use, with no additional persistent override.
+Dark-mode contrast and exact restore/crash recovery are headless-tested. Native
+Dark/Light GUI tests render real sketch geometry and dimensions and assert their
+pixel colors as well as the matching background and exact restoration.
+
+## D-21. Balance orbit input without replacing native navigation
+
+Status: Accepted, 2026-10-30. Code: `navigation`, `orbit`, `orbit_rules`.
+
+**Context.** Selecting FreeCAD's SolidWorks preset matched the buttons but left
+orbit movement much slower horizontally on the user's ultrawide display. Actual
+FreeCAD tests measured about 6° horizontally versus 24° vertically for equal
+100-pixel drags. Switching between the five orbit modes did not fix the imbalance.
+
+**Decision.** Normalize unmodified middle-drag deltas by the shorter viewport
+dimension before forwarding to the native engine. Preserve its mode, pivot,
+sensitivity, pan, zoom and middle-click behavior. Rebase after keyboard/modifier
+changes to keep the camera continuous. Native cursor-warp mode bypasses this
+correction; wheel zoom ends correction for that held drag.
+
+**Consequences.** The correction is a runtime viewport hook owned by navigation's
+existing enter/leave/quit lifecycle. No new saved preference or backup contract is
+needed. Equal drag response, native controls, modifier changes and cleanup are
+tested against real FreeCAD. This addresses a measured response imbalance; it
+does not claim an exact reproduction of SolidWorks' rotation engine or latency.
+
+## D-22. Defer orbit discovery outside native focus-change callbacks
+
+Status: Accepted, 2026-10-30. Code: `orbit`.
+
+**Context.** The orbit hook's new focus watcher scanned all Qt children directly
+from `QApplication.focusChanged`. Accepting an extrusion destroys native task
+widgets and emits that signal inside their destructors. The user's crash dump
+showed PySide QObject type wrapping/child traversal entered from focus change
+while FreeCAD reset the Pad edit dialog, ending in native heap corruption
+(`0xc0000374`). An isolated test reproduced it on the first OK click.
+
+**Decision.** Focus changes only schedule a coalesced zero-delay timer; the timer
+discovers current live views after the callback returns. Initial discovery also
+uses this path. Do not queue the old/new focus widget arguments. Cancel the focus
+timer as well as periodic discovery on uninstall.
+
+**Consequences.** Orbit scaling is retained without synchronous traversal of
+partially destroyed task widgets. A real-GUI regression repeatedly accepts a Pad
+edit dialog and orbits the solid, and a headless test checks deferred/coalesced
+discovery and timer cancellation. Python exception guards alone cannot contain
+this native crash. No new preference or recovery format is introduced.

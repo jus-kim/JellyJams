@@ -314,6 +314,7 @@ def open_at_cursor():
     QtCore, QtGui, QtWidgets = fcgui.qt()
     if _panel is None or not fcgui.is_alive(_panel):
         _panel = _build(QtCore, QtGui, QtWidgets)
+    _panel.setStyleSheet(_style())
     active = QtWidgets.QApplication.activeWindow()
     _return_to = active if active is not _panel else None
     _generation += 1
@@ -405,9 +406,15 @@ def _placement(QtCore, QtGui, size):
 
 
 def _style():
-    """The panel's own colors for every state, so the user's FreeCAD theme cannot leave
-    light text on its light background."""
+    """Explicit readable colors for every state, following FreeCAD's appearance."""
     from jellyjams import palette
+
+    try:
+        from jellyjams import theme
+
+        palette = theme.widget_colors()
+    except Exception:
+        pass
 
     return (
         "#%(obj)s { background: %(panel)s; border: 1px solid %(border)s; }"

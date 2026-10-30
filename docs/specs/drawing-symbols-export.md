@@ -61,6 +61,11 @@ The tooltip text itself lives in the command class named in the third column; th
 
 IsActive MUST never raise. If anything goes wrong while checking, the command is disabled.
 
+Before exporting an unopened sheet, its window MUST be opened through
+`drawing_common.open_sheet_window` (direct `ViewObject.show()`, including any
+fallback). TechDraw's `doubleClicked()` is gated by `SwitchToWB` and cannot be
+used while JellyJams holds that preference false.
+
 ### 2.3 Which sheet a symbol goes on
 
 A new surface finish or weld symbol goes on the "target sheet":

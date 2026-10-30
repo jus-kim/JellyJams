@@ -122,7 +122,10 @@ def backups_pending():
 
 
 def jj_state():
+    from jellyjams import orbit, fcgui
+
     return {
+        "orbit": fcgui.is_alive(orbit._filter) and orbit._filter.running,
         "theme": THEME_OPEN in mw().styleSheet(),
         "theme_blocks": mw().styleSheet().count(THEME_OPEN),
         "nav": nav(),
@@ -166,7 +169,8 @@ def close_record_stock():
 @guarded
 def close_make_dirty():
     st = jj_state()
-    note("active_before_close", st["theme"] and st["ribbon"] and st["nav"] == "Gui::SolidWorksNavigationStyle", st)
+    note("active_before_close", st["theme"] and st["ribbon"] and st["orbit"]
+         and st["nav"] == "Gui::SolidWorksNavigationStyle", st)
     note("switch_to_wb_off_before_close", all_switches_off(st["switch"]), st["switch"])
     doc = App.newDocument("Dirty")
     doc.addObject("Part::Box", "Box")
@@ -187,7 +191,7 @@ def during_prompt():
     st = jj_state()
     RES["info"]["state_during_prompt"] = st
     # 1.5 s is longer than one 600 ms quit-prompt poll: the guard must NOT have re-applied.
-    note("not_reentered_inside_prompt", not st["theme"] and not st["ribbon"], st)
+    note("not_reentered_inside_prompt", not st["theme"] and not st["ribbon"] and not st["orbit"], st)
     note("nav_restored_inside_prompt", st["nav"] == RES["info"]["nav_before"], st["nav"])
     note("shortcut_restored_inside_prompt", st["fit"] == "", st["fit"])
     note("switch_to_wb_restored_inside_prompt", st["switch"] == RES["info"]["switch_before"],
@@ -216,7 +220,7 @@ def during_prompt():
 @guarded
 def after_cancel():
     st = jj_state()
-    note("reapplied_after_cancel", st["theme_blocks"] == 1 and st["ribbon"], st)
+    note("reapplied_after_cancel", st["theme_blocks"] == 1 and st["ribbon"] and st["orbit"], st)
     note("nav_reapplied_after_cancel", st["nav"] == "Gui::SolidWorksNavigationStyle", st["nav"])
     note("shortcut_reapplied_after_cancel", st["fit"] == "F", st["fit"])
     note("switch_to_wb_reapplied_after_cancel", all_switches_off(st["switch"]), st["switch"])
@@ -229,7 +233,7 @@ def after_cancel():
 def finish_cancel():
     st = jj_state()
     missing = sorted(set(RES["info"]["stock_toolbars"]) - set(st["toolbars"]))
-    note("stock_restored_after_leave", not missing and not st["theme"], f"missing={missing}")
+    note("stock_restored_after_leave", not missing and not st["theme"] and not st["orbit"], f"missing={missing}")
     note("switch_to_wb_restored_after_leave", st["switch"] == RES["info"]["switch_before"],
          f"now={st['switch']!r} was={RES['info']['switch_before']!r}")
     note("backups_cleared_after_leave", not backups_pending(), backups_pending())
@@ -282,7 +286,7 @@ def autoload_check():
     st = jj_state()
     RES["info"]["state_autoloaded"] = st
     note("layout_active_after_show", layout._active and layout._saved_state is not None)
-    note("ribbon_visible_after_show", st["ribbon"])
+    note("ribbon_visible_after_show", st["ribbon"] and st["orbit"])
     kept = {"File", "Edit", "Workbench"}
     extra = [t for t in st["toolbars"] if t not in kept]
     note("stock_toolbars_hidden_after_show", not extra, f"visible={st['toolbars']}")
@@ -295,7 +299,7 @@ def autoload_after_leave():
     st = jj_state()
     RES["info"]["state_after_leave"] = st
     note("toolbars_back_after_leave", len(st["toolbars"]) > 3, st["toolbars"])
-    note("theme_removed_after_leave", not st["theme"])
+    note("theme_removed_after_leave", not st["theme"] and not st["orbit"])
     quit_app()
 
 
