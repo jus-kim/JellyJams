@@ -8,6 +8,19 @@ test mentioned here: [testing.md](testing.md).
 After any code change, re-run the suites and update this page (see
 [Updating this page](#updating-this-page)).
 
+## GitHub PR and hosted CI (2026-10-30)
+
+[PR #1](https://github.com/jus-kim/JellyJams/pull/1) contains the audit, theme,
+orbit and native-crash regression work on `codex/theme-orbit-regression-coverage`.
+Commits are authored and committed solely by `jus-kim <hi@jus.kim>`.
+
+The first hosted Windows job passed 506 headless tests (3 installed-template
+checks skipped because FreeCAD is absent) and all 10 runner tests. Ubuntu first
+failed before test discovery because the hosted image lacked `libEGL.so.1`.
+The workflow now explicitly installs `libegl1` and `libopengl0` on Linux and uses
+maintained checkout/setup-python v7 actions. The corrected hosted run is pending;
+the prior local GUI results below remain Windows FreeCAD 1.1.4 results.
+
 ## Native crash after extrusion — orbit watcher fix (2026-10-30)
 
 The orbit change below introduced a native crash. The user reported it after

@@ -20,8 +20,10 @@ against: [specs/README.md](specs/README.md).
 The GitHub Actions workflow [tests.yml](../.github/workflows/tests.yml) runs the
 headless suite and GUI-result validator tests on pushes, pull requests and manual
 dispatch, on Windows and Ubuntu with Python 3.11 and PySide6 6.8.3. FreeCAD APIs are
-stubbed; this does **not** certify real FreeCAD behavior on either platform. The
-three installed-template checks skip when FreeCAD's ISO templates are absent.
+stubbed; this does **not** certify real FreeCAD behavior on either platform.
+Linux job installs `libegl1` and `libopengl0` before importing Qt, including with
+the offscreen platform. The checkout/Python setup actions use maintained v7 releases.
+The three installed-template checks skip when FreeCAD's ISO templates are absent.
 Hosted CI execution must be checked after pushing; a local passing test is not a
 hosted CI result.
 
