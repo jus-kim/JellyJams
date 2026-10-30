@@ -1454,7 +1454,9 @@ def dark_theme():
 
 @guarded
 def dark_check():
-    from jellyjams import palette
+    from jellyjams import theme
+
+    palette = theme.widget_colors()
 
     p = panel()
     want = QtGui.QColor(palette.TEXT).name()

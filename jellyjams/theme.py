@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: LGPL-3.0-or-later
 # SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
-"""Widget theme: a light, SolidWorks-like look on the main-window stylesheet.
+"""Widget theme: a SolidWorks-like look matching FreeCAD's light/dark appearance.
 
 All rules form one block framed by constants.THEME_BEGIN and THEME_END and
 placed after the sheet's existing content (the "base sheet"). Only the main
@@ -25,9 +25,9 @@ _applied_sheet = None   # the whole sheet as apply() set it
 # --- rule table ----------------------------------------------------------------
 
 
-def _rules():
+def _rules(colors=None):
     """[(selectors, [(property, value), ...]), ...] in cascade order."""
-    p = palette
+    p = colors or palette
     ribbon = "QDockWidget#" + constants.OBJ_RIBBON
     tabs = "QTabWidget#" + constants.OBJ_RIBBON_TABS
     panel = "QFrame#" + constants.OBJ_PANEL
@@ -203,6 +203,11 @@ def _rules():
             ("padding", "3px 6px"),
             ("text-align", "left"),
         ]),
+        # FreeCAD 1.1 paints dock titles in this child widget, outside ::title.
+        ((dock + " > Gui--OverlayTitleBar",), [
+            ("background-color", p.WINDOW),
+            ("color", p.TEXT_SECONDARY),
+        ]),
         ((dock_tabs,), [
             ("background-color", p.WINDOW),
         ]),
@@ -246,9 +251,9 @@ def _format_rule(selectors, declarations):
     return ",\n".join(selectors) + " {\n" + body + "}\n"
 
 
-def build_block():
+def build_block(colors=None):
     """Begin marker, every rule, end marker; each marker on a line of its own."""
-    rules = "".join(_format_rule(sel, decl) for sel, decl in _rules())
+    rules = "".join(_format_rule(sel, decl) for sel, decl in _rules(colors))
     return constants.THEME_BEGIN + "\n" + rules + constants.THEME_END + "\n"
 
 
@@ -287,6 +292,30 @@ def _main_window():
     return window
 
 
+def is_dark():
+    """Choose colors from the unmodified native menu bar, outside our styled areas.
+
+    Reading the main-window background would read our own override on re-entry.
+    No application palette, stylesheet or theme preference is changed here.
+    """
+    try:
+        from PySide import QtGui
+
+        menu = _main_window().menuBar()
+        menu.ensurePolished()
+        native = menu.palette()
+        background = native.color(QtGui.QPalette.ColorRole.Window).name()
+        foreground = native.color(QtGui.QPalette.ColorRole.WindowText).name()
+        return palette.relative_luminance(background) < palette.relative_luminance(foreground)
+    except Exception:
+        return False
+
+
+def widget_colors():
+    """Widget colors matching the native theme without changing it."""
+    return palette.widget_colors(is_dark())
+
+
 def _holds_single_block(sheet, block):
     return (block in sheet
             and sheet.count(constants.THEME_BEGIN) == 1
@@ -299,7 +328,7 @@ def apply():
     try:
         window = _main_window()
         current = window.styleSheet() or ""
-        block = build_block()
+        block = build_block(widget_colors())
         if _applied and _holds_single_block(current, block):
             return
         base = strip_block(current)
@@ -309,7 +338,7 @@ def apply():
         _base_sheet, _separator, _block, _applied_sheet = base, separator, block, sheet
         _applied = True
     except Exception as exc:
-        console.error("the light theme was not applied: %s" % exc)
+        console.error("the widget theme was not applied: %s" % exc)
 
 
 def _sheet_without_block(current):
@@ -339,7 +368,7 @@ def _strip_leftover():
     try:
         window.setStyleSheet(strip_block(current))
     except Exception as exc:
-        console.error("the light theme was not taken off: %s" % exc)
+        console.error("the widget theme was not taken off: %s" % exc)
 
 
 def remove():
@@ -359,7 +388,7 @@ def remove():
         _base_sheet = _block = _applied_sheet = None
         _separator = ""
     except Exception as exc:
-        console.error("the light theme was not taken off: %s" % exc)
+        console.error("the widget theme was not taken off: %s" % exc)
 
 
 def is_applied():

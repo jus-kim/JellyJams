@@ -11,7 +11,7 @@ SolidWorks-style UI while it is the active workbench:
 - a CommandManager-style ribbon with the tabs Features, Sketch, Evaluate, Assembly and Drawing,
   running FreeCAD's own commands under SolidWorks tool names,
 - SolidWorks names in the model and drawing tree, and SolidWorks terms in FreeCAD's task dialogs,
-- a light theme and light 3D view colors, SolidWorks mouse navigation and SolidWorks keyboard shortcuts,
+- widget and 3D view colors following FreeCAD's light/dark theme, SolidWorks mouse navigation and SolidWorks keyboard shortcuts,
   including the Orientation panel on `Space` and Normal To on `Ctrl+8`,
 - sketch, assembly and drawing helpers (Add Relations / Add Mate panels, Make Drawing, Projected
   View, drawing symbols, PDF/DXF export and more),
@@ -110,7 +110,7 @@ session and every other workbench. The rules:
 - **Pure modules** import nothing from FreeCAD or PySide and must run under plain Python:
   `jellyjams/__init__.py`, `constants`, `palette`, `ribbon_layout`, `ribbon_model`,
   `ribbon_text`, `naming_rules`, `relations_rules`, `mate_rules`, `dialog_terms_data`,
-  `pdf_merge`. Put new rules logic in a pure module so it can be unit-tested.
+  `pdf_merge`, `orbit_rules`. Put new rules logic in a pure module so it can be unit-tested.
 - **Boundaries never raise.** Workbench methods, command `GetResources/Activated/IsActive`,
   observers, event filters, timers and slots catch everything (`console.guard`,
   `console.guarded`, `console.safe_call`). Event filters return `False` on internal failure.
@@ -166,7 +166,7 @@ Modules by area, with the spec that defines each area's behavior:
 
 | Area | Modules (in `jellyjams/`) | Spec |
 |---|---|---|
-| Core: entry, lifecycle, quit guard, crash recovery, commands, diagnostics, Qt message filter, navigation, shortcuts | `__init__`, `constants`, `console`, `params`, `paths`, `fcgui`, `doc_utils`, `commands`, `recovery`, `lifecycle`, `quit_guard`, `qt_filter`, `diagnostics`, `navigation`, `shortcuts` | [core.md](docs/specs/core.md) |
+| Core: entry, lifecycle, quit guard, crash recovery, commands, diagnostics, Qt message filter, navigation, shortcuts | `__init__`, `constants`, `console`, `params`, `paths`, `fcgui`, `doc_utils`, `commands`, `recovery`, `lifecycle`, `quit_guard`, `qt_filter`, `diagnostics`, `navigation`, `orbit`, `orbit_rules`, `shortcuts` | [core.md](docs/specs/core.md) |
 | Window layout | `layout` | [window-layout.md](docs/specs/window-layout.md) |
 | Look: theme, 3D background, sketch colors | `palette`, `theme`, `viewport` | [look.md](docs/specs/look.md) |
 | Ribbon engine | `ribbon`, `ribbon_model`, `ribbon_text`, `ribbon_widgets`, `icons` | [ribbon-engine.md](docs/specs/ribbon-engine.md) |

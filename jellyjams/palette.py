@@ -8,6 +8,8 @@ all take their colors from this module and nowhere else. Plain Python only:
 no FreeCAD or Qt imports.
 """
 
+from types import SimpleNamespace
+
 # --- widget palette ---------------------------------------------------------
 
 WINDOW = "#f2f4f6"
@@ -56,6 +58,31 @@ WIDGET_PALETTE = {
     "tree_text": TREE_TEXT,
 }
 
+# Dark widget colors follow FreeCAD's dark surfaces while retaining the blue accent.
+# Viewport/sketch colors have their own matching light/dark palettes.
+DARK_WIDGET_PALETTE = {
+    "window": "#191919",
+    "panel": "#202020",
+    "ribbon_surface": "#242424",
+    "tab_strip": "#191919",
+    "border": "#505050",
+    "text": "#f0f0f0",
+    "text_secondary": "#c0c6ce",
+    "text_disabled": "#858585",
+    "accent": "#66b8ff",
+    "accent_dark": "#66b8ff",
+    "hover": "#303f4d",
+    "pressed": "#354d63",
+    "selection": "#354d63",
+    "tree_text": "#f0f0f0",
+}
+
+
+def widget_colors(dark=False):
+    """A widget-only palette with the same uppercase role names as this module."""
+    colors = DARK_WIDGET_PALETTE if dark else WIDGET_PALETTE
+    return SimpleNamespace(**{name.upper(): value for name, value in colors.items()})
+
 VIEWPORT_PALETTE = {
     "gradient_top": GRADIENT_TOP,
     "gradient_bottom": GRADIENT_BOTTOM,
@@ -68,6 +95,25 @@ VIEWPORT_PALETTE = {
     "driven_dimension": DIM_DRIVEN,
     "relation_symbols": RELATION_SYMBOLS,
 }
+
+DARK_VIEWPORT_PALETTE = {
+    "gradient_top": "#20252b",
+    "gradient_bottom": "#14181d",
+    "under_defined": "#66b8ff",
+    "fully_defined": "#8cff5b",
+    "over_defined": "#ff7a7a",
+    "construction": "#a6b4ff",
+    "construction_defined": "#aeb6c2",
+    "driving_dimension": "#f0f0f0",
+    "driven_dimension": "#b9c3cf",
+    "relation_symbols": "#7bdb9b",
+}
+
+
+def viewport_colors(dark=False):
+    """Matching background and sketch drawing colors, including dimension text."""
+    colors = DARK_VIEWPORT_PALETTE if dark else VIEWPORT_PALETTE
+    return SimpleNamespace(**{name.upper(): value for name, value in colors.items()})
 
 # --- contrast requirements (WCAG 2.x) ---------------------------------------------
 

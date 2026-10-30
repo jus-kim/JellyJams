@@ -5,7 +5,7 @@ Not affiliated with or endorsed by Dassault Systèmes.
 
 Pick **JellyJams** in the workbench selector of FreeCAD 1.1 or later and the window starts to
 feel like SolidWorks. A tabbed ribbon modelled on the CommandManager takes over from most stock
-toolbars, buttons and tree entries use SolidWorks vocabulary, the colors turn light, and the
+toolbars, buttons and tree entries use SolidWorks vocabulary, widget and viewport colors follow FreeCAD's light/dark theme, and the
 mouse and keyboard follow SolidWorks habits. JellyJams is a regular FreeCAD workbench, so
 moving to a different one reverts all of these changes.
 
@@ -27,11 +27,13 @@ moving to a different one reverts all of these changes.
   Drawing tab when a drawing sheet comes to the front.
 - **SolidWorks-like window layout:** FreeCAD's toolbars are hidden except File, Edit and the
   workbench selector; the Tasks panel and the Report view are docked together on the right.
-- **Light theme** for the main window, a **light gradient 3D background**, and SolidWorks
-  **sketch colors** (under defined blue, fully defined black, over defined red). Your FreeCAD
-  theme setting itself is never changed.
-- **SolidWorks mouse navigation** (FreeCAD's own SolidWorks navigation style) while JellyJams is
-  active.
+- **Light/dark widget and viewport colors matching FreeCAD**, with readable sketch geometry
+  and dimensions. Under defined geometry is blue, fully defined geometry is black in light mode
+  or green in dark mode, and over defined geometry is red. Your FreeCAD theme setting itself
+  is never changed.
+- **SolidWorks mouse-button mapping** using FreeCAD's native preset, with balanced horizontal
+  and vertical orbit response on wide viewports. Orbit mode, pivot and sensitivity preferences
+  are left unchanged.
 - **SolidWorks keyboard shortcuts** while JellyJams is active:
 
   | Key | Action |

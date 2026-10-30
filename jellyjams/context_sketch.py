@@ -187,7 +187,9 @@ def _dismiss():
 def _colors():
     colors = dict(_FALLBACK_COLORS)
     try:
-        from jellyjams import palette
+        from jellyjams import theme
+
+        palette = theme.widget_colors()
 
         for name in colors:
             colors[name] = getattr(palette, name, colors[name])
@@ -271,6 +273,7 @@ def _ensure_popup():
     if main is None:
         return None
     if _popup is not None and fcgui.is_alive(_popup) and _popup.parentWidget() is main:
+        _popup.setStyleSheet(_style_sheet())
         return _popup
     _discard_popup()
     _popup = _ContextPopup(main)

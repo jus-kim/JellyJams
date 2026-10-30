@@ -81,6 +81,7 @@ KEPT_TOOLBAR_WORDS = ("File", "Edit", "Workbench")
 CLASS_TASK_PANEL = "Gui::TaskView::TaskPanel"
 CLASS_SHEET_WINDOW = "TechDrawGui::MDIViewPage"
 CLASS_VIEW3D = "Gui::View3DInventor"
+CLASS_VIEWER3D = "Gui::View3DInventorViewer"
 
 # --- FreeCAD type ids used in several areas -------------------------------------------
 TYPE_SKETCH = "Sketcher::SketchObject"

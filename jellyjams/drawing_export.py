@@ -144,7 +144,7 @@ def _open_window(page):
         opener = drawing_common.open_sheet_window
     except Exception:
         def opener(sheet):
-            sheet.ViewObject.doubleClicked()
+            sheet.ViewObject.show()
     with console.guard("show the sheet %s" % page.Label, level="log"):
         opener(page)
 

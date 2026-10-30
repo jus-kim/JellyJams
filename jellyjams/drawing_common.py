@@ -216,6 +216,6 @@ def sheet_center(page, default=DEFAULT_SHEET_CENTER):
 
 
 def open_sheet_window(page):
-    """Open the sheet's window or raise it, the same as double-clicking it in the tree."""
+    """Open or raise the sheet without TechDraw's SwitchToWB-gated double-click."""
     with console.guard("show the sheet window", level="log"):
-        page.ViewObject.doubleClicked()
+        page.ViewObject.show()

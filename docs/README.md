@@ -2,7 +2,7 @@
 
 JellyJams is a FreeCAD 1.1+ workbench that gives FreeCAD a SolidWorks-style UI while it is
 active: a CommandManager-style ribbon (tabs Features, Sketch, Evaluate, Assembly, Drawing),
-SolidWorks tool and tree names, a light theme, SolidWorks navigation and shortcuts, and sketch,
+SolidWorks tool and tree names, matching light/dark widget colors, SolidWorks navigation and shortcuts, and sketch,
 assembly and drawing helpers. When the user leaves the workbench, quits, or restarts after a
 crash, FreeCAD's stock UI and settings come back exactly.
 Not affiliated with or endorsed by Dassault Systèmes.

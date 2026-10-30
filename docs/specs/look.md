@@ -4,7 +4,8 @@
 >
 > **Status:** see [../status.md](../status.md)
 
-Light SolidWorks-like widget theme, 3D view background gradient and sketch status colors, with exact restore and crash recovery.
+SolidWorks-like widgets, 3D background and sketch colors following FreeCAD's
+light/dark theme, with exact restore and crash recovery.
 
 Requirement levels: MUST and MUST NOT are mandatory, SHOULD is recommended (deviations need a reason), MAY is optional.
 
@@ -14,17 +15,27 @@ Product context: JellyJams is a FreeCAD 1.1+ workbench (workbench key/class `Jel
 
 ## 1. Purpose
 
-When JellyJams is the active workbench, FreeCAD looks like the light SolidWorks UI:
+When JellyJams is the active workbench, its widgets follow FreeCAD's selected
+light/dark appearance while using a SolidWorks-style layout:
 
-1. A **light widget theme**. The CommandManager-style ribbon, the FeatureManager-style model tree, dock panels and the JellyJams PropertyManager-style panels use a light grey/white palette with the SolidWorks blue accent.
-2. A **light 3D view background**: a vertical linear gradient from near-white at the top to pale blue-grey at the bottom.
-3. **SolidWorks sketch status colors** in sketch edit mode:
+1. A **theme-aware widget appearance**. The CommandManager-style ribbon, model
+   tree, dock titles and JellyJams PropertyManager panels use the light palette
+   over a light native theme and the dark palette over a dark native theme, with
+   a blue accent. Floating Orientation and Sketch context popups follow the same
+   choice. The viewport uses the same native theme choice.
+2. A **matching 3D view background**: a vertical gradient, near-white to pale
+   blue-grey in light mode and dark blue-grey in dark mode.
+3. **Sketch status colors** in sketch edit mode. In light mode:
    - Under Defined geometry is blue.
    - Fully Defined geometry is black.
    - Over Defined or invalid sketches are red.
    - Construction geometry is a lighter blue.
    - Driving dimensions are black and driven (reference) dimensions are grey.
    - Relation symbols are green.
+
+   Dark mode uses the brighter equivalents in 2.2, including green Fully Defined
+   geometry and pale dimension text. Native pale cursor coordinates and overlays
+   MUST remain readable against the dark viewport.
 
 The look MUST be **non-destructive**:
 
@@ -40,7 +51,7 @@ The look MUST be **non-destructive**:
 
 | Situation | Widget theme | 3D background and sketch colors |
 |---|---|---|
-| JellyJams active | Light palette on the listed elements (2.3) | Light gradient and SolidWorks sketch colors |
+| JellyJams active | Matching light/dark palette on the listed elements (2.3) | Matching gradient and sketch colors from 2.2 |
 | Any other workbench | FreeCAD's own theme, untouched | The user's own FreeCAD preferences |
 | FreeCAD quit while JellyJams is active | n/a | The user's own values are what FreeCAD saves |
 | Next start after a crash while active | n/a | The user's own values, restored automatically at startup |
@@ -49,7 +60,8 @@ All changes apply live. No restart is needed in either direction. The gradient a
 
 ### 2.2 Palette
 
-The theme has a single palette. Every color the look uses MUST come from this table, and the values MUST be exactly these. Hex values are sRGB `#rrggbb`.
+Every color the look uses MUST come from the selected light/dark tables below,
+and the values MUST be exactly these. Hex values are sRGB `#rrggbb`.
 
 **Widget palette**
 
@@ -70,7 +82,30 @@ The theme has a single palette. Every color the look uses MUST come from this ta
 | Selection | `#cfe6f8` | Selected tree item, list item, menu item (always with dark Text on top) |
 | Tree text | `#1f2328` | Model tree item text |
 
-**3D view and sketch palette** (FreeCAD parameter values in 4.2)
+**Dark widget palette** (same roles; defined in `palette.DARK_WIDGET_PALETTE`)
+
+| Role | Hex |
+|---|---|
+| Window / Ribbon tab strip | `#191919` |
+| Panel | `#202020` |
+| Ribbon surface | `#242424` |
+| Border | `#505050` |
+| Text / Tree text | `#f0f0f0` |
+| Text secondary | `#c0c6ce` |
+| Text disabled | `#858585` |
+| Accent / Accent dark | `#66b8ff` |
+| Hover | `#303f4d` |
+| Pressed / Selection | `#354d63` |
+
+The native menu bar's effective `QPalette.Window` and `WindowText` luminances
+choose the mode at apply/open time: a darker background than foreground means
+dark. The menu bar is outside JellyJams' styled areas, so applying twice does not
+mistake JellyJams' own background for the native theme. If Qt/the native palette
+cannot be read, use the light palette. Theme detection reads no preference and
+changes no application stylesheet or palette. FreeCAD owns when its theme changes
+take effect; JellyJams refreshes the choice on activation and on popup opening.
+
+**Light 3D view and sketch palette** (FreeCAD parameter values in 4.2)
 
 | Role (SolidWorks term) | Hex |
 |---|---|
@@ -84,6 +119,25 @@ The theme has a single palette. Every color the look uses MUST come from this ta
 | Driving dimension | `#000000` (black) |
 | Driven (reference) dimension | `#6b7178` (grey) |
 | Relation symbols | `#2a8048` (green) |
+
+**Dark 3D view and sketch palette** (`palette.DARK_VIEWPORT_PALETTE`)
+
+| Role | Hex |
+|---|---|
+| Viewport gradient, top | `#20252b` |
+| Viewport gradient, bottom | `#14181d` |
+| Under Defined sketch geometry | `#66b8ff` |
+| Fully Defined sketch geometry | `#8cff5b` |
+| Over Defined / invalid sketch | `#ff7a7a` |
+| Construction geometry | `#a6b4ff` |
+| Construction geometry, fully defined | `#aeb6c2` |
+| Driving dimension | `#f0f0f0` |
+| Driven (reference) dimension | `#b9c3cf` |
+| Relation symbols | `#7bdb9b` |
+
+`theme.is_dark()` supplies the same native-palette decision to widgets and the
+viewport on activation. No color-mode preference is written. Native cursor text
+and view overlays retain FreeCAD's own theme colors.
 
 Maintainability requirement: the palette values MUST be defined once and reused everywhere they appear. Changing a palette entry MUST change every element that uses that role. Other JellyJams areas that draw their own floating widgets, such as a create-sketch pop-up, SHOULD take their colors from this palette: Panel for the background, Border for the frame.
 
@@ -129,6 +183,12 @@ These are the sketch "Add Relations" panel and the assembly "Mate" panel. Both u
 | Dock title bar | Window background, Text secondary, padding about 3 px / 6 px, left-aligned |
 | Tabs of tabified docks (tab bars directly owned by the main window, such as "Model / Tasks") | Window background, Text secondary, no frame, 2 px transparent indicator along the top edge, padding about 4 px / 12 px. Hover: Text color. Selected: Panel background, Text color, 2 px Accent indicator along the top edge |
 
+FreeCAD 1.1's `Gui::OverlayTitleBar` child widgets MUST receive Window background
+and Text secondary foreground through the main-window stylesheet as well. Styling
+only `QDockWidget::title` leaves these custom title painters with the user's dark
+theme foreground, which can be unreadable on the light background. No stylesheet
+is assigned to a FreeCAD-owned child widget.
+
 **D. FeatureManager-style model tree** (tree views inside the FreeCAD dock with objectName `Model`)
 
 | Element | Look |
@@ -145,15 +205,24 @@ These are the sketch "Add Relations" panel and the assembly "Mate" panel. Both u
 - The 3D view widget itself. Its background is a FreeCAD setting, see 2.5.
 - The stylesheet of any individual widget. JellyJams MUST NOT call `setStyleSheet` on the model tree, on docks, or on any other FreeCAD-owned widget. All styling goes through the one main-window stylesheet block (4.1).
 
-**Theme independence:** every element in 2.3 that gets a text color MUST also get, from the same block, the background that the text sits on. The element itself or its styled container sets that background. Text contrast then holds whatever FreeCAD theme is underneath, including a dark one. Elements not listed keep the user's FreeCAD theme, even a dark one. A mixed look under a dark FreeCAD theme is accepted.
+**Theme independence:** every element in 2.3 that gets a text color MUST also get,
+from the same block, the background that the text sits on. Each role uses the
+selected light/dark palette. Elements outside that scope retain FreeCAD's native
+theme, including menus, property contents, console and Start page. A light
+JellyJams ribbon/tree/dock surface over a native dark theme is a bug. Floating
+JellyJams widgets explicitly set both text and background colors in their own
+stylesheets and refresh those colors when reopened.
 
 ### 2.5 3D view background
 
-While active, every 3D view shows a **linear, top-to-bottom, two-color gradient**: Viewport gradient top `#fdfdfd` to Viewport gradient bottom `#dfe6ec`. There is no middle color and no radial gradient. The exact parameter writes are in 4.2.
+While active, every 3D view shows a **linear, top-to-bottom, two-color gradient**:
+`#fdfdfd` to `#dfe6ec` in light mode, `#20252b` to `#14181d` in dark mode. There
+is no middle color and no radial gradient. The parameter writes are in 4.2.
 
 ### 2.6 Sketch colors (sketch edit mode)
 
-While active, a sketch open for editing uses SolidWorks status colors:
+In light mode, a sketch open for editing uses these status colors. In dark mode,
+each role uses its dark equivalent in 2.2 against the matching dark background:
 
 | What the user sees | Color |
 |---|---|
@@ -185,6 +254,7 @@ Requirements:
 2. **Disabled text** (Text disabled) is exempt. SC 1.4.3 excludes inactive UI components. It MUST still be visibly lighter than Text.
 3. **Non-text indicators** (SC 1.4.11 Non-text Contrast, https://www.w3.org/TR/WCAG22/#non-text-contrast) MUST reach at least **3:1** against the adjacent background. These are the Accent selected-tab indicator, the Accent hover frames, the Accent panel frame and the Accent dark pressed frame. Purely decorative Border lines are exempt.
 4. **Sketch colors** in 2.6 SHOULD reach at least **3:1** against both gradient end colors. The current palette meets this.
+   Dark-mode driving and reference dimension text MUST reach **4.5:1** against both ends.
 5. The project's automated tests MUST compute these ratios from the palette using the W3C formula above, and fail when any pair in 1, 3 or 4 falls below its threshold. That way a later palette tweak cannot silently break legibility.
 
 Reference values for the current palette:
@@ -270,6 +340,11 @@ The key names were confirmed present in the FreeCAD 1.1.4 binaries. The `Gradien
 **Never touched** in this group by the look area: `Simple`, `BackgroundColor`, `BackgroundColor4`, `SketchEdgeColor`, `ExprBasedConstrDimColor`, `DeactivatedConstrDimColor` and every other key not in the table. `NavigationStyle` lives in the same group but belongs to the navigation area, which has its own independent backup. The look area MUST neither read-modify nor restore it.
 
 Reading prior state: to tell "absent" from "present", use `ParameterGrp.GetContents()`, which lists `(type, name, value)` for every entry in the group. A key counts as present only if an entry with that name **and the type JellyJams writes** exists.
+
+The table above gives light-mode values. In dark mode the same 14 keys and types
+are written; the three Bool values stay unchanged and each Unsigned color uses
+the corresponding dark role in 2.2, packed as `0xRRGGBBFF`. `managed_keys(dark)`
+builds the values; the light-mode `MANAGED_KEYS` retains the stable backup key set.
 
 ### 4.3 JellyJams parameter
 
@@ -393,7 +468,7 @@ At every FreeCAD start, during the addon's `InitGui.py` execution and after work
 | Key present with a non-default user value, such as a custom alpha | Restored bit-exactly. |
 | Workbench activated twice, or deactivated without having been activated | No duplicate block or backup; no change. |
 | Addon present twice under `Mod/` (development symlink), or module re-imported | A stale block is stripped on apply (5.1). There is never more than one block. |
-| User's FreeCAD theme is dark | Only the 2.3 elements turn light, each with its own background (2.4 theme independence). Everything else keeps the dark theme. |
+| User's FreeCAD theme is dark | The 2.3 elements and JellyJams popups use the dark widget palette. Native menus, Start page, task contents and editors remain under FreeCAD's dark theme. |
 | FreeCAD build lacks one of the sketch keys | Setting an unused key is harmless. It is still recorded and restored exactly. |
 | Navigation area changes `NavigationStyle` in the same group | No interaction. Each area backs up and restores only its own keys under its own backup key. |
 | Two FreeCAD instances share one `user.cfg` | Out of scope. The last instance to exit writes the file. |
@@ -413,6 +488,9 @@ Unless a criterion says otherwise, use these steps:
    - `M0` = `GetContents()` of `User parameter:BaseApp/Preferences/MainWindow`.
 
 "Activate" means `FreeCADGui.activateWorkbench("JellyJamsWorkbench")`, or selecting JellyJams in the workbench selector. "Leave" means activating `PartDesignWorkbench`. Wait about 2 s after each switch.
+
+Criteria 3–8, 16–17 and 19 give light-mode values. Under FreeCAD Dark, substitute
+the matching roles in 2.2; criterion 42 checks both modes on a real sketch.
 
 **Theme**
 
@@ -500,3 +578,18 @@ Unless a criterion says otherwise, use these steps:
 37. The generated JellyJams rule block passes the syntax checks in 4.1.
 38. Every text pair in 2.7 requirement 1 is at least 4.5:1, every non-text pair in requirement 3 is at least 3:1, and every sketch color is at least 3:1 against both gradient ends. All ratios are computed with the W3C relative-luminance formula. The test fails if any pair falls below its threshold.
 39. No identifier, objectName, file name or parameter key introduced by this area contains "SolidWorks", in any letter case.
+40. With native FreeCAD Dark and FreeCAD Light in separate throwaway profiles,
+    the ribbon surface/text, dock titles, Orientation panel and Sketch context popup
+    use the matching widget palette. The application stylesheet, native menu colors
+    and Theme/StyleSheet preferences remain unchanged during activation and after
+    leaving; the main-window stylesheet is restored byte-for-byte.
+41. Applying repeatedly under dark, light and dark again never duplicates the
+    theme block or changes the original restore target. Dark text/background pairs
+    meet 4.5:1 and accent/surface pairs meet 3:1. No mode is persisted by JellyJams.
+42. In separate native Dark and Light scratch profiles, open a real sketch with
+    unconstrained, blocked and construction lines, a driving dimension and a
+    reference dimension. The rendered image MUST contain the matching geometry
+    and dimension colors, and background samples MUST match the selected mode.
+    After leaving, all 14 managed keys MUST have their original presence/type/value.
+    Headless dark-mode apply/restore and fresh-module crash recovery MUST also
+    restore custom values and remove originally absent keys exactly.

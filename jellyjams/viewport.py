@@ -12,23 +12,31 @@ On-disk record format, which must stay stable: {key: [type, existedBefore, previ
 
 from jellyjams import console, constants, palette, params
 
-MANAGED_KEYS = [
-    ("Gradient", "Bool", True),
-    ("RadialGradient", "Bool", False),
-    ("UseBackgroundColorMid", "Bool", False),
-    ("BackgroundColor2", "Unsigned", palette.packed_rgba(palette.GRADIENT_TOP)),
-    ("BackgroundColor3", "Unsigned", palette.packed_rgba(palette.GRADIENT_BOTTOM)),
-    ("EditedEdgeColor", "Unsigned", palette.packed_rgba(palette.SKETCH_UNDER_DEFINED)),
-    ("FullyConstraintElementColor", "Unsigned", palette.packed_rgba(palette.SKETCH_FULLY_DEFINED)),
-    ("FullyConstrainedColor", "Unsigned", palette.packed_rgba(palette.SKETCH_FULLY_DEFINED)),
-    ("InvalidSketchColor", "Unsigned", palette.packed_rgba(palette.SKETCH_OVER_DEFINED)),
-    ("ConstructionColor", "Unsigned", palette.packed_rgba(palette.SKETCH_CONSTRUCTION)),
-    ("FullyConstraintConstructionElementColor", "Unsigned",
-     palette.packed_rgba(palette.SKETCH_CONSTRUCTION_DEFINED)),
-    ("ConstrainedDimColor", "Unsigned", palette.packed_rgba(palette.DIM_DRIVING)),
-    ("NonDrivingConstrDimColor", "Unsigned", palette.packed_rgba(palette.DIM_DRIVEN)),
-    ("ConstrainedIcoColor", "Unsigned", palette.packed_rgba(palette.RELATION_SYMBOLS)),
-]
+
+def managed_keys(dark=False):
+    """The same 14 typed overrides with a matching light/dark drawing palette."""
+    c = palette.viewport_colors(dark)
+    packed = palette.packed_rgba
+    return [
+        ("Gradient", "Bool", True),
+        ("RadialGradient", "Bool", False),
+        ("UseBackgroundColorMid", "Bool", False),
+        ("BackgroundColor2", "Unsigned", packed(c.GRADIENT_TOP)),
+        ("BackgroundColor3", "Unsigned", packed(c.GRADIENT_BOTTOM)),
+        ("EditedEdgeColor", "Unsigned", packed(c.UNDER_DEFINED)),
+        ("FullyConstraintElementColor", "Unsigned", packed(c.FULLY_DEFINED)),
+        ("FullyConstrainedColor", "Unsigned", packed(c.FULLY_DEFINED)),
+        ("InvalidSketchColor", "Unsigned", packed(c.OVER_DEFINED)),
+        ("ConstructionColor", "Unsigned", packed(c.CONSTRUCTION)),
+        ("FullyConstraintConstructionElementColor", "Unsigned", packed(c.CONSTRUCTION_DEFINED)),
+        ("ConstrainedDimColor", "Unsigned", packed(c.DRIVING_DIMENSION)),
+        ("NonDrivingConstrDimColor", "Unsigned", packed(c.DRIVEN_DIMENSION)),
+        ("ConstrainedIcoColor", "Unsigned", packed(c.RELATION_SYMBOLS)),
+    ]
+
+
+# Stable light-mode table also defines the key/type set used for backups.
+MANAGED_KEYS = managed_keys()
 
 _TYPES = ("Bool", "Unsigned")
 _TYPE_DEFAULTS = {"Bool": False, "Unsigned": 0}
@@ -80,7 +88,12 @@ def apply():
         view = _view_group()
         if _usable_record() is None:
             params.save_backup(constants.KEY_VIEW_BACKUP, _snapshot(view))
-        for name, suffix, value in MANAGED_KEYS:
+        dark = False
+        with console.guard("read the viewport theme", level="log"):
+            from jellyjams import theme
+
+            dark = theme.is_dark()
+        for name, suffix, value in managed_keys(dark):
             params.set_value(view, suffix, name, value)
         _applied = True
     except Exception as exc:

@@ -35,8 +35,14 @@ When the user leaves JellyJams, or quits FreeCAD while JellyJams is active, the 
   - the match is a containment match, so the workbench selector can never disappear by accident; otherwise the user would have no way out of the layout
   - in stock FreeCAD 1.1 these are the toolbars `File`, `Edit` and `Workbench`
 - JellyJams hides every other toolbar that is attached to the main window in a toolbar area and is visible at the moment the layout is applied.
+- During the delayed startup/layout checks, it also hides non-kept main-window
+  toolbars that FreeCAD has shown or restored late, recording each toolbar only
+  once so it is shown again on leave. These checks do nothing after the active
+  workbench changes, even before `Deactivated()` arrives, or for an earlier
+  activation generation. A toolbar that stays hidden is never changed.
 - These toolbars are never touched:
-  - toolbars already hidden when the layout is applied
+  - toolbars already hidden when the layout is applied and still hidden during
+    the delayed checks
   - toolbars that are not attached to a main-window toolbar area, for example toolbars inside a dock or inside a task dialog, which report "no toolbar area" to the main window
 - JellyJams contributes no toolbars of its own. Its commands live in the ribbon (dock objectName `JellyJamsCommandManager`) and in a "JellyJams" menu. After entering, the visible main-window toolbars are therefore exactly File, Edit and Workbench.
 
@@ -113,7 +119,7 @@ When the user leaves JellyJams, or quits FreeCAD while JellyJams is active, the 
 | JellyJams workbench `Activated()` | Apply the layout. This must be the **first** JellyJams UI change in the activation sequence, so the snapshot is taken before the ribbon, theme, navigation or anything else alters the window. If the layout is already applied, nothing happens and no new snapshot is taken. |
 | `Activated()` while the main window is not visible | Schedule a deferred apply (see 2.4). Only one deferral may be pending at a time. A further apply request while one is pending does not start another. |
 | Deferred-apply poll | About every **200 ms**. Stop polling and apply once the main window is visible. Cancel silently if the active workbench (`FreeCADGui.activeWorkbench().name()`) is no longer `JellyJamsWorkbench`. Give up after about **12 s** (about 60 polls) and print a warning that the layout was not applied because the main window stayed hidden. |
-| After the layout is applied | Re-dock Tasks and Report view to the right at about **350 ms, 1200 ms and 3000 ms**, each time only if the layout is still applied. Reason: FreeCAD's dock overlay manager rebuilds panel placement about 100 ms after changes, and again around workbench switches, and can drop the panels back. The passes therefore reach about three seconds past the apply, beyond the roughly 2.5 s window in which FreeCAD may still rebuild the overlay. |
+| After the layout is applied | Re-check non-kept toolbar visibility and re-dock Tasks and Report view to the right at about **350 ms, 1200 ms and 3000 ms**, only while the same activation is applied and JellyJams is still the active workbench. Reason: FreeCAD can restore stock toolbars late, and its dock overlay manager rebuilds panel placement after changes and workbench switches. Each newly hidden toolbar is recorded once for exact restore. |
 | JellyJams workbench `Deactivated()` | Revert the layout (2.2). This is the **last** JellyJams step in the deactivation sequence, after the ribbon is hidden and navigation, shortcuts, 3D background and theme have been reverted. Any pending deferred apply is cancelled first, even if the layout was never applied. If the layout is not applied, nothing else happens. |
 | About **250 ms** after the layout is reverted | Second restore pass: restore the dock arrangement from the snapshot again, and keep **every** toolbar's visibility exactly as it is at that moment. After that pass, hide the ribbon dock if JellyJams does not currently want it visible. Skip the pass entirely if the layout has been applied again in the meantime, for example after a quick switch back into JellyJams. |
 | Main window **Close** event | Only while JellyJams is active (between `Activated()` and `Deactivated()`), whether or not the layout is applied yet: restore the Assembly, Part Design and TechDraw `SwitchToWB` settings, hide the ribbon, restore shortcuts and navigation style, revert the look and the layout (if applied), then schedule the re-apply check. Otherwise do nothing. |

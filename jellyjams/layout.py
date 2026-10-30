@@ -163,6 +163,17 @@ def _apply_now(window):
     _generation += 1
     generation = _generation
 
+    hidden_names, kept_names = _hide_toolbars(window)
+    console.log("window layout set; toolbars hidden: %s; toolbars left visible: %s"
+                % (", ".join(hidden_names) or "none", ", ".join(kept_names) or "none"))
+
+    for delay in REDOCK_DELAYS_MS:
+        _later(delay, _redock, generation)
+    _place_panels(window, warn_missing=True)
+
+
+def _hide_toolbars(window):
+    """Record and hide visible stock bars, including bars restored late at startup."""
     hidden_names, kept_names = [], []
     for bar in _area_toolbars(window):
         if not bar.isVisible():
@@ -172,21 +183,18 @@ def _apply_now(window):
             kept_names.append(name)
             continue
         bar.setVisible(False)
-        _hidden.append(bar)
+        if not _contains(_hidden, bar):
+            _hidden.append(bar)
         hidden_names.append(name)
-    console.log("window layout set; toolbars hidden: %s; toolbars left visible: %s"
-                % (", ".join(hidden_names) or "none", ", ".join(kept_names) or "none"))
-
-    for delay in REDOCK_DELAYS_MS:
-        _later(delay, _redock, generation)
-    _place_panels(window, warn_missing=True)
+    return hidden_names, kept_names
 
 
 def _redock(generation):
-    if not _active or generation != _generation:
+    if not _active or generation != _generation or not fcgui.jellyjams_active():
         return
     window = fcgui.main_window()
     if window is not None:
+        _hide_toolbars(window)
         _place_panels(window, warn_missing=False)
 
 
