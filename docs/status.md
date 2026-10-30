@@ -18,8 +18,12 @@ The first hosted Windows job passed 506 headless tests (3 installed-template
 checks skipped because FreeCAD is absent) and all 10 runner tests. Ubuntu first
 failed before test discovery because the hosted image lacked `libEGL.so.1`.
 The workflow now explicitly installs `libegl1` and `libopengl0` on Linux and uses
-maintained checkout/setup-python v7 actions. The corrected hosted run is pending;
-the prior local GUI results below remain Windows FreeCAD 1.1.4 results.
+maintained checkout/setup-python v7 actions. The corrected hosted push run
+[41057025971](https://github.com/jus-kim/JellyJams/actions/runs/41057025971) passed
+on both Windows and Ubuntu: 506 headless tests with the same 3 expected template
+skips, plus all 10 runner tests. Current results are also available in the
+[PR checks](https://github.com/jus-kim/JellyJams/pull/1/checks). The local GUI
+results below remain Windows FreeCAD 1.1.4 results.
 
 ## Native crash after extrusion — orbit watcher fix (2026-10-30)
 
