@@ -4,7 +4,7 @@
 """Window layout while JellyJams is active, and its exact undo.
 
 apply() saves the main-window state, hides the visible main-window toolbars
-except File, Edit and Workbench, and docks Tasks over Report view on the right.
+except File, Edit and Workbench, and docks Tasks over an open Report view on the right.
 revert() brings the saved state back but re-shows only the toolbars JellyJams
 hid: by the time FreeCAD calls Deactivated() it already shows the next
 workbench's toolbars, and those have to stay.
@@ -110,7 +110,7 @@ def _panels_in_place(window, tasks, report):
 
 
 def _place_panels(window, warn_missing):
-    """Put Tasks in the right dock area, with Report view underneath it."""
+    """Put Tasks on the right; place Report view below only if it is already open."""
     tasks = fcgui.task_dock()
     if tasks is None:
         if warn_missing:
@@ -120,6 +120,10 @@ def _place_panels(window, warn_missing):
                             % (", ".join(repr(n) for n in names) or "none"))
         return
     report = _report_dock(window)
+    # Respect explicit closure, including during the delayed startup passes.
+    # Leave a hidden dock's placement and visibility untouched.
+    if report is not None and report.isHidden():
+        report = None
     if _panels_in_place(window, tasks, report):
         return
     right = QtCore.Qt.DockWidgetArea.RightDockWidgetArea
@@ -278,15 +282,15 @@ def _restore(window, state, hidden):
             bar.setVisible(True)
 
 
-def _second_pass(generation, state):
+def _second_pass(generation, state, hidden):
     if _active or generation != _generation:
         return
     window = fcgui.main_window()
     if window is None:
         return
-    current = _toolbar_visibility(window)
-    window.restoreState(state)
-    _put_back_visibility(window, current)
+    # FreeCAD can hide the old workbench's general toolbars after the first
+    # restore. Re-show the bars JellyJams hid while preserving every other bar.
+    _restore(window, state, hidden)
     _ribbon("hide_if_not_requested")
 
 
@@ -311,4 +315,4 @@ def revert():
     except Exception:
         console.error("putting back the window layout failed", with_traceback=True)
     _ribbon("hide_if_not_requested")
-    _later(SECOND_PASS_MS, _second_pass, generation, state)
+    _later(SECOND_PASS_MS, _second_pass, generation, state, hidden)

@@ -38,6 +38,7 @@ def _rules(colors=None):
     dock = _MAIN_WINDOW + " > QDockWidget"
     dock_tabs = _MAIN_WINDOW + " > QTabBar"
     split = (tabs + ' QToolButton[popupMode="1"]',)
+    appearance = "QDockWidget#" + constants.OBJ_APPEARANCES
 
     def each(selectors, suffix):
         return tuple(sel + suffix for sel in selectors)
@@ -242,6 +243,34 @@ def _rules(colors=None):
         ((tree + "::item:selected",), [
             ("background-color", p.SELECTION),
             ("color", p.TEXT),
+        ]),
+        # E. The owned appearance browser, including unfocused selections.
+        ((appearance + " QWidget",), [
+            ("background-color", p.PANEL),
+            ("color", p.TEXT),
+        ]),
+        (tuple(appearance + " " + widget for widget in
+               ("QLineEdit", "QSpinBox", "QComboBox", "QTreeWidget", "QListWidget")), [
+            ("border", "1px solid " + p.BORDER),
+            ("selection-background-color", p.SELECTION),
+            ("selection-color", p.TEXT),
+        ]),
+        (tuple(appearance + " " + widget + "::item:selected" for widget in
+               ("QTreeWidget", "QListWidget")), [
+            ("background-color", p.SELECTION),
+            ("color", p.TEXT),
+        ]),
+        ((appearance + " QPushButton",), [
+            ("background-color", p.WINDOW),
+            ("color", p.TEXT),
+            ("border", "1px solid " + p.BORDER),
+            ("padding", "5px"),
+        ]),
+        ((appearance + " QPushButton:hover",), [
+            ("background-color", p.HOVER),
+        ]),
+        ((appearance + " QPushButton:disabled",), [
+            ("color", p.TEXT_DISABLED),
         ]),
     ]
 

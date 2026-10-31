@@ -1,12 +1,169 @@
 # Implementation and test status
 
-Status of JellyJams **0.1.0** as of **2026-10-30**, measured on **FreeCAD 1.1.4 (Windows)**.
+Status of JellyJams **0.1.0** as of **2026-10-31**, measured on **FreeCAD 1.1.4 (Windows)**.
 This page is the record of what is built, what is verified, and what is open. The behavior
 it is measured against is defined in the [specifications](specs/README.md). How to run every
 test mentioned here: [testing.md](testing.md).
 
 After any code change, re-run the suites and update this page (see
 [Updating this page](#updating-this-page)).
+
+## Pre-PR audit (2026-10-31)
+
+Audited the pending appearance, Report view/layout and assembly-test changes,
+including command registration, lifecycle/quit ordering, native material writes,
+transaction ownership, source-document isolation, Qt lifetime/failure handling,
+profile isolation, pure imports, icons/licenses, metadata and specification
+consistency. Package and test Python files compile; `git diff --check` is clean.
+
+Three appearance findings were fixed with regressions:
+
+- A failed selection query must not be treated as an empty selection and colour
+  the model. The appearance query now distinguishes failure and returns no targets.
+- A pending application-wide transaction, even with no pending document edits,
+  must not be joined or closed by colouring. Native and stub checks now cover it.
+- Failed panel construction must not publish an incomplete dock. It is removed
+  and a later refresh can retry successfully.
+
+Validation on the audited sources:
+
+- **528/528 headless**, no failures/errors/skips, with both FreeCAD's Qt shim and
+  plain PySide6 aliases; **15** appearance tests. Validator **10/10**.
+  Logs: `scratch/audit_headless.log`, `scratch/audit_ci_alias_headless.log`.
+- Real FreeCAD 1.1.4: smoke **31/31**, sketch **20/20**, features **51/51**,
+  assembly tree **104/104**, appearances **38/38**, Report view **7/7**, saved
+  Report view autoload **3/3**, five-tab capture complete, quit-cancel **16/16**,
+  discard **9/9**, relaunch **5/5**, autoload **6/6**, crash **2/2**, recovery
+  **3/3**, native dark/light theme **22/22 each**, saved-config checker **7/7**.
+  Evidence: `scratch/gui_fig8tobl/`.
+- That initial combined GUI runner exited **1**: Orientation reproduced its
+  earlier two pointer-setup failures (**82/84**), and orbit's post-leave response
+  comparison failed because restoring stock docks changed viewport dimensions.
+  The harness now uses the target widget's screen when positioning the pointer,
+  and compares native orbit at the same viewport size as its baseline. Requested
+  and actual pointer coordinates and orbit dimensions/angles are recorded.
+- After those harness fixes, a bounded rerun passed Orientation **84/84** and
+  orbit **49/49**, exit **0**, `scratch/gui_ob8370fs/`. All 18 individual suites
+  therefore passed on the audited production sources; the initial combined run
+  must not be described as a clean pass. Production Space routing/orbit code was
+  not changed. This supersedes the earlier open pointer-test setup issue below.
+
+Hosted Windows/Ubuntu results are available through the PR checks; local runs
+alone do not establish hosted status. No new preference/backup contract or
+release version is introduced. No remaining actionable finding was identified
+in the reviewed changes. The original intermittent assembly freeze remains
+unreproduced and unresolved; the passing triangle test does not establish a fix.
+
+## Appearance unit tests in CI (2026-10-31)
+
+The existing Windows/Ubuntu workflow already runs `Test25Appearances` through
+the full headless suite. Expanded its coverage from **8 to 12 tests**, adding
+component-only material writes (source and sibling unchanged), transaction abort
+and application-transaction cleanup after a second-target failure, deferred
+startup/cancellation, and idempotent quit/Cancel restoration for open/closed docks.
+No workflow or production-code change was needed.
+
+- Full headless suite **525/525**, no failures/errors/skips; GUI result-validator
+  tests **10/10**. Log: `scratch/appearance_ci_headless.log`.
+- All **12/12** appearance tests also passed with plain PySide6 aliases in an
+  isolated scratch venv, exercising the Qt import path used without FreeCAD's
+  shim in CI. This was local Windows execution, not a hosted Ubuntu run.
+- `git diff --check` is clean. Hosted CI has not been triggered for these
+  unpushed working-tree changes. Native rollback/rendering/Undo/persistence remain
+  covered by the previously recorded real-FreeCAD GUI tests; the unit tests
+  verify the abort protocol rather than simulating native rollback.
+
+## Preserve closed Report view at startup (2026-10-31)
+
+JellyJams no longer forces a closed Report view open when arranging Tasks and
+Report view. Hidden Report view docks are excluded from placement, including
+delayed startup passes. An already open Report view still docks below Tasks;
+explicit open/close remains available. No FreeCAD auto-show-on-message setting
+or other preference is changed. To save a closed startup layout, close Report
+view in another workbench before entering JellyJams.
+
+The closed-report Cancel regression also exposed late native hiding of general
+toolbars after the first restore. The second restore now re-shows the same
+toolbars JellyJams originally hid, preserving every other toolbar's current
+visibility. Generation guards still protect quick reentry. Initial Cancel runs
+failed the stock-toolbar check; after this fix the complete check passes.
+
+- Headless **521/521**, no failures/errors/skips; validator **10/10**. Three new
+  regressions cover closed Report view, delayed closure, and late toolbar hiding.
+- Real FreeCAD 1.1.4: Report view **7/7**, native relaunch with JellyJams autoload
+  **3/3**, smoke **31/31**, actual quit-cancel **16/16**, discard **9/9**, relaunch
+  **5/5**, autoload **6/6**, saved-config checker **7/7**. Final runner exit **0**;
+  evidence `scratch/gui_bgy37a3i/`. The quit-prompt check explicitly requires
+  Report view to remain closed during the prompt and after Cancel.
+- All GUI runs used throwaway `-u` / `-s` configs. No real profile was written.
+  `git diff --check` is clean. No persistent override or recovery format changed.
+
+## Appearances browser (2026-10-31)
+
+Implemented the requested colouring tab using the official SOLIDWORKS Help
+topics linked and mapped in [appearances.md](specs/appearances.md). Open
+**JellyJams > Appearances**, or its tab beside Tasks. Category browsing and
+102 original sphere previews cover Plastic, Metal and Paint. Double-click
+applies a preset to selected faces/objects or the visible model with no
+selection; custom RGB, finish and transparency can be applied explicitly.
+
+Assignments use native FreeCAD view materials and one undo transaction. Face
+edits retain unselected faces; component colours use local link overrides and
+leave their source and siblings unchanged. Invalid edits do nothing; a failed
+multi-object operation rolls back. User-applied colours remain ordinary FCStd
+view properties. The dock/timer are removed before stock layout restoration on
+leave and quit and re-created after Cancel. No new preference override or backup
+format was introduced. Browser selections use the existing light/dark palette
+inside the main-window stylesheet block, including unfocused item selections.
+
+- Headless **518/518**, no failures/errors/skips. Includes 8 appearance tests
+  plus new module/API checks. GUI result-validator tests **10/10**.
+- Real FreeCAD 1.1.4, final dark/native-profile appearance regression:
+  **37/37**; smoke **31/31**, quit-cancel **16/16**, discard **9/9**, relaunch
+  **5/5**, autoload **6/6**, and saved-config checker **7/7**. Runner exit **0**.
+  Evidence: `scratch/gui_w8pa5dp_/`.
+- Fresh native Light profile: **37/37**, exit **0**;
+  `scratch/appearances_light_final_cepzltza/`. Panel screenshots in both folders
+  were visually inspected. All GUI runs used disposable `-u` / `-s` profiles.
+- The native GUI checks cover real thumbnail double-click, face/body assignment,
+  source-safe link overrides, native Undo/Redo, atomic abort, save/reopen,
+  reentry and dock cleanup. FCStd colour serialization is checked within its
+  8-bit channel precision; an earlier exact-float comparison correctly failed
+  and the persistence assertion now accounts for that format.
+- `git diff --check` is clean. No release/version bump or commit was requested.
+
+Scope limits: native Phong finish approximations, not textures, scenes, decals,
+RealView, saved custom libraries or full SOLIDWORKS appearance inheritance.
+Whole-object assignment explicitly replaces existing face colours; per-face
+linked-instance overrides are not supported. Drag-and-drop assignment and
+physical-mouse interaction were not implemented/verified; the UI offers Apply
+and double-click. The unrelated assembly-freeze report below remains unresolved.
+
+## Unresolved freeze after creating an assembly (2026-10-30)
+
+The user reported FreeCAD becoming unresponsive after New Assembly and clicking
+the small expand/collapse triangle beside `Assembly1`. The screenshot shows an
+empty active assembly with Origin and Mates children, plus an empty `Unnamed`
+document. The original process (PID 38228) was observed as unresponsive, but
+exited before its stack could be captured. No root cause or runtime fix is
+established; this report remains **open**.
+
+- Two exploratory runs in fresh scratch profiles completed without a freeze:
+  64 mixed tree operations and 200 triangle clicks across Assembly and Origin.
+  These probes did not assert every transition and do not establish a fix.
+- Added `gui_assembly_tree.py` and runner suite `assembly_tree`: a fresh assembly
+  with `Unnamed` still open, selected assembly, 100 real triangle clicks on the
+  Assembly and Origin branches, every transition checked after an event-loop
+  turn, and the workbench/active assembly checked at the end. FreeCAD 1.1.4:
+  **104/104 passed**, exit 0 (`scratch/gui_itzif2ut/`). Partial JSON is saved
+  before each click; periodic Python stack snapshots and a final screenshot
+  accompany the result. The test uses model indexes for FreeCAD's native tree
+  items; earlier test drafts hit deleted generic Qt item wrappers and are not
+  evidence of the user's hang.
+- Headless **506/506**, no failures/errors/skips; GUI runner validator **10/10**.
+  No production code or real user/system profile was changed. Clean-profile
+  passing results do not rule out a profile-dependent or intermittent native
+  hang. Further diagnosis requires a stack from a live occurrence.
 
 ## GitHub PR and hosted CI (2026-10-30)
 
@@ -401,7 +558,7 @@ Spec: [core.md](specs/core.md). Code: [`Init.py`](../Init.py), [`InitGui.py`](..
 | Autoload at startup (layout deferred until the window is shown) | Implemented | H `Test11Layout`: `test_deferral_cancelled_by_revert`, `test_deferral_cancelled_by_workbench_switch`, `test_deferred_apply_runs_once_the_window_is_shown`, `test_deferral_timeout_warns_once_and_changes_nothing`. G `lifecycle/autoload`: all 6 checks | |
 | Startup crash recovery of the six backups, documented backup formats, corrupt backup discarded with one warning | Partial | H `Test04Recovery`: all 10 tests; `Test10Look.test_viewport_recover`; `Test17SwitchPrefs`: `test_recover`, `test_recover_with_only_some_records`, `test_corrupt_records`; `Test03InitGui.test_first_exec_registers_once_with_path_and_icon` (recovery runs from `InitGui.py`) | Logic only, with stubbed parameters (AC 28, 29). Killing FreeCAD and restarting (AC 27, [window-layout](specs/window-layout.md) AC 23, [look](specs/look.md) AC 27 to 31) is not automated. |
 | A leftover backup is never overwritten by a new apply | Implemented | H `Test12NavigationShortcuts.test_navigation_leftover_backup_not_overwritten`, `Test12NavigationShortcuts.test_shortcuts_leftover_backup_not_overwritten`, `Test10Look.test_viewport_leftover_backup_not_overwritten`, `Test17SwitchPrefs.test_pending_record_not_overwritten` | Parameter logic; AC 30 asserted headless only. |
-| Command registration: 23 `JellyJams_*` commands, once per process, resources, `CmdType` only where declared (the two orientation commands, `Alter3DView`), `IsActive` never raises, missing icon gives an empty Pixmap, a sub-command index is ignored | Implemented | H `Test05Commands`: all 9 tests (`test_cmd_type_only_where_declared`, `test_base_command_contract`); `Test13RibbonModel.test_entry_ids_object_names_and_command_ids` (every command but `JellyJams_ViewOrientation` and `JellyJams_NormalTo` is on the ribbon). G `gui_smoke: jj_plain_buttons` (plain ribbon buttons exist for `JellyJams_Diagnostics`, the five `JellyJams_*OnSheet`, `JellyJams_RotateComponent`, `JellyJams_MakeDrawing` and `JellyJams_MakeDrawing#1`) | `listCommands()` (AC 8) is not asserted in GUI. |
+| Command registration: 24 `JellyJams_*` commands, once per process, resources, `CmdType` only where declared (the two orientation commands, `Alter3DView`), `IsActive` never raises, missing icon gives an empty Pixmap, a sub-command index is ignored | Implemented | H `Test05Commands`: all 9 tests (`test_cmd_type_only_where_declared`, `test_base_command_contract`); `Test13RibbonModel.test_entry_ids_object_names_and_command_ids` (every command but `JellyJams_ViewOrientation` and `JellyJams_Appearances` is on the ribbon). G `gui_smoke: jj_plain_buttons` (plain ribbon buttons exist for `JellyJams_Diagnostics`, the five `JellyJams_*OnSheet`, `JellyJams_RotateComponent`, `JellyJams_MakeDrawing` and `JellyJams_MakeDrawing#1`) | `listCommands()` (AC 8) is not asserted in GUI. |
 | Diagnostics (`JellyJams_Diagnostics`) | Partial | H `Test09Diagnostics`: all 4 tests | Row order, values, version parsing and block format asserted. The modal dialog, Copy to clipboard / "Copied", and the Report-view block (AC 11 to 15) are not verified in GUI. |
 | Qt message filter ("render glyph failed") | Partial | H `Test08QtFilter`: all 8 tests | `test_real_install_self_test_and_enable_disable` installs a real Qt message handler under the headless Qt. AC 31 to 35 are not verified in GUI. |
 | Document helpers: `doc_utils.transaction` (commit, abort or commit on error, join a pending step, close an application transaction the document left open, leave an outer transaction alone), `primary_model_objects` skipping 2D profiles | Implemented | H `Test22DocumentHelpers`: `test_transaction_closes_a_step_the_document_left_open`, `test_transaction_leaves_a_closed_step_alone`, `test_transaction_inside_an_outer_step_does_not_close_it`, `test_transaction_error_aborts_or_commits_and_closes`, `test_transaction_without_the_application_transaction_api`, `test_transaction_joins_a_pending_step`, `test_primary_model_objects_skip_2d_profiles` | Against a fake transaction API modeled on FreeCAD 1.1; FreeCAD's undo history itself is not inspected in GUI. |

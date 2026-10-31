@@ -12,6 +12,7 @@ import importlib
 from jellyjams import console, constants, fcgui, paths
 
 PROVIDERS = {
+    "jellyjams.appearances": (constants.CMD_APPEARANCES,),
     "jellyjams.diagnostics": (constants.CMD_DIAGNOSTICS,),
     "jellyjams.sketch_tools": (constants.CMD_CENTERLINE, constants.CMD_MIDPOINT_LINE),
     "jellyjams.assembly_commands": (constants.CMD_NEW_ASSEMBLY, constants.CMD_ROTATE_COMPONENT),

@@ -748,3 +748,26 @@ partially destroyed task widgets. A real-GUI regression repeatedly accepts a Pad
 edit dialog and orbits the solid, and a headless test checks deferred/coalesced
 discovery and timer cancellation. Python exception guards alone cannot contain
 this native crash. No new preference or recovery format is introduced.
+
+## D-23. Native appearance edits behind an official-reference browser
+
+Status: Accepted, 2026-10-31. Code: `appearance_rules`, `appearances`, lifecycle
+and the dock-scoped part of `theme`. Contract and official SOLIDWORKS Help links:
+[appearances.md](specs/appearances.md).
+
+The user requested a colouring task-pane tab, then explicitly requested official
+SOLIDWORKS documentation as its basis. Category browsing, sphere previews,
+double-click assignment and colour/transparency controls follow those sources.
+Native FreeCAD view materials provide the rendering and document persistence.
+
+Use native per-face materials for selected faces, and local link material
+overrides for components. Do not edit a link's source as a side effect of an
+instance selection. Whole-object assignment explicitly replaces face colours;
+we do not add persistent metadata to simulate the full SOLIDWORKS hierarchy.
+Presets approximate native Phong finishes, without implying textures, decals,
+scenes, metalness shaders or RealView support. Browser-only edits never touch
+the document, and application is a single abortable native undo transaction.
+
+The dock is tabbed with Tasks and removed before stock layout restore, including
+quit. A cancelled quit re-creates it. No preference override/backup is needed;
+user-applied appearance edits remain ordinary native document view properties.

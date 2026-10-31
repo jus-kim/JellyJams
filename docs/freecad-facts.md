@@ -49,6 +49,16 @@ Related: [architecture.md](architecture.md) (where each behavior is used),
 
 ## Workbench and commands
 
+Appearance probes on FreeCAD 1.1.4 (2026-10-31), plus `gui_appearances.py`:
+`ShapeAppearance` is a list/tuple of visual `App.Material` values, one material
+for the whole shape or one per face. Material `Shininess` and `Transparency` use
+normalized values (0–1); the native view's legacy `Transparency` property uses
+percent. Shape-appearance edits participate in document transactions, Undo/Redo
+and abort. Link view providers instead expose `ShapeMaterial` and
+`OverrideMaterial`, which allow a local instance appearance without source edits.
+Native FCStd persistence quantizes colour channels to 8 bits; exact in-memory
+float equality across save/reopen is not an appropriate assertion.
+
 | Fact | Relied on by | Evidence |
 |---|---|---|
 | A workbench subclasses `FreeCADGui.Workbench` with `MenuText`, `ToolTip`, `Icon` (a path, assigned after the class definition), `Initialize()` (once), `Activated()`, `Deactivated()`, `GetClassName()` returning `"Gui::PythonWorkbench"`; registered with `FreeCADGui.addWorkbench(instance)` | `InitGui.py`, [`lifecycle.py`](../jellyjams/lifecycle.py) | Verified 1.1.4 |

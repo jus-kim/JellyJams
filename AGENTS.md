@@ -110,7 +110,7 @@ session and every other workbench. The rules:
 - **Pure modules** import nothing from FreeCAD or PySide and must run under plain Python:
   `jellyjams/__init__.py`, `constants`, `palette`, `ribbon_layout`, `ribbon_model`,
   `ribbon_text`, `naming_rules`, `relations_rules`, `mate_rules`, `dialog_terms_data`,
-  `pdf_merge`, `orbit_rules`. Put new rules logic in a pure module so it can be unit-tested.
+  `pdf_merge`, `orbit_rules`, `appearance_rules`. Put new rules logic in a pure module so it can be unit-tested.
 - **Boundaries never raise.** Workbench methods, command `GetResources/Activated/IsActive`,
   observers, event filters, timers and slots catch everything (`console.guard`,
   `console.guarded`, `console.safe_call`). Event filters return `False` on internal failure.
@@ -169,6 +169,7 @@ Modules by area, with the spec that defines each area's behavior:
 | Core: entry, lifecycle, quit guard, crash recovery, commands, diagnostics, Qt message filter, navigation, shortcuts | `__init__`, `constants`, `console`, `params`, `paths`, `fcgui`, `doc_utils`, `commands`, `recovery`, `lifecycle`, `quit_guard`, `qt_filter`, `diagnostics`, `navigation`, `orbit`, `orbit_rules`, `shortcuts` | [core.md](docs/specs/core.md) |
 | Window layout | `layout` | [window-layout.md](docs/specs/window-layout.md) |
 | Look: theme, 3D background, sketch colors | `palette`, `theme`, `viewport` | [look.md](docs/specs/look.md) |
+| Appearances: colour/finish library, native face/object/component edits and browser dock | `appearance_rules`, `appearances` | [appearances.md](docs/specs/appearances.md) |
 | Ribbon engine | `ribbon`, `ribbon_model`, `ribbon_text`, `ribbon_widgets`, `icons` | [ribbon-engine.md](docs/specs/ribbon-engine.md) |
 | Ribbon content (what each tab holds) | `ribbon_layout` | [ribbon-content.md](docs/specs/ribbon-content.md) |
 | Tree naming | `naming`, `naming_rules` | [naming.md](docs/specs/naming.md) |

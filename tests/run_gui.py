@@ -23,6 +23,10 @@ SUITES = {
     "orientation": ("gui_orientation.py", "orientation.json", 84),
     "orbit": ("gui_orbit.py", "orbit.json", 49),
     "features": ("gui_features.py", "features.json", 51),
+    "assembly_tree": ("gui_assembly_tree.py", "assembly_tree.json", 104),
+    "appearances": ("gui_appearances.py", "appearances.json", 38),
+    "report_view": ("gui_report_view.py", "report_view.json", 7),
+    "report_startup": ("gui_report_view.py", "report_startup.json", 3),
     "tabs": ("gui_tabs.py", "tabs_results.json", 0),
     "cancel": ("gui_lifecycle.py", "lifecycle_cancel.json", 16),
     "discard": ("gui_lifecycle.py", "lifecycle_discard.json", 9),
@@ -86,6 +90,9 @@ def main():
     if "recover" in args.suites and ("crash" not in args.suites or
                                        args.suites.index("recover") < args.suites.index("crash")):
         parser.error("recover must follow crash in the same run")
+    if "report_startup" in args.suites and ("report_view" not in args.suites or
+            args.suites.index("report_startup") < args.suites.index("report_view")):
+        parser.error("report_startup must follow report_view in the same run")
     (REPO / "scratch").mkdir(exist_ok=True)
     out = Path(tempfile.mkdtemp(prefix="gui_", dir=REPO / "scratch"))
     print("Results: %s" % out, flush=True)
@@ -95,6 +102,8 @@ def main():
         profile = "discard" if suite == "after" else suite
         if suite == "recover":
             profile = "crash"
+        if suite == "report_startup":
+            profile = "report_view"
         user, system = out / (profile + "_user.cfg"), out / (profile + "_system.cfg")
         if suite == "autoload":
             autoload_config(user)

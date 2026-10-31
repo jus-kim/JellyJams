@@ -17,7 +17,11 @@ This document states requirements. It does not prescribe a code structure.
 When the user enters JellyJams, the FreeCAD main window frame changes to look like a SolidWorks window:
 
 - FreeCAD's many toolbars are removed. Only the small set that matches the SolidWorks quick-access toolbar stays: File, Edit and the workbench selector. The JellyJams ribbon, which plays the role of the SolidWorks **CommandManager**, takes over all other commands. The ribbon belongs to the ribbon area.
-- The FreeCAD **Tasks** panel, where the PropertyManager-style feature dialogs appear, and the **Report view** are docked together on the right side of the window. Tasks is on top and Report view is below it, so the 3D view ends in front of them. The model tree, which plays the role of the SolidWorks **FeatureManager design tree**, stays where it is.
+- The FreeCAD **Tasks** panel, where feature dialogs appear, is docked on the
+  right. An already open **Report view** is placed underneath it. A closed
+  Report view stays closed, including at startup and during delayed layout
+  passes; JellyJams never opens it just to arrange panels. The model tree stays
+  where it is.
 
 When the user leaves JellyJams, or quits FreeCAD while JellyJams is active, the window must go back exactly to the arrangement the user had before. **Stock FreeCAD must never be left altered.** FreeCAD persists its window layout and all parameters when it exits. If those were saved while the JellyJams layout was active, every other workbench (Part Design etc.) would start with hidden toolbars and moved panels. Preventing that is the main job of this area.
 
@@ -48,12 +52,19 @@ When the user leaves JellyJams, or quits FreeCAD while JellyJams is active, the 
 
 **Panels (docks)**
 
-- The `Tasks` dock and the `Report view` dock, both identified by exact objectName, must end up:
+- JellyJams' [Appearances](appearances.md) dock is tabbed beside Tasks while
+  active. Its owner removes it on leave and quit before this area's restoration;
+  cancelled quit re-creates it. The stock Tasks/Report view restoration contract
+  is unchanged.
+- The `Tasks` dock and an already open `Report view`, identified by exact objectName, must end up:
   - docked, not floating; a panel that was floating is docked again
   - in the right dock area (`Qt.DockWidgetArea.RightDockWidgetArea`)
-  - both visible, including a Report view the user had closed
+  - visible; a closed Report view is excluded and remains untouched
   - stacked vertically, with Tasks above Report view: a vertical split, not tabs
 - If only Tasks exists, Tasks alone goes to the right.
+- Closing Report view after activation must also survive the delayed re-dock
+  passes. Reopening it explicitly remains possible. FreeCAD's own auto-show
+  settings for log messages, warnings and errors are not changed.
 - If Tasks cannot be found, no dock is moved. A warning is printed (see 6).
 - The model tree dock (`Model`) is not moved, hidden or restyled.
 - All other docks are not moved or hidden. Examples: Python console, Selection view, and any foreign dock.
@@ -211,7 +222,12 @@ No FreeCAD command is run by this area. Testers use `FreeCADGui.activateWorkbenc
   - Every other toolbar keeps the visibility it has at the moment of restore. If restoring the snapshot changed it, it is put back.
   - JellyJams keeps a record of which toolbars it hid for this apply. The record is cleared when the layout is reverted.
 - A toolbar that FreeCAD deleted in the meantime is skipped silently.
-- The second pass (about 250 ms later) restores docks again. It protects **all** toolbars' current visibility, and then re-hides the ribbon if it is not wanted.
+- The second pass (about 250 ms later) restores docks again and re-shows only
+  the toolbars JellyJams hid, preserving all other toolbars' current visibility.
+  FreeCAD may hide general toolbars after the first restore during a workbench
+  switch; they must not remain hidden because of that timing. The same
+  activation-generation guard prevents this pass from affecting quick reentry.
+  The pass then re-hides the ribbon if it is not wanted.
 - Consequences, which are intended:
   - Dock rearrangements the user made while inside JellyJams are discarded on leave, because exact restore wins.
   - A kept toolbar (File, Edit, Workbench) that the user hid while inside JellyJams stays hidden after leaving.
@@ -282,14 +298,14 @@ Run FreeCAD 1.1 with a throwaway profile (`FreeCAD.exe -u <user.cfg> -s <system.
 Checks are made at least 3.5 s after each switch, so every delayed re-dock pass has run.
 
 1. **Kept toolbars.** After switching to JellyJams, the visible main-window toolbars (`QToolBar` children of the main window with `isVisible()` true) are exactly `Edit`, `File`, `Workbench`. The workbench selector is usable.
-2. **Panel placement.** In JellyJams, the `Tasks` and `Report view` docks:
+2. **Panel placement.** With Report view open before activation, the `Tasks` and `Report view` docks:
    - are both visible
    - are not floating
    - report `RightDockWidgetArea` from `dockWidgetArea()`
    - have Tasks' top edge above Report view's top edge, with no tabbing between the two
 3. **Placement is stable.** The panel placement from criterion 2 still holds 3 s after entering. It also still holds after creating a Part Design Body and opening a feature dialog, whose PropertyManager-style panel shows in Tasks on the right.
 4. **Model tree untouched.** The `Model` dock has the same area, floating state and visibility in JellyJams as before entering.
-5. **Floating panel.** Make `Report view` floating in Part Design, then enter JellyJams. It is docked on the right under Tasks. After switching back to Part Design, it is floating again.
+5. **Floating panel.** Make an open `Report view` floating in Part Design, then enter JellyJams. It is docked on the right under Tasks. After switching back to Part Design, it is floating again. A closed floating Report view is left untouched.
 6. **Leave restores stock toolbars.** After switching from JellyJams to Part Design, every toolbar of the stock set is visible again. Part Design's own toolbars are visible: none were hidden by the restore.
 7. **Leave honors the verified ordering for other workbenches.** Switch from JellyJams to Sketcher, then to Assembly, re-entering JellyJams in between. Each target workbench's own toolbars are visible after the switch, and stay visible after a further 1 s.
 8. **Leave restores panels exactly.** After leaving, `Tasks` and `Report view` have the same area, floating state, visibility and tab/split relationship as recorded before entering.
@@ -350,3 +366,7 @@ Checks are made at least 3.5 s after each switch, so every delayed re-dock pass 
     - `NavigationStyle` and shortcuts are back to the user's values
 24. **Deferral cancellation (harness-level).** With a main window that is not yet visible, request apply and then revert, or switch the active workbench away. When the window becomes visible, no layout, snapshot or look is applied, and no ribbon is shown by this area.
 25. **Deferral timeout (harness-level).** With a main window that never becomes visible, a single `JellyJams: ` warning about the layout not being applied appears after about 12 s. Nothing in the window was changed.
+26. **Closed Report view.** Close Report view before entering JellyJams. It stays
+    closed after activation and every delayed re-dock pass. Explicitly opening
+    and closing it works. It is still closed after leave, native quit/relaunch
+    with JellyJams autoload, and cancelled quit.
