@@ -101,15 +101,16 @@ EXPECTED_COMMANDS = [
     "JellyJams_WeldSymbol", "JellyJams_LineFormat", "JellyJams_LineOnSheet",
     "JellyJams_CornerRectangleOnSheet", "JellyJams_CircleOnSheet", "JellyJams_CenterpointArcOnSheet",
     "JellyJams_PolygonOnSheet", "JellyJams_Note", "JellyJams_SaveAsPDF", "JellyJams_SaveAsDXF",
-    "JellyJams_ViewOrientation", "JellyJams_NormalTo",
+    "JellyJams_ViewOrientation", "JellyJams_NormalTo", "JellyJams_Appearances",
 ]
 
 # JellyJams commands without a ribbon button: View Orientation (Space) is in the JellyJams menu
 # only. Normal To (Ctrl+8) is on the Evaluate tab, in the JellyJams menu and in the Orientation
 # panel; FreeCAD's own Align to selection is on no tab
-OFF_RIBBON_COMMANDS = {"JellyJams_ViewOrientation"}
+OFF_RIBBON_COMMANDS = {"JellyJams_ViewOrientation", "JellyJams_Appearances"}
 
 EXPECTED_PROVIDERS = {
+    "jellyjams.appearances": ("JellyJams_Appearances",),
     "jellyjams.diagnostics": ("JellyJams_Diagnostics",),
     "jellyjams.sketch_tools": ("JellyJams_Centerline", "JellyJams_MidpointLine"),
     "jellyjams.assembly_commands": ("JellyJams_NewAssembly", "JellyJams_RotateComponent"),
@@ -128,6 +129,7 @@ EXPECTED_PROVIDERS = {
 }
 
 EXPECTED_MENU_TEXTS = {
+    "JellyJams_Appearances": "Appearances",
     "JellyJams_Diagnostics": "Diagnostics", "JellyJams_Centerline": "Centerline",
     "JellyJams_MidpointLine": "Midpoint Line", "JellyJams_NewAssembly": "New Assembly",
     "JellyJams_RotateComponent": "Rotate Component", "JellyJams_MakeDrawing": "Make Drawing",
@@ -141,6 +143,7 @@ EXPECTED_MENU_TEXTS = {
 EXPECTED_MENU_TEXTS.update({cmd: text for text, cmd in SHEET_SHAPES.items()})
 
 COMMAND_ICONS = {
+    "JellyJams_Appearances": "appearances",
     "JellyJams_Diagnostics": "diagnostics", "JellyJams_Centerline": "centerline",
     "JellyJams_MidpointLine": "midpoint_line", "JellyJams_NewAssembly": "new_assembly",
     "JellyJams_RotateComponent": "rotate_component", "JellyJams_MakeDrawing": "make_drawing",
@@ -207,6 +210,7 @@ CONSTANT_VALUES = {
     "OBJ_PICTURE_FORM": "JellyJamsPictureForm", "OBJ_SURFACE_FINISH": "JellyJamsSurfaceFinishForm",
     "OBJ_WELD_SYMBOL": "JellyJamsWeldSymbolForm", "OBJ_DIAGNOSTICS_DIALOG": "JellyJamsDiagnosticsDialog",
     "OBJ_NOTE_DIALOG": "JellyJamsNoteDialog", "OBJ_SCALE_MENU": "JellyJamsViewScaleMenu",
+    "OBJ_APPEARANCES": "JellyJamsAppearances",
     "DOCK_TASKS": "Tasks", "TASK_DOCK_CANDIDATES": ("Tasks", "TaskView", "TaskList", "Task"),
     "DOCK_REPORT": "Report view", "MODEL_DOCK_CANDIDATES": ("Model", "Combo View", "Tree view"),
     "KEPT_TOOLBAR_WORDS": ("File", "Edit", "Workbench"), "CLASS_TASK_PANEL": "Gui::TaskView::TaskPanel",
@@ -234,6 +238,7 @@ CONSTANT_VALUES = {
     "CMD_SHEET_ARC": "JellyJams_CenterpointArcOnSheet", "CMD_SHEET_POLYGON": "JellyJams_PolygonOnSheet",
     "CMD_NOTE": "JellyJams_Note", "CMD_SAVE_PDF": "JellyJams_SaveAsPDF", "CMD_SAVE_DXF": "JellyJams_SaveAsDXF",
     "CMD_ORIENTATION": "JellyJams_ViewOrientation", "CMD_NORMAL_TO": "JellyJams_NormalTo",
+    "CMD_APPEARANCES": "JellyJams_Appearances",
     "ALL_COMMANDS": tuple(EXPECTED_COMMANDS),
     "WORKBENCH_ICON": "jellyjams", "COMMAND_ICONS": COMMAND_ICONS, "RELATION_ICONS": RELATION_ICONS,
     "PROFILE_FEATURES": PROFILE_FEATURES, "SKETCH_FIRST_FEATURES": SKETCH_FIRST_FEATURES,
@@ -256,6 +261,7 @@ CONSTANT_VALUES = {
 }
 
 EXPECTED_MODULES = [
+    "appearances", "appearance_rules",
     "constants", "console", "params", "paths", "fcgui", "doc_utils", "commands", "recovery",
     "navigation", "orbit", "orbit_rules", "shortcuts", "lifecycle", "quit_guard", "qt_filter", "diagnostics", "palette",
     "theme", "viewport", "layout", "ribbon", "ribbon_layout", "ribbon_model", "ribbon_text",
@@ -268,11 +274,14 @@ EXPECTED_MODULES = [
     "weld_symbol", "line_format", "drawing_export", "pdf_merge", "orientation",
 ]
 
-PURE_MODULES = ["__init__", "constants", "palette", "ribbon_layout", "ribbon_model", "ribbon_text",
+PURE_MODULES = ["__init__", "constants", "palette", "appearance_rules", "ribbon_layout", "ribbon_model", "ribbon_text",
                 "naming_rules", "relations_rules", "mate_rules", "dialog_terms_data", "pdf_merge", "orbit_rules"]
 NOT_IN_PURE = {"FreeCAD", "FreeCADGui", "PySide", "PySide2", "PySide6", "shiboken2", "shiboken6"}
 
 API_NAMES = {
+    "jellyjams.appearances": ["get_commands", "targets", "apply_appearance", "enable", "disable",
+                              "show", "dock", "suspend_for_quit", "resume_after_cancel"],
+    "jellyjams.appearance_rules": ["Appearance", "LIBRARY", "FINISHES", "rgb", "face_index", "material_values"],
     "jellyjams": ["__version__", "MIN_FREECAD_VERSION"],
     "jellyjams.console": ["message", "warning", "error", "log", "traceback_text", "guard", "guarded",
                           "safe_call"],
@@ -408,6 +417,7 @@ ACTIVATION_STEPS = [
     ("shortcuts", "set the SolidWorks-style keyboard shortcuts", "jellyjams.shortcuts", "install"),
     ("orientation", "let focused buttons and lists keep the Space key", "jellyjams.orientation", "install"),
     ("ribbon", "display the CommandManager ribbon", "jellyjams.ribbon", "show"),
+    ("appearances", "display the Appearances tab", "jellyjams.appearances", "enable"),
     ("naming", "turn on FeatureManager-style tree names", "jellyjams.naming", "enable"),
     ("sketch_edit", "keep JellyJams active while a sketch is edited", "jellyjams.sketch_edit", "install"),
     ("edit_guard", "keep JellyJams active while a feature is edited", "jellyjams.edit_guard", "install"),
@@ -423,6 +433,7 @@ ACTIVATION_STEPS = [
     ("quit_guard", "set up the quit guard", "jellyjams.quit_guard", "install"),
 ]
 DEACTIVATION_STEPS = [
+    ("appearances", "remove the Appearances tab", "jellyjams.appearances", "disable"),
     ("qt_filter", "turn off the Qt message filter", "jellyjams.qt_filter", "disable"),
     ("dialog_terms", "stop relabeling FreeCAD dialogs", "jellyjams.dialog_terms", "stop"),
     ("assembly_drop", "stop accepting files dropped onto an assembly", "jellyjams.assembly_drop", "disable"),
@@ -447,6 +458,7 @@ DEACTIVATION_STEPS = [
     ("layout", "put back the window layout", "jellyjams.layout", "revert"),
 ]
 QUIT_REVERT_STEPS = [
+    ("appearances", "jellyjams.appearances", "suspend_for_quit"),
     ("switch_prefs", "jellyjams.switch_prefs", "restore"), ("ribbon", "jellyjams.ribbon", "hide"),
     ("shortcuts", "jellyjams.shortcuts", "uninstall"), ("navigation", "jellyjams.navigation", "uninstall"),
     ("viewport", "jellyjams.viewport", "restore"), ("theme", "jellyjams.theme", "remove"),
@@ -456,6 +468,7 @@ QUIT_REAPPLY_STEPS = [
     ("layout", "jellyjams.layout", "apply"), ("theme", "jellyjams.theme", "apply"),
     ("viewport", "jellyjams.viewport", "apply"), ("navigation", "jellyjams.navigation", "install"),
     ("shortcuts", "jellyjams.shortcuts", "install"), ("ribbon", "jellyjams.ribbon", "show"),
+    ("appearances", "jellyjams.appearances", "resume_after_cancel"),
     ("switch_prefs", "jellyjams.switch_prefs", "apply"),
 ]
 
@@ -1727,7 +1740,7 @@ class Test06Lifecycle(HarnessCase):
             self.assertEqual(menu_call[1][0], "JellyJams")
             # FreeCAD creates a command's QAction (and so its shortcut) only for commands in a
             # menu or toolbar: View Orientation and Normal To must be listed for Space and Ctrl+8.
-            self.assertEqual(list(menu_call[1][1]), [ORIENTATION_CMD, NORMAL_TO_CMD, "JellyJams_Diagnostics"])
+            self.assertEqual(list(menu_call[1][1]), [ORIENTATION_CMD, NORMAL_TO_CMD, "JellyJams_Appearances", "JellyJams_Diagnostics"])
             messages = self.jj("message")
             self.assertTrue(messages and "version 9.9.9" in messages[0], messages)
             self.assertIn("workbench set up and ready", messages[-1])
@@ -1797,7 +1810,7 @@ class Test06Lifecycle(HarnessCase):
             workbench = STUBS.gui.Workbench()
             lifecycle.initialize(workbench)
             self.assertEqual(workbench._menus, [("JellyJams", [ORIENTATION_CMD, NORMAL_TO_CMD,
-                                                               "JellyJams_Diagnostics"])])
+                                                               "JellyJams_Appearances", "JellyJams_Diagnostics"])])
             self.assertIn(ORIENTATION_CMD, STUBS.registered)
             self.assertIn(NORMAL_TO_CMD, STUBS.registered)
             window = STUBS.main_window
@@ -1954,6 +1967,62 @@ class Test07QuitGuard(HarnessCase):
 # ==========================================================================
 # 8. Qt message filter
 # ==========================================================================
+
+
+class Test07AcceptedQuitGuard(HarnessCase):
+    def setUp(self):
+        super().setUp()
+        self.calls = []
+        self.lifecycle = self.module("jellyjams.lifecycle")
+        self.patch(self.lifecycle, "is_active", lambda: True)
+        self.patch(self.lifecycle, "revert_for_quit", lambda: self.calls.append("restore"))
+        self.patch(self.lifecycle, "reapply_after_cancel", lambda: self.calls.append("reapply"))
+        calls = self.calls
+
+        class Window(QtWidgets.QMainWindow):
+            mainWindowClosed = QtCore.Signal()
+            accept_close = False
+
+            def closeEvent(self, event):
+                if self.accept_close:
+                    self.mainWindowClosed.emit()
+                    self.at_save = list(calls)
+                    event.accept()
+                else:
+                    event.ignore()
+
+        self.window = Window()
+        self.window.show()
+        self.addCleanup(self.window.deleteLater)
+        self.patch(self.module("jellyjams.fcgui"), "main_window", lambda: self.window)
+        self.guard = self.module("jellyjams.quit_guard", fresh=True)
+        self.guard.install()
+        self.assertTrue(self.guard._watcher.accepted_close_connected)
+
+    def test_cancel_keeps_interface_and_never_runs_restore_or_reapply(self):
+        self.window.close()
+        STUBS.pump(750)
+        self.assertTrue(self.window.isVisible())
+        self.assertEqual(self.calls, [])
+
+    def test_accepted_close_restores_synchronously_before_settings_are_saved(self):
+        self.window.accept_close = True
+        self.window.close()
+        self.assertEqual(self.window.at_save, ["restore"])
+        STUBS.pump(750)
+        self.assertEqual(self.calls, ["restore"])
+
+    def test_duplicate_install_and_accepted_signal_restore_only_once(self):
+        self.guard.install()
+        self.window.mainWindowClosed.emit()
+        self.window.mainWindowClosed.emit()
+        self.assertEqual(self.calls, ["restore"])
+
+    def test_inactive_workbench_is_untouched_on_accepted_close(self):
+        self.patch(self.lifecycle, "is_active", lambda: False)
+        self.window.accept_close = True
+        self.window.close()
+        self.assertEqual(self.window.at_save, [])
 
 
 class Test08QtFilter(HarnessCase):
@@ -2671,7 +2740,6 @@ class Test11Layout(HarnessCase):
 
     def test_apply_docks_tasks_above_report_on_the_right(self):
         window = self.build_window()
-        self.docks["Report view"].hide()
         self.layout.apply()
         STUBS.pump(50)
         right = QtCore.Qt.DockWidgetArea.RightDockWidgetArea
@@ -2683,6 +2751,47 @@ class Test11Layout(HarnessCase):
         self.assertNotIn(report, window.tabifiedDockWidgets(tasks))
         self.assertLess(tasks.geometry().top(), report.geometry().top())
         self.assertTrue(self.docks["Python console"].isHidden())
+
+    def test_closed_report_stays_closed_through_apply_and_delayed_passes(self):
+        window = self.build_window()
+        report = self.docks["Report view"]
+        report.hide()
+        before = window.dockWidgetArea(report)
+        self.layout.apply()
+        for _ in range(2):
+            self.layout._redock(self.layout._generation)
+        self.assertTrue(report.isHidden())
+        self.assertEqual(window.dockWidgetArea(report), before)
+        self.assertTrue(self.docks["Tasks"].isVisible())
+        self.layout.revert()
+        STUBS.pump(450)
+        self.assertTrue(report.isHidden())
+
+    def test_report_closed_after_activation_is_not_reopened_by_redocking(self):
+        self.build_window()
+        report = self.docks["Report view"]
+        self.layout.apply()
+        report.hide()
+        self.layout._redock(self.layout._generation)
+        self.assertTrue(report.isHidden())
+        report.show()
+        self.layout._redock(self.layout._generation)
+        self.assertTrue(report.isVisible(), "an explicitly reopened Report view stays open")
+
+    def test_report_visibility_choice_survives_both_restore_passes(self):
+        window = self.build_window()
+        report = self.docks["Report view"]
+        original_area = window.dockWidgetArea(report)
+        for initially_visible in (True, False):
+            with self.subTest(initially_visible=initially_visible):
+                report.setVisible(initially_visible)
+                self.layout.apply()
+                report.setVisible(not initially_visible)
+                self.layout.revert()
+                self.assertEqual(report.isVisible(), not initially_visible)
+                STUBS.pump(450)
+                self.assertEqual(report.isVisible(), not initially_visible)
+                self.assertEqual(window.dockWidgetArea(report), original_area)
 
     def test_delayed_pass_hides_late_toolbars_and_restores_them_once(self):
         window = self.build_window()
@@ -2755,6 +2864,18 @@ class Test11Layout(HarnessCase):
         self.assertEqual(window.dockWidgetArea(self.docks["Tasks"]), QtCore.Qt.DockWidgetArea.LeftDockWidgetArea)
         self.assertIn(self.docks["Model"], window.tabifiedDockWidgets(self.docks["Tasks"]))
         self.assertTrue(self.docks["Python console"].isHidden())
+
+    def test_second_restore_reopens_bars_hidden_late_by_freecad(self):
+        window = self.build_window()
+        self.layout.apply()
+        self.layout.revert()
+        # Native workbench handling can hide general bars after Deactivated.
+        self.toolbars["View"].hide()
+        self.toolbars["Edit"].hide()
+        STUBS.pump(450)
+        self.assertTrue(self.toolbars["View"].isVisible(), "restore a toolbar JellyJams hid")
+        self.assertTrue(self.toolbars["Structure"].isVisible())
+        self.assertFalse(self.toolbars["Edit"].isVisible(), "leave unrelated current visibility alone")
 
     def test_quick_reentry_is_not_undone_by_the_second_pass(self):
         window = self.build_window()
@@ -9358,6 +9479,253 @@ class Test24Orientation(HarnessCase):
                 point = self.orientation._placement(QtCore, fake_gui, size)
                 self.assertEqual((point.x(), point.y()), expected)
                 self.assertTrue(area.contains(QtCore.QRect(point, size)))
+
+
+# --------------------------------------------------------------------------
+# Appearance library and safe targeting
+# --------------------------------------------------------------------------
+
+
+class Test25Appearances(DocumentCase):
+    def setUp(self):
+        super().setUp()
+        self.appearances = self.module("jellyjams.appearances", fresh=True)
+        self.rules = self.module("jellyjams.appearance_rules")
+        self.doc = FakeDocument("Colour")
+        self.open_documents(self.doc)
+        self.patch(STUBS.app, "ActiveDocument", self.doc)
+        STUBS.set_active_workbench(WB)
+        self.addCleanup(self.appearances.disable)
+
+    def solid(self, name="Box", visible=True):
+        return FakeObject(self.doc, name, "Part::Feature",
+                          Shape=types.SimpleNamespace(Faces=[None] * 6),
+                          ViewObject=types.SimpleNamespace(ShapeAppearance=["original"], Visibility=visible))
+
+    def pick(self, obj, *subs):
+        return types.SimpleNamespace(Object=obj, SubElementNames=subs)
+
+    def test_library_and_validation(self):
+        for values in self.rules.LIBRARY.values():
+            for appearance in values:
+                color, specular, shininess, transparency = self.rules.material_values(appearance)
+                self.assertEqual(len(color), 3)
+                self.assertTrue(all(0 <= value <= 1 for value in (*color, specular, shininess, transparency)))
+        self.assertEqual(self.rules.rgb("#FF0080"), (1, 0, 128 / 255))
+        for color in ("red", "#fff", "#1234567", "#zz0080", None):
+            with self.assertRaises(ValueError):
+                self.rules.rgb(color)
+        for transparency in (-1, 101, float("nan"), float("inf")):
+            with self.assertRaises(ValueError):
+                self.rules.material_values(self.rules.Appearance("Bad", "#000000", transparency=transparency))
+
+    def test_faces_deduplicate_and_never_fall_back_to_whole(self):
+        obj = self.solid()
+        STUBS.selection_ex = [self.pick(obj, "Face1", "Face3", "Face1", "Face7", "Edge2")]
+        self.assertEqual(self.appearances.targets(), [(obj, {0, 2})])
+        STUBS.selection_ex = [self.pick(obj, "Face7", "Edge2")]
+        self.assertEqual(self.appearances.targets(), [])
+        self.assertEqual(self.appearances.targets(1), [(obj, None)])
+
+    def test_whole_target_dominates_faces_in_same_selection(self):
+        obj = self.solid()
+        STUBS.selection_ex = [self.pick(obj, "Face1"), self.pick(obj)]
+        self.assertEqual(self.appearances.targets(), [(obj, None)])
+
+    def test_component_override_stops_before_source(self):
+        source = self.solid("Source")
+        link = FakeObject(self.doc, "Link", "App::Link", LinkedObject=source,
+                          Shape=source.Shape, ViewObject=types.SimpleNamespace(
+                              ShapeMaterial="local", OverrideMaterial=False, Visibility=True))
+        part = FakeObject(self.doc, "Part", "App::Part", Group=[link],
+                          ViewObject=types.SimpleNamespace(Visibility=True))
+        STUBS.selection_ex = [self.pick(part, "Link.Source.Face1")]
+        self.assertEqual(self.appearances.targets(), [])
+        self.assertEqual(self.appearances.targets(1), [(link, None)])
+        STUBS.selection_ex = [self.pick(link)]
+        self.assertEqual(self.appearances.targets(), [(link, None)])
+        self.assertEqual(source.ViewObject.ShapeAppearance, ["original"])
+
+    def test_component_apply_changes_only_the_selected_instance(self):
+        source = self.solid("Source")
+        links = [FakeObject(self.doc, name, "App::Link", LinkedObject=source,
+                            Shape=source.Shape, ViewObject=types.SimpleNamespace(
+                                ShapeMaterial="original", OverrideMaterial=False, Visibility=True))
+                 for name in ("Selected", "Sibling")]
+        STUBS.selection_ex = [self.pick(links[0])]
+        self.patch(STUBS.app, "Material", types.SimpleNamespace)
+        count = self.appearances.apply_appearance(
+            self.rules.Appearance("Gold", "#dfbd62", "Polished", 35))
+        self.assertEqual(count, 1)
+        view = links[0].ViewObject
+        self.assertTrue(view.OverrideMaterial)
+        self.assertEqual(view.ShapeMaterial.DiffuseColor, (223 / 255, 189 / 255, 98 / 255))
+        self.assertAlmostEqual(view.ShapeMaterial.Transparency, .35)
+        self.assertAlmostEqual(view.ShapeMaterial.Shininess, .95)
+        self.assertEqual(source.ViewObject.ShapeAppearance, ["original"])
+        self.assertEqual(links[1].ViewObject.ShapeMaterial, "original")
+        self.assertFalse(links[1].ViewObject.OverrideMaterial)
+        self.assertEqual(self.doc.call_names(), ["openTransaction", "commitTransaction"])
+
+    def test_empty_selection_targets_only_visible_models(self):
+        visible = self.solid("Visible")
+        self.solid("Hidden", False)
+        self.assertEqual(self.appearances.targets(), [(visible, None)])
+        other = FakeDocument("Other")
+        foreign = FakeObject(other, "Visible", "Part::Feature")
+        STUBS.selection_ex = [self.pick(foreign)]
+        self.assertEqual(self.appearances.targets(), [], "foreign selection must not colour active model")
+        STUBS.set_active_dialog(object())
+        self.assertEqual(self.appearances.targets(2), [])
+
+    def test_failed_selection_query_never_colours_the_entire_model(self):
+        obj = self.solid()
+
+        def unavailable(*_args):
+            raise RuntimeError("selection unavailable")
+
+        self.patch(STUBS.gui.Selection, "getSelectionEx", unavailable)
+        self.patch(STUBS.app, "Material", types.SimpleNamespace)
+        for scope in (0, 1, 2):
+            with self.subTest(scope=scope):
+                self.assertEqual(self.appearances.targets(scope), [])
+                self.assertEqual(self.appearances.apply_appearance(
+                    self.rules.Appearance("Red", "#ff0000"), scope), 0)
+        self.assertEqual(obj.ViewObject.ShapeAppearance, ["original"])
+        self.assertEqual(self.doc.calls, [])
+
+    def test_existing_application_transaction_is_not_joined_or_closed(self):
+        obj = self.solid()
+        STUBS.selection_ex = [self.pick(obj)]
+        transactions = self.use_transactions()
+        self.doc.transactions = transactions
+        transactions.open("Another tool")
+        original = transactions.active
+        self.assertFalse(self.doc.HasPendingTransaction)
+        with self.assertRaisesRegex(ValueError, "Finish the current edit"):
+            self.appearances.apply_appearance(self.rules.Appearance("Red", "#ff0000"))
+        self.assertEqual(transactions.active, original)
+        self.assertEqual(transactions.closed, [])
+        self.assertEqual(self.doc.calls, [])
+        self.assertEqual(obj.ViewObject.ShapeAppearance, ["original"])
+
+    def test_face_edit_preserves_other_faces_in_one_transaction(self):
+        obj = self.solid()
+        STUBS.selection_ex = [self.pick(obj, "Face2", "Face5")]
+        self.patch(STUBS.app, "Material", types.SimpleNamespace)
+        count = self.appearances.apply_appearance(self.rules.Appearance("Red", "#ff0000"))
+        self.assertEqual(count, 1)
+        materials = obj.ViewObject.ShapeAppearance
+        self.assertEqual([index for index, value in enumerate(materials) if value == "original"], [0, 2, 3, 5])
+        self.assertEqual(materials[1].DiffuseColor, (1, 0, 0))
+        self.assertEqual(self.doc.call_names(), ["openTransaction", "commitTransaction"])
+        self.doc.HasPendingTransaction = True
+        with self.assertRaises(ValueError):
+            self.appearances.apply_appearance(self.rules.Appearance("Blue", "#0000ff"))
+
+    def test_invalid_edits_never_start_a_transaction(self):
+        obj = self.solid()
+        STUBS.selection_ex = [self.pick(obj)]
+        with self.assertRaises(ValueError):
+            self.appearances.apply_appearance(self.rules.Appearance("Bad", "invalid"))
+        self.assertEqual(self.doc.calls, [])
+        self.assertEqual(obj.ViewObject.ShapeAppearance, ["original"])
+
+    def test_failed_edit_aborts_and_releases_transaction(self):
+        first, second = self.solid("First"), self.solid("Second")
+        STUBS.selection_ex = [self.pick(first), self.pick(second)]
+        transactions = self.use_transactions()
+        self.doc.transactions = transactions
+        calls = []
+
+        def material_factory():
+            calls.append(None)
+            if len(calls) == 2:
+                raise RuntimeError("material write failed")
+            return types.SimpleNamespace()
+
+        self.patch(STUBS.app, "Material", material_factory)
+        with self.assertRaisesRegex(RuntimeError, "material write failed"):
+            self.appearances.apply_appearance(self.rules.Appearance("Red", "#ff0000"))
+        self.assertEqual(len(calls), 2, "fail after the first target was edited")
+        self.assertEqual(self.doc.call_names(), ["openTransaction", "abortTransaction"])
+        self.assertIsNone(transactions.active, "a failed edit must not leave the application transaction open")
+        self.assertEqual(transactions.closed, [(True, 41)])
+        # The stubs verify the abort protocol, not native material rollback.
+        # gui_appearances.py verifies actual restoration in real FreeCAD.
+
+    def test_deferred_startup_creates_panel_only_while_enabled(self):
+        window = STUBS.main_window
+        window.hide()
+        self.appearances.enable()
+        self.assertIsNone(self.appearances.dock())
+        self.appearances._timer.setInterval(5)
+        window.show()
+        self.assertTrue(STUBS.wait_until(lambda: self.appearances.dock() is not None, 1000))
+        self.appearances.disable()
+        window.hide()
+        self.appearances.enable()
+        self.appearances.disable()
+        window.show()
+        STUBS.pump(30)
+        self.assertIsNone(self.appearances.dock(), "cancelled startup must not create a late panel")
+        self.assertFalse(self.appearances._timer.isActive())
+        self.assertNoJellyJamsProblems()
+
+    def test_failed_panel_creation_is_cleaned_up_and_can_retry(self):
+        original = self.appearances._AppearancePanel
+
+        def unavailable(_parent):
+            raise RuntimeError("panel construction failed")
+
+        self.patch(self.appearances, "_AppearancePanel", unavailable)
+        self.appearances.enable()
+        self.assertIsNone(self.appearances.dock())
+        self.assertEqual(STUBS.main_window.findChildren(
+            QtWidgets.QDockWidget, "JellyJamsAppearances"), [])
+        self.assertEqual(len(self.jj("error")), 1)
+        self.appearances._AppearancePanel = original
+        self.appearances._refresh()
+        self.assertIsNotNone(self.appearances.dock())
+        self.assertIsNotNone(self.appearances.dock().widget())
+
+    def test_quit_cancel_restores_one_panel_and_preserves_closed_choice(self):
+        self.appearances.enable()
+        timer = self.appearances._timer
+        for visible in (True, False):
+            with self.subTest(visible=visible):
+                self.appearances.dock().setVisible(visible)
+                self.appearances.suspend_for_quit()
+                self.assertIsNone(self.appearances.dock())
+                self.assertFalse(timer.isActive())
+                STUBS.pump(20)
+                self.assertEqual(STUBS.main_window.findChildren(
+                    QtWidgets.QDockWidget, "JellyJamsAppearances"), [])
+                self.appearances.resume_after_cancel()
+                self.appearances.resume_after_cancel()
+                self.assertIs(self.appearances._timer, timer)
+                self.assertTrue(timer.isActive())
+                self.assertEqual(self.appearances.dock().isHidden(), not visible)
+                self.assertEqual(len(STUBS.main_window.findChildren(
+                    QtWidgets.QDockWidget, "JellyJamsAppearances")), 1)
+
+    def test_panel_preview_is_read_only_and_disable_cancels_timer(self):
+        obj = self.solid()
+        self.appearances.enable()
+        self.appearances.enable()
+        panel = self.appearances.dock().widget()
+        panel.gallery.setCurrentRow(5)
+        panel.color.setText("#123456")
+        panel.transparency.setValue(40)
+        self.assertEqual(obj.ViewObject.ShapeAppearance, ["original"])
+        self.assertEqual(self.doc.calls, [])
+        docks = STUBS.main_window.findChildren(QtWidgets.QDockWidget, "JellyJamsAppearances")
+        self.assertEqual(len(docks), 1)
+        self.appearances.disable()
+        self.appearances.disable()
+        self.assertIsNone(self.appearances.dock())
+        self.assertFalse(self.appearances._timer.isActive())
+        self.assertEqual(STUBS.main_window.findChildren(QtWidgets.QDockWidget, "JellyJamsAppearances"), [])
 
 
 # --------------------------------------------------------------------------

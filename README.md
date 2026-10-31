@@ -13,6 +13,12 @@ moving to a different one reverts all of these changes.
 
 ### Interface
 
+- **Appearances tab** beside Tasks, based on the official SOLIDWORKS appearance
+  workflow. Browse Plastic, Metal and Paint presets, choose a custom colour,
+  finish or transparency, then double-click a preset or click Apply Appearance.
+  Select faces for local colouring, or select a whole body/part/component. Undo
+  restores the previous appearance. Open it with **JellyJams > Appearances**.
+  These are FreeCAD visual materials; textures, scenes and decals are not included.
 - **CommandManager-style ribbon** at the top of the window with five tabs: **Features, Sketch,
   Evaluate, Assembly, Drawing**. Large buttons, three-row button stacks, and flyout buttons that
   remember the tool you picked last (also in later sessions).
@@ -26,7 +32,10 @@ moving to a different one reverts all of these changes.
   back to the previous tab afterwards), the Assembly tab when you activate an assembly, and the
   Drawing tab when a drawing sheet comes to the front.
 - **SolidWorks-like window layout:** FreeCAD's toolbars are hidden except File, Edit and the
-  workbench selector; the Tasks panel and the Report view are docked together on the right.
+  workbench selector; Tasks and an already open Report view are docked on the right.
+  A closed Report view stays closed. Close it with **View > Panels > Report view**
+  or its X button, including inside JellyJams; a normal quit saves that choice
+  for the next startup. FreeCAD's own auto-show settings still apply.
 - **Light/dark widget and viewport colors matching FreeCAD**, with readable sketch geometry
   and dimensions. Under defined geometry is blue, fully defined geometry is black in light mode
   or green in dark mode, and over defined geometry is red. Your FreeCAD theme setting itself
@@ -149,7 +158,8 @@ moving to a different one reverts all of these changes.
   your configuration beforehand has none afterwards either, so FreeCAD's built-in default
   keeps applying to it.
 - If you **cancel** FreeCAD's "Save changes?" prompt while quitting, the JellyJams interface
-  comes back.
+  stays in place. It remains visible while the prompt is open; cleanup happens
+  only after FreeCAD accepts the close.
 - **After a crash**, the next FreeCAD start restores the saved settings JellyJams had changed
   (3D view colors, navigation style, shortcuts, the three "switch to workbench" settings) from
   its backups.

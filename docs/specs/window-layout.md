@@ -1,6 +1,6 @@
 # JellyJams specification: Window layout
 
-> **Implemented in:** [`jellyjams/layout.py`](../../jellyjams/layout.py) (apply, revert, autoload deferral, re-dock passes); [`quit_guard.py`](../../jellyjams/quit_guard.py) (Close-event guard and Cancel re-apply); [`lifecycle.py`](../../jellyjams/lifecycle.py) (step order on enter, leave and quit).
+> **Implemented in:** [`jellyjams/layout.py`](../../jellyjams/layout.py) (apply, revert, autoload deferral, re-dock passes); [`quit_guard.py`](../../jellyjams/quit_guard.py) (accepted-close guard and compatibility fallback); [`lifecycle.py`](../../jellyjams/lifecycle.py) (step order on enter, leave and quit).
 >
 > **Status:** see [../status.md](../status.md)
 
@@ -17,7 +17,11 @@ This document states requirements. It does not prescribe a code structure.
 When the user enters JellyJams, the FreeCAD main window frame changes to look like a SolidWorks window:
 
 - FreeCAD's many toolbars are removed. Only the small set that matches the SolidWorks quick-access toolbar stays: File, Edit and the workbench selector. The JellyJams ribbon, which plays the role of the SolidWorks **CommandManager**, takes over all other commands. The ribbon belongs to the ribbon area.
-- The FreeCAD **Tasks** panel, where the PropertyManager-style feature dialogs appear, and the **Report view** are docked together on the right side of the window. Tasks is on top and Report view is below it, so the 3D view ends in front of them. The model tree, which plays the role of the SolidWorks **FeatureManager design tree**, stays where it is.
+- The FreeCAD **Tasks** panel, where feature dialogs appear, is docked on the
+  right. An already open **Report view** is placed underneath it. A closed
+  Report view stays closed, including at startup and during delayed layout
+  passes; JellyJams never opens it just to arrange panels. The model tree stays
+  where it is.
 
 When the user leaves JellyJams, or quits FreeCAD while JellyJams is active, the window must go back exactly to the arrangement the user had before. **Stock FreeCAD must never be left altered.** FreeCAD persists its window layout and all parameters when it exits. If those were saved while the JellyJams layout was active, every other workbench (Part Design etc.) would start with hidden toolbars and moved panels. Preventing that is the main job of this area.
 
@@ -48,12 +52,21 @@ When the user leaves JellyJams, or quits FreeCAD while JellyJams is active, the 
 
 **Panels (docks)**
 
-- The `Tasks` dock and the `Report view` dock, both identified by exact objectName, must end up:
+- JellyJams' [Appearances](appearances.md) dock is tabbed beside Tasks while
+  active. Its owner removes it on leave and quit before this area's restoration;
+  cancelled quit keeps it intact (fallback re-creates it). The stock Tasks/Report view restoration contract
+  is unchanged.
+- The `Tasks` dock and an already open `Report view`, identified by exact objectName, must end up:
   - docked, not floating; a panel that was floating is docked again
   - in the right dock area (`Qt.DockWidgetArea.RightDockWidgetArea`)
-  - both visible, including a Report view the user had closed
+  - visible; a closed Report view is excluded and remains untouched
   - stacked vertically, with Tasks above Report view: a vertical split, not tabs
 - If only Tasks exists, Tasks alone goes to the right.
+- Closing Report view after activation must also survive the delayed re-dock
+  passes, both restore passes on leave/quit, and cancelled quit. Restoring its
+  position must preserve its current open/closed choice, allowing native quit
+  to save that choice for startup. Reopening it explicitly remains possible. FreeCAD's own auto-show
+  settings for log messages, warnings and errors are not changed.
 - If Tasks cannot be found, no dock is moved. A warning is printed (see 6).
 - The model tree dock (`Model`) is not moved, hidden or restyled.
 - All other docks are not moved or hidden. Examples: Python console, Selection view, and any foreign dock.
@@ -70,7 +83,7 @@ When the user leaves JellyJams, or quits FreeCAD while JellyJams is active, the 
   - area and position
   - tabbing and splitting
   - floating state
-  - visibility
+  - visibility, except Report view keeps its current open/closed choice
   - for example, Tasks returns to its tab next to the model tree if that is where it was
 - Every toolbar that JellyJams hid gets back the visibility it had before entering.
 - Every other toolbar keeps its **current** visibility. This matters most for the toolbars of the workbench being switched to, which FreeCAD has already shown (see the verified ordering in 4.4). They must not be hidden.
@@ -81,25 +94,20 @@ When the user leaves JellyJams, or quits FreeCAD while JellyJams is active, the 
 ### 2.3 Quitting FreeCAD while JellyJams is active (quit/close guard)
 
 - FreeCAD never calls the workbench's `Deactivated()` on quit, but it saves window layout and parameters on exit.
-- JellyJams therefore watches the main window's **Close** event. The moment the user closes the main window (window X, File > Exit, Alt+F4…), JellyJams reverts its changes **before** FreeCAD's own close handling runs, which is before the "Save changes?" prompt appears and before FreeCAD persists anything. JellyJams reverts:
-  - window layout (as in 2.2)
-  - color scheme and 3D background
-  - ribbon hidden
-  - user's keyboard shortcuts (owned by the shortcuts area)
-  - user's navigation style (owned by the navigation area)
-  - user's Assembly, Part Design and TechDraw `SwitchToWB` settings (owned by the assembly area)
-- While FreeCAD's modal **"Save changes?"** prompt is open, the user therefore sees stock FreeCAD: stock toolbars, stock panel positions, no ribbon, no JellyJams colors.
-- **Save / Don't Save (Discard):** FreeCAD exits and persists the stock state. The next start of FreeCAD shows the user's normal toolbars and panels in every workbench.
-- **Cancel:** the close is aborted. Once the prompt has gone, JellyJams re-applies everything it reverted:
-  - layout (with a fresh snapshot)
-  - color scheme and 3D background
-  - navigation style
-  - shortcuts
-  - ribbon shown
-  - Assembly, Part Design and TechDraw `SwitchToWB` overrides
-- Re-applying happens only if FreeCAD is still running, the main window is still visible, and JellyJams is still the active workbench.
-- JellyJams must **never** re-apply while the prompt (or any other application-modal dialog) is still open. If it did, a subsequent Save/Discard would persist the JellyJams layout.
-- The guard never blocks, delays, consumes or alters the close itself. FreeCAD closes or prompts exactly as it would without JellyJams.
+- Keep the JellyJams ribbon, theme, viewport and panels visible throughout the
+  native Save/Discard/Cancel prompt and any Save As dialog. Navigation, shortcuts
+  and workbench-switch overrides remain active and their backups remain pending.
+- Connect once to FreeCAD's `mainWindowClosed` signal using a direct connection.
+  It runs only after native close handling accepts every document/view closure,
+  before `saveWindowSettings`. Restore the stock layout and all parameter
+  overrides there, before FreeCAD persists them. No queued callback is sufficient.
+- Save/Discard proceeds normally, persisting the original settings and panel
+  positions (with the current Report view visibility). Cancel leaves JellyJams
+  untouched; no teardown/recreation or timer-based reapply occurs on this path.
+- The guard does not consume Close or replace FreeCAD's save prompts. If the
+  accepted-close signal is unavailable, the conservative early-Close revert and
+  modal-aware Cancel reapply remain as a compatibility fallback. Only that
+  fallback shows stock FreeCAD during a prompt.
 
 ### 2.4 Startup with JellyJams as the start-up workbench (autoload deferral)
 
@@ -122,8 +130,8 @@ When the user leaves JellyJams, or quits FreeCAD while JellyJams is active, the 
 | After the layout is applied | Re-check non-kept toolbar visibility and re-dock Tasks and Report view to the right at about **350 ms, 1200 ms and 3000 ms**, only while the same activation is applied and JellyJams is still the active workbench. Reason: FreeCAD can restore stock toolbars late, and its dock overlay manager rebuilds panel placement after changes and workbench switches. Each newly hidden toolbar is recorded once for exact restore. |
 | JellyJams workbench `Deactivated()` | Revert the layout (2.2). This is the **last** JellyJams step in the deactivation sequence, after the ribbon is hidden and navigation, shortcuts, 3D background and theme have been reverted. Any pending deferred apply is cancelled first, even if the layout was never applied. If the layout is not applied, nothing else happens. |
 | About **250 ms** after the layout is reverted | Second restore pass: restore the dock arrangement from the snapshot again, and keep **every** toolbar's visibility exactly as it is at that moment. After that pass, hide the ribbon dock if JellyJams does not currently want it visible. Skip the pass entirely if the layout has been applied again in the meantime, for example after a quick switch back into JellyJams. |
-| Main window **Close** event | Only while JellyJams is active (between `Activated()` and `Deactivated()`), whether or not the layout is applied yet: restore the Assembly, Part Design and TechDraw `SwitchToWB` settings, hide the ribbon, restore shortcuts and navigation style, revert the look and the layout (if applied), then schedule the re-apply check. Otherwise do nothing. |
-| Re-apply check, about **600 ms** after the Close event | If an application-modal dialog is open (`QApplication.activeModalWidget()` is not null), check again about 600 ms later, and repeat for as long as it stays open. Once no modal dialog is open: do nothing if the main window is not visible or the active workbench is not `JellyJamsWorkbench`. Otherwise re-apply layout, look, navigation, shortcuts and ribbon. |
+| Main window **Close** event | With the accepted-close signal connected, leave JellyJams intact and pass the event through. Without it, perform the conservative early revert and schedule modal-aware Cancel polling. |
+| Compatibility re-apply check, about **600 ms** after Close | Only on the early-Close fallback: wait while any application-modal dialog is open, then reapply once if the window remains visible and JellyJams active. |
 
 The timings are tuning values. Exact milliseconds are not part of the contract, but these must hold:
 
@@ -147,7 +155,7 @@ The timings are tuning values. Exact milliseconds are not part of the contract, 
 - Changed:
   - visibility of non-kept toolbars
   - floating state, dock area, visibility and vertical split of the `Tasks` and `Report view` docks, through `addDockWidget(RightDockWidgetArea, …)`, `setFloating(False)` and `splitDockWidget(Tasks, Report view, Qt.Orientation.Vertical)`
-- Event filter: one Close-event filter on the main window, installed during the first activation of the workbench in a session (the last activation step). It is never installed twice and stays for the rest of the session. It acts only while JellyJams is active and always lets the event through.
+- One synchronous `mainWindowClosed` connection restores persisted state after accepted close. A Close-event filter on the main window is retained only for the compatibility fallback; it is installed once, always passes the event through and acts only while JellyJams is active.
 
 ### 4.2 Exact objectNames relied on
 
@@ -171,7 +179,7 @@ Other JellyJams areas may also need to find the task panel dock. The same identi
 1. **Workbench switch order.** On a switch away from JellyJams, FreeCAD first shows the next workbench's toolbars, and only about 200 ms later calls JellyJams' `Deactivated()`. The snapshot was taken inside JellyJams, where those toolbars were hidden. A blanket `restoreState()` in `Deactivated()` would therefore hide the new workbench's toolbars. **Restore only what JellyJams changed.**
 2. **Overlay manager delay.** FreeCAD's dock overlay manager re-docks panels about 100 ms after changes, and again around workbench switches. Dock placement needs delayed follow-up passes, both after applying and after reverting.
 3. **Foreign docks vs. toolbars.** FreeCAD hides and shows the toolbars it manages on every workbench switch. It leaves foreign `QDockWidget`s alone, but its asynchronous state restore can re-show a dock. This is why the ribbon must be re-hidden after restores.
-4. **Quit.** FreeCAD never calls `Deactivated()` on quit. It persists the window layout (`MainWindowState`, including toolbar and dock visibility) and all parameters on exit. A Close-event filter on the main window runs **before** FreeCAD's own close handling. If documents are unsaved, the "Save changes?" prompt runs a nested event loop inside that close handling. Cancel aborts the close.
+4. **Quit.** FreeCAD never calls `Deactivated()` on quit. It persists the window layout (`MainWindowState`, including toolbar and dock visibility) and all parameters on exit. The synchronous `mainWindowClosed` signal runs after close acceptance and before window-state persistence. A Close-event filter remains as a compatibility fallback. If documents are unsaved, the "Save changes?" prompt runs a nested event loop inside that close handling. Cancel aborts the close.
 5. **Autoload.** If the workbench is autoloaded at startup, `Activated()` runs before the main window is shown and before FreeCAD restores the saved window state.
 
 ### 4.5 Parameters
@@ -206,14 +214,22 @@ No FreeCAD command is run by this area. Testers use `FreeCADGui.activateWorkbenc
 ### 5.2 Exact restore on leave
 
 - Docks are restored from the snapshot as described in 2.2.
+- Each restore pass records Report view's current explicit visibility before
+  restoring dock positions and reapplies it afterwards. JellyJams arranges this
+  dock but does not own its visibility; user open/close choices must persist.
 - Toolbar visibility:
   - Only the toolbars that JellyJams itself hid during this apply get their visibility from the snapshot.
   - Every other toolbar keeps the visibility it has at the moment of restore. If restoring the snapshot changed it, it is put back.
   - JellyJams keeps a record of which toolbars it hid for this apply. The record is cleared when the layout is reverted.
 - A toolbar that FreeCAD deleted in the meantime is skipped silently.
-- The second pass (about 250 ms later) restores docks again. It protects **all** toolbars' current visibility, and then re-hides the ribbon if it is not wanted.
+- The second pass (about 250 ms later) restores docks again and re-shows only
+  the toolbars JellyJams hid, preserving all other toolbars' current visibility.
+  FreeCAD may hide general toolbars after the first restore during a workbench
+  switch; they must not remain hidden because of that timing. The same
+  activation-generation guard prevents this pass from affecting quick reentry.
+  The pass then re-hides the ribbon if it is not wanted.
 - Consequences, which are intended:
-  - Dock rearrangements the user made while inside JellyJams are discarded on leave, because exact restore wins.
+  - Dock rearrangements the user made while inside JellyJams are discarded on leave, because exact restore wins; Report view's current visibility is preserved.
   - A kept toolbar (File, Edit, Workbench) that the user hid while inside JellyJams stays hidden after leaving.
   - A toolbar that JellyJams hid and the user re-showed inside JellyJams returns to its pre-entry visibility.
   - Toolbar positions return to the snapshot.
@@ -223,9 +239,9 @@ No FreeCAD command is run by this area. Testers use `FreeCADGui.activateWorkbenc
 - The quit guard performs the same revert as leaving, including the delayed second pass. It also restores shortcuts and navigation style and hides the ribbon, all before FreeCAD's close handling persists state.
 - The result on disk after an orderly quit is indistinguishable from quitting FreeCAD without JellyJams ever having been active in that session.
 
-### 5.4 Cancel re-apply
+### 5.4 Cancel and compatibility re-apply
 
-- Re-applying after Cancel is a fresh apply: a new snapshot (now of the stock arrangement) plus the look, navigation, shortcuts and ribbon.
+- On the accepted-close signal path, Cancel changes nothing. On the fallback path, re-applying after Cancel is a fresh apply: a new snapshot (now of the stock arrangement) plus the look, navigation, shortcuts and ribbon.
 - The color-scheme block must end up present exactly once.
 
 ### 5.5 Crash recovery
@@ -255,8 +271,8 @@ No FreeCAD command is run by this area. Testers use `FreeCADGui.activateWorkbenc
 - **Quick re-entry** within the 250 ms second-pass window: the second pass must not run, so the new layout is not undone.
 - **Color scheme or 3D background fails to apply or remove:** print a warning and continue. The layout itself must not fail because of the look.
 - **Errors inside any delayed pass or inside the Close-event handling** are swallowed, and logged where useful. Closing FreeCAD must never be blocked or broken by JellyJams.
-- **Close with no unsaved documents:** there is no prompt, and FreeCAD exits after the revert. The re-apply check never fires, or finds the window gone and does nothing.
-- **Close while a different modal dialog is open**, or the user leaves the Save-changes prompt open for a long time: re-apply waits until no modal dialog remains.
+- **Close with no unsaved documents:** the accepted-close signal restores immediately before persistence. No reapply is scheduled.
+- **Close while save dialogs remain open:** the accepted-close signal has not fired, so JellyJams remains intact. Only the compatibility fallback polls modal state and waits before reapplying.
 - **Close cancelled, but by then JellyJams is no longer the active workbench**, or the window is hidden: nothing is re-applied.
 - **Deferral gave up or never applied:**
   - The close guard acts whenever JellyJams is active, not only when the layout is applied. If the layout never became applied in a session (for example, the deferral gave up), the guard still reverts the overrides other areas applied in `Activated()` (look, navigation, shortcuts, ribbon, the three `SwitchToWB`); the layout revert then only cancels the pending deferral.
@@ -282,14 +298,14 @@ Run FreeCAD 1.1 with a throwaway profile (`FreeCAD.exe -u <user.cfg> -s <system.
 Checks are made at least 3.5 s after each switch, so every delayed re-dock pass has run.
 
 1. **Kept toolbars.** After switching to JellyJams, the visible main-window toolbars (`QToolBar` children of the main window with `isVisible()` true) are exactly `Edit`, `File`, `Workbench`. The workbench selector is usable.
-2. **Panel placement.** In JellyJams, the `Tasks` and `Report view` docks:
+2. **Panel placement.** With Report view open before activation, the `Tasks` and `Report view` docks:
    - are both visible
    - are not floating
    - report `RightDockWidgetArea` from `dockWidgetArea()`
    - have Tasks' top edge above Report view's top edge, with no tabbing between the two
 3. **Placement is stable.** The panel placement from criterion 2 still holds 3 s after entering. It also still holds after creating a Part Design Body and opening a feature dialog, whose PropertyManager-style panel shows in Tasks on the right.
 4. **Model tree untouched.** The `Model` dock has the same area, floating state and visibility in JellyJams as before entering.
-5. **Floating panel.** Make `Report view` floating in Part Design, then enter JellyJams. It is docked on the right under Tasks. After switching back to Part Design, it is floating again.
+5. **Floating panel.** Make an open `Report view` floating in Part Design, then enter JellyJams. It is docked on the right under Tasks. After switching back to Part Design, it is floating again. A closed floating Report view is left untouched.
 6. **Leave restores stock toolbars.** After switching from JellyJams to Part Design, every toolbar of the stock set is visible again. Part Design's own toolbars are visible: none were hidden by the restore.
 7. **Leave honors the verified ordering for other workbenches.** Switch from JellyJams to Sketcher, then to Assembly, re-entering JellyJams in between. Each target workbench's own toolbars are visible after the switch, and stay visible after a further 1 s.
 8. **Leave restores panels exactly.** After leaving, `Tasks` and `Report view` have the same area, floating state, visibility and tab/split relationship as recorded before entering.
@@ -302,14 +318,14 @@ Checks are made at least 3.5 s after each switch, so every delayed re-dock pass 
 13. **Repeated cycles.** After 3 enter/leave cycles, criteria 1, 2, 6, 8 and 9 still pass. In JellyJams the stylesheet contains `/* @jellyjams-stylesheet-open */` exactly once.
 14. **Close guard during the prompt.**
     - In JellyJams, create an unsaved document (for example `Part::Box`), then close the main window.
-    - While the "Save changes?" prompt is open, wait at least 1.5 s (well past the 600 ms re-apply delay). Then:
-      - the stylesheet has no `@jellyjams-stylesheet-open`
-      - `JellyJamsCommandManager` is not visible
-      - `User parameter:BaseApp/Preferences/View` / `NavigationStyle` equals its pre-JellyJams value
-      - `User parameter:BaseApp/Preferences/Shortcut` / `Std_ViewFitAll` is empty or absent
-      - the stock toolbars are visible
+    - While the "Save changes?" prompt is open, wait at least 1.5 s (long enough to catch any delayed teardown). Then:
+      - the stylesheet keeps exactly one `@jellyjams-stylesheet-open`
+      - `JellyJamsCommandManager` remains visible
+      - `NavigationStyle` remains `Gui::SolidWorksNavigationStyle`
+      - `Std_ViewFitAll` remains `F`
+      - JellyJams toolbars/panels remain arranged as before Close
     - Repeat with the prompt held open for 10 s: same result.
-15. **Cancel re-applies.** Press Cancel in the prompt from criterion 14. Within 2.5 s:
+15. **Cancel keeps JellyJams.** Press Cancel in the prompt from criterion 14. Within 2.5 s:
     - the stylesheet contains the theme block exactly once
     - `JellyJamsCommandManager` is visible
     - `NavigationStyle` is `Gui::SolidWorksNavigationStyle`
@@ -317,7 +333,7 @@ Checks are made at least 3.5 s after each switch, so every delayed re-dock pass 
     - criteria 1 and 2 hold
 
     Then close the dirty document without saving and switch to Part Design. The stock set is visible and the theme is gone.
-16. **Discard persists stock.** Repeat criterion 14, then press Discard (Don't Save). FreeCAD exits. In the saved `user.cfg`:
+16. **Save/Discard persists stock.** Repeat criterion 14, then press Discard (Don't Save), or Save to an existing scratch document. FreeCAD exits. In the saved `user.cfg`:
     - `NavigationStyle` is not `Gui::SolidWorksNavigationStyle`, and equals the pre-JellyJams value
     - there are no JellyJams overrides for `Std_ViewFitAll`, `Std_Refresh`, `Std_ViewIsometric` or `Std_ViewBoxZoom` under `BaseApp/Preferences/Shortcut`, unless the user had them before
     - `OriginalNavigationStyle`, `OriginalShortcuts` and `OriginalViewColors` under `BaseApp/Preferences/Mod/JellyJams` are empty or absent
@@ -350,3 +366,10 @@ Checks are made at least 3.5 s after each switch, so every delayed re-dock pass 
     - `NavigationStyle` and shortcuts are back to the user's values
 24. **Deferral cancellation (harness-level).** With a main window that is not yet visible, request apply and then revert, or switch the active workbench away. When the window becomes visible, no layout, snapshot or look is applied, and no ribbon is shown by this area.
 25. **Deferral timeout (harness-level).** With a main window that never becomes visible, a single `JellyJams: ` warning about the layout not being applied appears after about 12 s. Nothing in the window was changed.
+26. **Closed Report view.** Close Report view before entering JellyJams. It stays
+    closed after activation and every delayed re-dock pass. Explicitly opening
+    and closing it works. It is still closed after leave, native quit/relaunch
+    with JellyJams autoload, and cancelled quit.
+    Also enter with Report view open, close it inside JellyJams and quit directly:
+    native relaunch must keep it closed. Opening it inside JellyJams must likewise
+    survive both restore passes while its original dock position is restored.

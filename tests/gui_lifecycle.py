@@ -122,10 +122,13 @@ def backups_pending():
 
 
 def jj_state():
-    from jellyjams import orbit, fcgui
+    from jellyjams import orbit, fcgui, appearances
+    report = mw().findChild(QtWidgets.QDockWidget, "Report view")
 
     return {
         "orbit": fcgui.is_alive(orbit._filter) and orbit._filter.running,
+        "appearances": appearances.dock() is not None,
+        "report_closed": report is not None and report.isHidden(),
         "theme": THEME_OPEN in mw().styleSheet(),
         "theme_blocks": mw().styleSheet().count(THEME_OPEN),
         "nav": nav(),
@@ -159,6 +162,9 @@ def close_start():
 
 @guarded
 def close_record_stock():
+    report = mw().findChild(QtWidgets.QDockWidget, "Report view")
+    if report is not None:
+        report.hide()
     RES["info"]["stock_toolbars"] = visible_toolbars()
     RES["info"]["nav_before"] = nav()
     RES["info"]["switch_before"] = switch_to_wb()
@@ -169,12 +175,16 @@ def close_record_stock():
 @guarded
 def close_make_dirty():
     st = jj_state()
-    note("active_before_close", st["theme"] and st["ribbon"] and st["orbit"]
+    note("active_before_close", st["theme"] and st["ribbon"] and st["orbit"] and st["appearances"]
          and st["nav"] == "Gui::SolidWorksNavigationStyle", st)
     note("switch_to_wb_off_before_close", all_switches_off(st["switch"]), st["switch"])
     doc = App.newDocument("Dirty")
     doc.addObject("Part::Box", "Box")
     doc.recompute()
+    if MODE == "save":
+        doc.saveAs(os.path.join(OUT_DIR, "quit_saved.FCStd"))
+        doc.getObject("Box").Length = 17
+        doc.recompute()
     # The prompt runs a nested event loop inside close(); our timers keep firing.
     QtCore.QTimer.singleShot(1500, during_prompt)
     QtCore.QTimer.singleShot(0, mw().close)
@@ -190,13 +200,11 @@ def during_prompt():
         return
     st = jj_state()
     RES["info"]["state_during_prompt"] = st
-    # 1.5 s is longer than one 600 ms quit-prompt poll: the guard must NOT have re-applied.
-    note("not_reentered_inside_prompt", not st["theme"] and not st["ribbon"] and not st["orbit"], st)
-    note("nav_restored_inside_prompt", st["nav"] == RES["info"]["nav_before"], st["nav"])
-    note("shortcut_restored_inside_prompt", st["fit"] == "", st["fit"])
-    note("switch_to_wb_restored_inside_prompt", st["switch"] == RES["info"]["switch_before"],
-         f"now={st['switch']!r} was={RES['info']['switch_before']!r}")
-    note("backups_cleared_inside_prompt", not backups_pending(), backups_pending())
+    note("jellyjams_kept_inside_prompt", st["theme"] and st["ribbon"] and st["orbit"] and st["appearances"] and st["report_closed"], st)
+    note("nav_kept_inside_prompt", st["nav"] == "Gui::SolidWorksNavigationStyle", st["nav"])
+    note("shortcut_kept_inside_prompt", st["fit"] == "F", st["fit"])
+    note("switch_to_wb_kept_inside_prompt", all_switches_off(st["switch"]), st["switch"])
+    note("backups_pending_inside_prompt", bool(backups_pending()), backups_pending())
     if MODE == "cancel":
         btn = find_button(modal, "Cancel")
         note("found_cancel", btn is not None)
@@ -205,6 +213,14 @@ def during_prompt():
             btn.click()
             # window-layout AC 15: the re-apply is complete within 2.5 s of Cancel.
             QtCore.QTimer.singleShot(2500, after_cancel)
+        else:
+            quit_app()
+    elif MODE == "save":
+        btn = modal.button(QtWidgets.QMessageBox.StandardButton.Save)
+        note("found_save", btn is not None)
+        save()
+        if btn is not None:
+            btn.click()
         else:
             quit_app()
     else:
@@ -220,7 +236,12 @@ def during_prompt():
 @guarded
 def after_cancel():
     st = jj_state()
-    note("reapplied_after_cancel", st["theme_blocks"] == 1 and st["ribbon"] and st["orbit"], st)
+    from jellyjams import layout
+    RES["info"]["layout_after_cancel"] = {
+        "hidden": [bar.objectName() for bar in layout._hidden],
+        "generation": layout._generation,
+    }
+    note("reapplied_after_cancel", st["theme_blocks"] == 1 and st["ribbon"] and st["orbit"] and st["appearances"] and st["report_closed"], st)
     note("nav_reapplied_after_cancel", st["nav"] == "Gui::SolidWorksNavigationStyle", st["nav"])
     note("shortcut_reapplied_after_cancel", st["fit"] == "F", st["fit"])
     note("switch_to_wb_reapplied_after_cancel", all_switches_off(st["switch"]), st["switch"])
@@ -232,8 +253,9 @@ def after_cancel():
 @guarded
 def finish_cancel():
     st = jj_state()
+    RES["info"]["state_after_leave"] = st
     missing = sorted(set(RES["info"]["stock_toolbars"]) - set(st["toolbars"]))
-    note("stock_restored_after_leave", not missing and not st["theme"] and not st["orbit"], f"missing={missing}")
+    note("stock_restored_after_leave", not missing and not st["theme"] and not st["orbit"] and not st["appearances"], f"missing={missing}")
     note("switch_to_wb_restored_after_leave", st["switch"] == RES["info"]["switch_before"],
          f"now={st['switch']!r} was={RES['info']['switch_before']!r}")
     note("backups_cleared_after_leave", not backups_pending(), backups_pending())
@@ -286,7 +308,7 @@ def autoload_check():
     st = jj_state()
     RES["info"]["state_autoloaded"] = st
     note("layout_active_after_show", layout._active and layout._saved_state is not None)
-    note("ribbon_visible_after_show", st["ribbon"] and st["orbit"])
+    note("ribbon_visible_after_show", st["ribbon"] and st["orbit"] and st["appearances"])
     kept = {"File", "Edit", "Workbench"}
     extra = [t for t in st["toolbars"] if t not in kept]
     note("stock_toolbars_hidden_after_show", not extra, f"visible={st['toolbars']}")
@@ -299,10 +321,11 @@ def autoload_after_leave():
     st = jj_state()
     RES["info"]["state_after_leave"] = st
     note("toolbars_back_after_leave", len(st["toolbars"]) > 3, st["toolbars"])
-    note("theme_removed_after_leave", not st["theme"] and not st["orbit"])
+    note("theme_removed_after_leave", not st["theme"] and not st["orbit"] and not st["appearances"])
     quit_app()
 
 
 App.Console.PrintMessage(f"JellyJams-lifecycle mode={MODE} out={OUT_DIR}\n")
-START = {"cancel": close_start, "discard": close_start, "after": after_start, "autoload": autoload_check}[MODE]
+START = {"cancel": close_start, "discard": close_start, "save": close_start,
+         "after": after_start, "autoload": autoload_check}[MODE]
 QtCore.QTimer.singleShot(6000 if MODE == "autoload" else 4000, START)

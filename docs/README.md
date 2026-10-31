@@ -46,6 +46,7 @@ module to its spec.
 
 | Spec | Covers |
 |---|---|
+| [specs/appearances.md](specs/appearances.md) | Appearances tab: official references, colour/finish presets and native face/object/component colouring. |
 | [specs/README.md](specs/README.md) | Specs index: how to read a spec, module-to-spec map, contracts shared across areas (backup keys, preferences, the document properties in the `JellyJams` group, objectNames). |
 | [specs/core.md](specs/core.md) | Entry points and `package.xml`, workbench lifecycle (Initialize, Activated, Deactivated), quit guard, autoload, startup crash recovery, command registration, Diagnostics, Qt message filter, navigation and shortcut switching (the key table). |
 | [specs/window-layout.md](specs/window-layout.md) | Which toolbars stay and which are hidden, Tasks and Report view docked right, exact restore on leave and quit, autoload deferral. |

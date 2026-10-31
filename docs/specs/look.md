@@ -7,6 +7,12 @@
 SolidWorks-like widgets, 3D background and sketch colors following FreeCAD's
 light/dark theme, with exact restore and crash recovery.
 
+The owned `JellyJamsAppearances` dock uses the same widget palette. Its tree and
+thumbnail gallery explicitly use the palette's selection background and text,
+including when unfocused, rather than inheriting native grey selection colours.
+These rules stay inside the existing main-window stylesheet block and address
+only this JellyJams dock; no additional stylesheet or saved preference is used.
+
 Requirement levels: MUST and MUST NOT are mandatory, SHOULD is recommended (deviations need a reason), MAY is optional.
 
 Product context: JellyJams is a FreeCAD 1.1+ workbench (workbench key/class `JellyJamsWorkbench`, MenuText `JellyJams`) that makes FreeCAD look, feel and operate like SolidWorks. This document covers only the **look** area. Activation and deactivation, the main-window close guard, the ribbon and the relations/mate panels belong to other areas. This document states only what the look area needs from them.

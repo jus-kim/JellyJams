@@ -128,10 +128,11 @@ A case-insensitive Addon Manager search for "JellyJams" must find the package th
 ### 4.2 User-visible elements owned by core
 
 - **Workbench selector entry** "JellyJams" with the JellyJams icon.
-- **Menu "JellyJams"** in the main menu bar, present while the workbench is active (FreeCAD shows a workbench's menus only while it is active). It holds three items, in this order:
+- **Menu "JellyJams"** in the main menu bar, present while the workbench is active (FreeCAD shows a workbench's menus only while it is active). It holds four items, in this order:
   1. **View Orientation** (`JellyJams_ViewOrientation`, [orientation.md](orientation.md)).
   2. **Normal To** (`JellyJams_NormalTo`, [orientation.md](orientation.md)). Both orientation commands must be in a menu: FreeCAD creates a command's `QAction`, and so a working keyboard shortcut, only for commands placed in a menu or toolbar, and the ribbon's own buttons do not count. Without these entries `Space` and `Ctrl+8` (section 4.8) would do nothing.
-  3. **Diagnostics** (`JellyJams_Diagnostics`). Diagnostics is also a large button on the ribbon's Evaluate tab ([ribbon-content](ribbon-content.md) 2.5).
+  3. **Appearances** (`JellyJams_Appearances`, [appearances.md](appearances.md)), which raises or reopens the right-side colouring browser.
+  4. **Diagnostics** (`JellyJams_Diagnostics`). Diagnostics is also a large button on the ribbon's Evaluate tab ([ribbon-content](ribbon-content.md) 2.5).
 - **Diagnostics dialog** (section 9).
 - **No toolbars** of its own.
 
@@ -142,7 +143,7 @@ FreeCAD calls Initialize once per session, the first time the user activates the
 1. **Report the environment** on one line: a console **message** with the add-on version, the FreeCAD version (major.minor.patch) and the Qt binding in use. If FreeCAD is older than 1.1, print a **warning** instead, saying the FreeCAD version is older than the minimum (1.1) and is not tested. Loading continues in both cases.
 2. **Register all JellyJams commands** (section 8).
 3. **Start the one-per-session helpers** of other areas that must exist exactly once per process. These are the drawing area's helpers: automatic SolidWorks-style labels for Section View / Detail View, a zoom-dependent line display on drawing sheets, a weld-symbol leader that follows the symbol, and the watcher that re-places a sheet sketch's view after an edit or an undo/redo. Each of them gates itself where its spec says so.
-4. **Add the "JellyJams" menu** with `JellyJams_ViewOrientation`, `JellyJams_NormalTo` and `JellyJams_Diagnostics`, in that order (section 4.2), once per workbench instance.
+4. **Add the "JellyJams" menu** with `JellyJams_ViewOrientation`, `JellyJams_NormalTo`, `JellyJams_Appearances` and `JellyJams_Diagnostics`, in that order (section 4.2), once per workbench instance.
 5. Print a console **message** that the workbench is initialized.
 
 If anything here raises, print a console **error** saying that initialization failed, with the traceback. The exception must not escape to FreeCAD. Activated still runs later, and its steps are still attempted.
@@ -160,6 +161,7 @@ FreeCAD calls Activated each time the user switches **to** JellyJams, and also w
 | A5 | **SolidWorks keyboard shortcuts on** (shortcuts) | The keys of section 4.8 as overrides in `Preferences/Shortcut`, with a backup; commands that own one of those keys are unbound. |
 | A6 | **Who gets Space** (orientation) | A filter on the main window and on each of its docks decides a plain `Space`: with the pointer over a 3D view or the model tree it opens the Orientation panel; elsewhere a focused button, check box or combo box, or a list with a checkable current item or typing edits, takes `Space` itself, while toolbar, status-bar and ribbon controls never do. A dock made later gets the filter once one of its widgets takes the focus (`QApplication.focusChanged` is watched while JellyJams is active). Key repeat is turned off for View Orientation, so a held `Space` opens the panel once ([orientation.md](orientation.md) 2.4). One filter, however often JellyJams is activated. |
 | A7 | **Ribbon shown** (ribbon) | The CommandManager-style ribbon dock `JellyJamsCommandManager`. It is built on first show and never rebuilt by later activations. |
+| A7a | **Appearances tab shown** (appearances) | The right-side native colour/finish library, tabbed beside Tasks. This suffix preserves existing criterion references; in the code table it follows ribbon and precedes naming. |
 | A8 | **FeatureManager tree naming on** (naming) | New features get SolidWorks names (Sketch1, Boss-Extrude1, Top Plane...). The observer is registered once per session and gates itself on the active workbench. |
 | A9 | **Edit sketches and features inside JellyJams** (sketching) | Opening a sketch does not switch to the Sketcher workbench (sketch-edit hook, `sketch_edit`). Then the feature-edit guard (`edit_guard`): opening a Part Design feature for editing does not switch to Part Design, while the workbench selector still switches ([sketching.md](sketching.md) 2.7). |
 | A10 | **Feature from the open/selected sketch, and sketch first** (sketching) | Only if that area has something to switch on. (Both are started from the ribbon's click dispatch and need no step.) |
@@ -176,6 +178,7 @@ FreeCAD calls Deactivated when the user switches **away** from JellyJams to anot
 
 | # | Step | Result |
 |---|---|---|
+| D0 | Appearances dock removed and its timer stopped | This happens before all stock-layout restoration. |
 | D1 | Qt message filter switched **off** | Messages pass through unchanged again. |
 | D2 | Dialog terms off | Stock FreeCAD dialog texts. |
 | D3 | Assembly drag-and-drop off, and the three `SwitchToWB` preferences restored exactly | FreeCAD opens dropped files as usual and switches to the Assembly, Part Design and TechDraw workbenches as configured. |
@@ -312,23 +315,22 @@ If JellyJams is FreeCAD's autoload workbench, Activated runs **before** the main
 
 ### 6.6 Quit guard (FreeCAD never calls Deactivated on quit)
 
-On quit, FreeCAD saves the window layout (`MainWindowState`) and all parameters (`user.cfg`). JellyJams must make sure none of its changes get saved:
+On quit, FreeCAD saves the window layout and parameters. Keep JellyJams active
+through FreeCAD's native save/discard/cancel dialogs. Connect once per session to
+`mainWindowClosed` with a synchronous Qt direct connection: FreeCAD emits it only
+after all close/save decisions succeed, immediately before `saveWindowSettings`.
+At that point run `QUIT_REVERT_STEPS`, clearing all backups before persistence.
+Cancel (including cancelling a Save As dialog) never reaches that signal and
+must leave JellyJams intact, without tearing it down or reapplying it. The guard
+also covers activation while layout application is still deferred.
 
-- While JellyJams is the active workbench (also when an autoload deferral has not applied the layout yet), a **Close-event filter on the main window** (installed at most once per session; it runs before FreeCAD's own close handling) must, as soon as the main window receives a Close event:
-  - restore the window layout,
-  - remove the theme,
-  - restore the viewport colors,
-  - hide the ribbon,
-  - restore the shortcuts,
-  - restore the navigation style,
-  - restore the Assembly, Part Design and TechDraw `SwitchToWB` settings. (They are restored on quit as well; JellyJams does not leave them to the next startup's recovery.)
-
-  All JellyJams backup keys are then cleared. The filter must **not** consume the event: FreeCAD's close goes ahead as usual.
-- **If documents have unsaved changes**, FreeCAD shows its "Save changes?" prompt. That prompt runs a nested event loop in which timers keep firing, and `QApplication.activeModalWidget()` is non-null while it is open.
-  - **While a modal dialog is open**, JellyJams must **not** re-apply anything. It checks again about every 600 ms.
-  - **Cancel** (the window is still visible and JellyJams is still the active workbench once the modal is gone): re-apply the layout, theme, viewport colors, navigation, shortcuts, ribbon and `SwitchToWB` overrides, exactly once each (the theme block exactly once).
-  - **Discard / Save** (the application closes): nothing is re-applied, so the saved `user.cfg` and window state are clean.
-- If JellyJams is not the active workbench when the window closes, the guard does nothing.
+If the host lacks the signal or connection fails, retain the conservative
+Close-event fallback: restore before native close handling, poll only after all
+modal dialogs finish, and reapply once after cancelled quit. This fallback may
+show the stock UI during prompts; it protects exact restoration on other hosts.
+The Close-event filter always returns False, and signal/timer boundaries never
+raise. Duplicate install or accepted-close notifications must not restore twice.
+An inactive JellyJams workbench is untouched in either path.
 
 ### 6.7 Crash
 
@@ -380,6 +382,7 @@ Rules:
 
 | Command id | Owning area | MenuText |
 |---|---|---|
+| `JellyJams_Appearances` | appearances | Appearances |
 | `JellyJams_Diagnostics` | core | Diagnostics |
 | `JellyJams_Centerline` | sketching | Centerline |
 | `JellyJams_MidpointLine` | sketching | Midpoint Line |

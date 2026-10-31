@@ -3,7 +3,7 @@
 JellyJams has two test layers:
 
 1. **Headless suite**: [`tests/test_headless.py`](../tests/test_headless.py) with
-   [`tests/headless_stubs.py`](../tests/headless_stubs.py). 506 tests against stubbed
+   [`tests/headless_stubs.py`](../tests/headless_stubs.py). 533 tests against stubbed
    `FreeCAD` / `FreeCADGui` modules and an offscreen Qt. No FreeCAD window, no profile touched.
    Run it before every commit.
 2. **GUI acceptance scripts**: [`tests/gui_smoke.py`](../tests/gui_smoke.py),
@@ -17,6 +17,25 @@ against: [specs/README.md](specs/README.md).
 
 ## Automated runner and CI (2026-10-29)
 
+`python tests/run_gui.py --suites report_view report_startup` verifies preservation
+of a closed Report view in real FreeCAD. The first process checks activation,
+explicit open/close, delayed layout and leave, then saves a disposable profile
+configured to autoload JellyJams. The second process uses that saved profile to
+check actual startup and leave. The first run also enters with Report view open,
+closes it inside JellyJams and quits directly, covering visibility preservation
+through quit restoration. Expected checks: 9 and 3; `report_startup` must
+follow `report_view`. Actual quit-prompt/Cancel visibility is checked by the
+cancel/discard lifecycle modes too. FreeCAD's auto-show-on-message options are
+not disabled by this feature.
+
+Run the appearance browser regression with
+`python tests/run_gui.py --suites appearances`. Its 38 checks cover read-only
+previews/search, real thumbnail double-clicks, native face/body/component
+materials, Undo/Redo, atomic rollback, `.FCStd` persistence and dock cleanup.
+It writes `appearances.json`, panel/full screenshots and a sample model under
+the runner's unique scratch folder. Lifecycle cancel/discard/autoload checks
+also include presence/absence of the appearance dock. All use disposable configs.
+
 The GitHub Actions workflow [tests.yml](../.github/workflows/tests.yml) runs the
 headless suite and GUI-result validator tests on pushes, pull requests and manual
 dispatch, on Windows and Ubuntu with Python 3.11 and PySide6 6.8.3. FreeCAD APIs are
@@ -26,6 +45,23 @@ the offscreen platform. The checkout/Python setup actions use maintained v7 rele
 The three installed-template checks skip when FreeCAD's ISO templates are absent.
 Hosted CI execution must be checked after pushing; a local passing test is not a
 hosted CI result.
+
+`Test25Appearances` is part of that same CI command, so its 15 tests run on both
+matrix operating systems without a FreeCAD installation. They cover validation,
+target selection, component-only material writes, transaction abort/cleanup,
+read-only browsing and dock lifecycle (deferred startup and quit/Cancel), failed
+selection queries, unrelated active transactions and failed panel construction.
+Run just those tests locally with `python tests/test_headless.py -q -k Appearances`.
+Native rendering, actual material rollback, Undo/Redo and file persistence remain
+in `gui_appearances.py`, which runs separately in real FreeCAD with scratch profiles.
+
+Pointer-dependent orientation checks use the widget's own screen in
+`QCursor.setPos(screen, point)` and record requested/actual cursor coordinates.
+The no-screen overload targets the primary screen; the explicit screen avoids
+that assumption on mixed-DPI desktops ([Qt 6.8 QCursor documentation](https://doc.qt.io/qt-6.8/qcursor.html)).
+Orbit cleanup comparisons recreate the baseline viewport dimensions after stock
+dock/toolbars are restored, because native orbit response depends on viewport
+size. Neither harness adjustment changes production Space routing or navigation.
 
 To run all real FreeCAD suites locally, with JellyJams already installed:
 
@@ -56,6 +92,17 @@ scratch file/format pickers, Drawing context, projections, scale, text, sheet
 properties, symbol panels, picture insertion, PDF/DXF, New Assembly, Rotate
 Component, Add Mate and component insertion. Some checks call the same helpers the
 buttons use; they do not simulate every pointer gesture or native file dialog.
+
+`gui_assembly_tree.py` creates a separate new assembly with an empty document
+already open, selects it, and sends 100 native pointer clicks to the Assembly and
+Origin expand/collapse triangles. Each click must toggle the targeted branch
+after returning to the event loop; the assembly and JellyJams must remain active.
+Run `python tests/run_gui.py --suites assembly_tree`. The expected result is 104
+passing checks in `assembly_tree.json`. It saves partial results before every
+click, a final screenshot and Python stack snapshots every 20 seconds. A native
+hang may require a native stack capture as well; an empty Python stack does not
+establish its cause. FreeCAD may rebuild tree items on selection changes, so the
+test resolves the current row afresh on every step.
 
 `gui_crash.py` saves parameters while JellyJams is active and exits without close
 events or the quit guard. A second process compares the 14 managed color keys,
@@ -346,16 +393,17 @@ must not carry a user override for it.
 
 | `JELLYJAMS_LIFECYCLE_MODE` | Profile | What happens | Checks |
 |---|---|---|---|
-| `cancel` (default when unset) | new copy `cancel` | Part Design, then JellyJams; creates an unsaved document (`Dirty`, one `Part::Box`) and closes the main window. 1.5 s into FreeCAD's "Save changes?" prompt it checks that everything is reverted and nothing was re-applied, then presses Cancel. 2.5 s later it checks the re-apply, closes the document and switches to Part Design; 4 s after that switch it checks the restore and quits. | 16 |
+| `cancel` (default when unset) | new copy `cancel` | Part Design, then JellyJams; creates an unsaved document (`Dirty`, one `Part::Box`) and closes the main window. 1.5 s into FreeCAD's "Save changes?" prompt it checks that JellyJams remains active with its backups pending, then presses Cancel. 2.5 s later it checks that JellyJams stayed intact, closes the document and switches to Part Design; 4 s after that switch it checks the restore and quits. | 16 |
 | `discard` | new copy `discard` | Same up to the prompt checks, then presses Discard. FreeCAD exits and writes `discard_user.cfg`. Inspect that file with `check_saved_cfg.py` before `after`. | 9 |
+| `save` | new copy `save` | Save a scratch document, modify it, close the window and verify JellyJams stays active during the prompt. Click Save; verify the saved config with `check_saved_cfg.py`. | 9 |
 | `after` | the **same** `discard` profile (no new copy) | Relaunch after the Discard quit. Reads `lifecycle_discard.json` from `JELLYJAMS_RESULTS_DIR`, switches to Part Design and checks that the stock toolbars recorded before the quit are visible, the ribbon is hidden, the backups are empty and the three `SwitchToWB` are as before (only Assembly's when the discard run recorded a single value). | 5 (4 if `switch_before` was not recorded) |
 | `autoload` | new copy `autoload` with `AutoloadModule` = `JellyJamsWorkbench` | FreeCAD starts in JellyJams. 6 s after start it checks the active workbench, the applied layout snapshot, the visible ribbon and that only File, Edit and Workbench toolbars are visible; then switches to Part Design and, 4 s later, checks that more than three toolbars are back and the theme is gone. | 6 |
 
 Check names per mode:
 
 - cancel: `active_before_close`, `switch_to_wb_off_before_close`, `prompt_is_open`,
-  `not_reentered_inside_prompt`, `nav_restored_inside_prompt`, `shortcut_restored_inside_prompt`,
-  `switch_to_wb_restored_inside_prompt`, `backups_cleared_inside_prompt`, `found_cancel`,
+  `jellyjams_kept_inside_prompt`, `nav_kept_inside_prompt`, `shortcut_kept_inside_prompt`,
+  `switch_to_wb_kept_inside_prompt`, `backups_pending_inside_prompt`, `found_cancel`,
   `reapplied_after_cancel`, `nav_reapplied_after_cancel`, `shortcut_reapplied_after_cancel`,
   `switch_to_wb_reapplied_after_cancel`, `stock_restored_after_leave`,
   `switch_to_wb_restored_after_leave`, `backups_cleared_after_leave`.

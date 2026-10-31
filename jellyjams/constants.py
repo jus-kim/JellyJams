@@ -71,6 +71,7 @@ OBJ_WELD_SYMBOL = "JellyJamsWeldSymbolForm"
 OBJ_DIAGNOSTICS_DIALOG = "JellyJamsDiagnosticsDialog"
 OBJ_NOTE_DIALOG = "JellyJamsNoteDialog"
 OBJ_SCALE_MENU = "JellyJamsViewScaleMenu"
+OBJ_APPEARANCES = "JellyJamsAppearances"
 
 # --- FreeCAD Qt names -----------------------------------------------------------------
 DOCK_TASKS = "Tasks"
@@ -136,6 +137,7 @@ CMD_SAVE_PDF = "JellyJams_SaveAsPDF"
 CMD_SAVE_DXF = "JellyJams_SaveAsDXF"
 CMD_ORIENTATION = "JellyJams_ViewOrientation"
 CMD_NORMAL_TO = "JellyJams_NormalTo"
+CMD_APPEARANCES = "JellyJams_Appearances"
 ALL_COMMANDS = (
     CMD_DIAGNOSTICS,
     CMD_CENTERLINE,
@@ -160,6 +162,7 @@ ALL_COMMANDS = (
     CMD_SAVE_DXF,
     CMD_ORIENTATION,
     CMD_NORMAL_TO,
+    CMD_APPEARANCES,
 )
 
 # --- icon base names in resources/icons (".svg") --------------------------------------
@@ -185,6 +188,7 @@ COMMAND_ICONS = {
     CMD_SHEET_POLYGON: "sheet_polygon",
     CMD_ORIENTATION: "orientation",
     CMD_NORMAL_TO: "normal_to",
+    CMD_APPEARANCES: "appearances",
     CMD_NOTE: "sheet_text",
     CMD_SAVE_PDF: "export_pdf",
     CMD_SAVE_DXF: "export_dxf",

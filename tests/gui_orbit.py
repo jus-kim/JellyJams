@@ -169,6 +169,7 @@ def measure():
             note("native_wide_imbalance_reproduced", native_x < native_y * 0.6,
                  dict(x=native_x, y=native_y))
             STATE["native_wide"] = native_x
+            STATE["native_wide_size"] = (gl.width(), gl.height())
         native_pan = drag(100, 20, QtCore.Qt.KeyboardModifier.ControlModifier)
         native_zoom = drag(0, 100, QtCore.Qt.KeyboardModifier.ShiftModifier)
         native_click = drag(0, 0)
@@ -270,8 +271,20 @@ def restored():
     entries = grp.GetContents() or []
     original = next((e[2] for e in entries if e[1] == "NavigationStyle"), None)
     grp.SetString("NavigationStyle", "Gui::SolidWorksNavigationStyle")
+    # Leaving restores dock/toolbars, which changes viewport dimensions. Native
+    # orbit response depends on those dimensions, so recreate the measured
+    # viewport before comparing with the pre-install native baseline.
+    wanted_width, wanted_height = STATE["native_wide_size"]
+    window, gl = Gui.getMainWindow(), viewport()
+    window.resize(window.width() + wanted_width - gl.width(),
+                  window.height() + wanted_height - gl.height())
+    QtTest.QTest.qWait(200)
     x, _state = drag(100, 0)
-    note("native_response_restored", abs(x - STATE["native_wide"]) < 0.1)
+    size = (viewport().width(), viewport().height())
+    note("native_response_restored", size == STATE["native_wide_size"]
+         and abs(x - STATE["native_wide"]) < 0.1,
+         dict(expected_size=STATE["native_wide_size"], actual_size=size,
+              expected_angle=STATE["native_wide"], actual_angle=x))
     if original is None:
         grp.RemString("NavigationStyle")
     else:

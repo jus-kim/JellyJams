@@ -356,9 +356,17 @@ def pointer_info():
 
 def point_at(widget):
     """Move the real mouse pointer to the middle of `widget`: who gets Space depends on it."""
-    QtGui.QCursor.setPos(widget.mapToGlobal(widget.rect().center()))
+    point = widget.mapToGlobal(widget.rect().center())
+    # The no-screen overload uses the primary screen. Explicitly use this
+    # widget's screen for native coordinate conversion on mixed-DPI desktops.
+    QtGui.QCursor.setPos(widget.screen(), point)
     process()
-    return pointer_info()
+    info = pointer_info()
+    actual = QtGui.QCursor.pos()
+    info.update(requested_pointer=(point.x(), point.y()), actual_pointer=(actual.x(), actual.y()),
+                target=window_name(widget), target_visible=widget.isVisible(),
+                target_screen=widget.screen().name())
+    return info
 
 
 def make_active(widget):

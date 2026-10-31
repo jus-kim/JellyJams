@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim> -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <circle cx="32" cy="32" r="27" fill="#1f2328"/>
+  <path d="M32 7A25 25 0 0 1 57 32H32Z" fill="#e97d28"/>
+  <path d="M57 32A25 25 0 0 1 32 57V32Z" fill="#299654"/>
+  <path d="M32 57A25 25 0 0 1 7 32H32Z" fill="#245ac9"/>
+  <path d="M7 32A25 25 0 0 1 32 7V32Z" fill="#c93838"/>
+  <ellipse cx="25" cy="19" rx="12" ry="6" fill="#ffffff" opacity=".65"/>
+</svg>

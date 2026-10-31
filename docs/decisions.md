@@ -129,7 +129,7 @@ Status: Accepted. Code: [`viewport.py`](../jellyjams/viewport.py),
 
 ## D-04. The quit guard is modal-aware
 
-Status: Accepted. Code: [`quit_guard.py`](../jellyjams/quit_guard.py), `QUIT_REVERT_STEPS` /
+Status: Superseded by D-24 on hosts with the accepted-close signal; retained as compatibility fallback. Code: [`quit_guard.py`](../jellyjams/quit_guard.py), `QUIT_REVERT_STEPS` /
 `QUIT_REAPPLY_STEPS` in [`lifecycle.py`](../jellyjams/lifecycle.py).
 
 **Context.**
@@ -748,3 +748,44 @@ partially destroyed task widgets. A real-GUI regression repeatedly accepts a Pad
 edit dialog and orbits the solid, and a headless test checks deferred/coalesced
 discovery and timer cancellation. Python exception guards alone cannot contain
 this native crash. No new preference or recovery format is introduced.
+
+## D-23. Native appearance edits behind an official-reference browser
+
+Status: Accepted, 2026-10-31. Code: `appearance_rules`, `appearances`, lifecycle
+and the dock-scoped part of `theme`. Contract and official SOLIDWORKS Help links:
+[appearances.md](specs/appearances.md).
+
+The user requested a colouring task-pane tab, then explicitly requested official
+SOLIDWORKS documentation as its basis. Category browsing, sphere previews,
+double-click assignment and colour/transparency controls follow those sources.
+Native FreeCAD view materials provide the rendering and document persistence.
+
+Use native per-face materials for selected faces, and local link material
+overrides for components. Do not edit a link's source as a side effect of an
+instance selection. Whole-object assignment explicitly replaces face colours;
+we do not add persistent metadata to simulate the full SOLIDWORKS hierarchy.
+Presets approximate native Phong finishes, without implying textures, decals,
+scenes, metalness shaders or RealView support. Browser-only edits never touch
+the document, and application is a single abortable native undo transaction.
+
+The dock is tabbed with Tasks and removed before stock layout restore, including
+quit. A cancelled quit retains it (the compatibility fallback re-creates it). No preference override/backup is needed;
+user-applied appearance edits remain ordinary native document view properties.
+
+## D-24. Keep JellyJams visible until native close acceptance
+
+Status: Accepted, 2026-10-31. Supersedes D-04's early teardown on supported hosts.
+Code: `quit_guard`; contracts: core 6.6 and window-layout 2.3.
+
+The user reported the ribbon and viewport reverting while the save prompt was
+open. FreeCAD 1.1.4's [MainWindow::closeEvent source](https://github.com/FreeCAD/FreeCAD/blob/1.1.4/src/Gui/MainWindow.cpp#L1594)
+calls `tryClose`, then emits `mainWindowClosed` only on acceptance, before
+`saveWindowSettings`. Connect directly and synchronously to that signal to run
+existing quit-restoration steps. Cancel leaves the UI and backups untouched;
+Save/Discard restores before persistence. No custom save prompt or document-close
+interception is needed. Keep D-04's conservative fallback if the signal cannot be
+connected, protecting exact restore on other hosts. No backup formats change.
+
+Native Cancel/Save/Discard and saved-profile/relaunch regressions verify the new
+ordering. Headless tests cover synchronous pre-save restoration, no changes on
+Cancel, inactive workbenches, duplicate notification/install and the old fallback.

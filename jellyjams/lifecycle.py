@@ -42,6 +42,8 @@ ACTIVATION_STEPS = [
      "jellyjams.orientation", "install"),
     ("ribbon", "display the CommandManager ribbon",
      "jellyjams.ribbon", "show"),
+    ("appearances", "display the Appearances tab",
+     "jellyjams.appearances", "enable"),
     ("naming", "turn on FeatureManager-style tree names",
      "jellyjams.naming", "enable"),
     ("sketch_edit", "keep JellyJams active while a sketch is edited",
@@ -69,6 +71,8 @@ ACTIVATION_STEPS = [
 # layout comes last: FreeCAD already shows the next workbench's toolbars, and
 # the layout undoes only JellyJams' own changes.
 DEACTIVATION_STEPS = [
+    ("appearances", "remove the Appearances tab",
+     "jellyjams.appearances", "disable"),
     ("qt_filter", "turn off the Qt message filter",
      "jellyjams.qt_filter", "disable"),
     ("dialog_terms", "stop relabeling FreeCAD dialogs",
@@ -111,8 +115,10 @@ DEACTIVATION_STEPS = [
      "jellyjams.layout", "revert"),
 ]
 
-# Used by the quit guard on Close, before FreeCAD writes its window state and parameters.
+# Used on accepted close before persistence (early Close only on fallback hosts).
 QUIT_REVERT_STEPS = [
+    ("appearances", "remove the Appearances tab on quit",
+     "jellyjams.appearances", "suspend_for_quit"),
     ("switch_prefs", "put back the workbench-switch preferences on quit",
      "jellyjams.switch_prefs", "restore"),
     ("ribbon", "hide the CommandManager ribbon on quit",
@@ -129,7 +135,7 @@ QUIT_REVERT_STEPS = [
      "jellyjams.layout", "revert"),
 ]
 
-# Used by the quit guard once, after the user cancelled quitting.
+# Used only by the early-Close compatibility fallback after cancelled quit.
 QUIT_REAPPLY_STEPS = [
     ("layout", "set up the window layout again after the quit was cancelled",
      "jellyjams.layout", "apply"),
@@ -143,6 +149,8 @@ QUIT_REAPPLY_STEPS = [
      "jellyjams.shortcuts", "install"),
     ("ribbon", "display the CommandManager ribbon again after the quit was cancelled",
      "jellyjams.ribbon", "show"),
+    ("appearances", "restore the Appearances tab after the quit was cancelled",
+     "jellyjams.appearances", "resume_after_cancel"),
     ("switch_prefs", "override the workbench-switch preferences again after the quit was cancelled",
      "jellyjams.switch_prefs", "apply"),
 ]
@@ -258,6 +266,7 @@ def _add_menu_once(workbench) -> None:
     # A command gets a QAction, and so a working keyboard shortcut, only once it sits in a
     # menu or toolbar; the ribbon's own buttons do not create one.
     workbench.appendMenu(constants.MENU_NAME, [constants.CMD_ORIENTATION, constants.CMD_NORMAL_TO,
+                                               constants.CMD_APPEARANCES,
                                                constants.CMD_DIAGNOSTICS])
     try:
         setattr(workbench, _MENU_FLAG, True)

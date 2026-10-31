@@ -629,3 +629,13 @@ Criteria 1 to 6 hold for each of the three modules of §2.3, each with its own g
 
 41. With no `SwitchToWB` key under `Mod/PartDesign`, in JellyJams open a sketch inside a Body, draw something and exit the sketch. The body becomes active again and `FreeCADGui.activeWorkbench().name()` stays `"JellyJamsWorkbench"`. (`tests/gui_sketch_first.py`, `a_still_in_jellyjams_after_exit`.)
 42. With no `SwitchToWB` key under `Mod/TechDraw/General`, in JellyJams double-click a TechDraw page in the tree. The page opens and the workbench stays `"JellyJamsWorkbench"`.
+
+### Assembly tree interaction
+
+43. Create a New Assembly with an empty part document already open. Select the
+    assembly and repeatedly click its expand/collapse triangle and the triangle
+    of its Origin branch. Each click toggles the targeted branch, the UI remains
+    responsive, the assembly stays active and JellyJams remains the workbench.
+    `tests/gui_assembly_tree.py` checks 100 native pointer clicks across the two
+    branches in a disposable profile. Passing this scenario does not establish
+    that every profile or timing of tree interaction is free of hangs.
