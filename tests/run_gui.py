@@ -25,7 +25,7 @@ SUITES = {
     "features": ("gui_features.py", "features.json", 51),
     "assembly_tree": ("gui_assembly_tree.py", "assembly_tree.json", 104),
     "appearances": ("gui_appearances.py", "appearances.json", 38),
-    "report_view": ("gui_report_view.py", "report_view.json", 7),
+    "report_view": ("gui_report_view.py", "report_view.json", 9),
     "report_startup": ("gui_report_view.py", "report_startup.json", 3),
     "tabs": ("gui_tabs.py", "tabs_results.json", 0),
     "cancel": ("gui_lifecycle.py", "lifecycle_cancel.json", 16),

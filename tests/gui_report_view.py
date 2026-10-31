@@ -71,8 +71,19 @@ def check_active():
 
 
 def check_leave():
-    from jellyjams import constants
     note("closed_report_restored_on_leave", report().isHidden())
+    # Reproduce the missing path: enter with Report open, then close it while
+    # JellyJams is active and quit directly. The next process must stay closed.
+    report().show()
+    note("report_open_before_second_activation", not report().isHidden())
+    Gui.activateWorkbench("JellyJamsWorkbench")
+    later(close_inside)
+
+
+def close_inside():
+    from jellyjams import constants
+    report().hide()
+    note("report_closed_inside_jellyjams", report().isHidden())
     # Prepare the next real process to autoload JellyJams using this scratch
     # profile's saved native window state.
     App.ParamGet(constants.PARAM_GENERAL).SetString("AutoloadModule", constants.WORKBENCH_KEY)
@@ -89,7 +100,7 @@ def finish():
     RES["ok"] = bool(RES["checks"]) and not RES["errors"] and all(c["ok"] for c in RES["checks"].values())
     with open(os.path.join(OUT, MODE + ".json"), "w", encoding="utf-8") as stream:
         json.dump(RES, stream, indent=2)
-    QtCore.QTimer.singleShot(300, QtWidgets.QApplication.instance().quit)
+    QtCore.QTimer.singleShot(300, Gui.getMainWindow().close)
 
 
 later(start, 6000)

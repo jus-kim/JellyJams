@@ -8,6 +8,26 @@ test mentioned here: [testing.md](testing.md).
 After any code change, re-run the suites and update this page (see
 [Updating this page](#updating-this-page)).
 
+## Report view visibility through quit (2026-10-31)
+
+The user's startup follow-up exposed a missing case: when Report view was open
+before activation and closed inside JellyJams, quit restored the snapshot's open
+state and FreeCAD saved it. The earlier regression only began with a closed dock.
+The new regression failed in both directions before the fix.
+
+Both layout restore passes now preserve Report view's current explicit visibility
+while restoring its original position. No profile values or auto-show preferences
+are overridden. Closing it once and quitting normally saves the native startup
+choice; users can also keep an explicitly reopened Report view open.
+
+Validation: **529/529 headless**, no failures/errors/skips (`scratch/report_choice_headless.log`),
+including the two visibility directions and original dock placement; GUI-result
+validator **10/10**, compilation and `git diff --check` passed. Native FreeCAD
+1.1.4 focused run: Report view **9/9**, saved-state autoload **3/3**, Cancel
+**16/16**, Discard **9/9**, post-Discard restart **5/5**, autoload **6/6**;
+saved-config validation **7/7**, runner exit **0** (`scratch/gui_ux4asb4v/`).
+All GUI validation used disposable profiles.
+
 ## Pre-PR audit (2026-10-31)
 
 Audited the pending appearance, Report view/layout and assembly-test changes,

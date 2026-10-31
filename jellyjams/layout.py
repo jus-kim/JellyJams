@@ -275,7 +275,13 @@ def _restore(window, state, hidden):
     other toolbar keeps the visibility it has at this moment."""
     hidden_keys = {_key(bar) for bar in hidden if fcgui.is_alive(bar)}
     current = _toolbar_visibility(window)
+    # We arrange Report view but never own its visibility. Preserve the user's
+    # latest choice so closing it inside JellyJams survives quit and restart.
+    report = _report_dock(window)
+    report_visible = not report.isHidden() if report is not None else None
     window.restoreState(state)
+    if report is not None and fcgui.is_alive(report):
+        report.setVisible(report_visible)
     _put_back_visibility(window, current, skip=hidden_keys)
     for bar in hidden:
         if fcgui.is_alive(bar):

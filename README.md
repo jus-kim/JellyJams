@@ -33,8 +33,9 @@ moving to a different one reverts all of these changes.
   Drawing tab when a drawing sheet comes to the front.
 - **SolidWorks-like window layout:** FreeCAD's toolbars are hidden except File, Edit and the
   workbench selector; Tasks and an already open Report view are docked on the right.
-  A closed Report view stays closed. To save that startup choice, close it once
-  in another workbench before activating JellyJams.
+  A closed Report view stays closed. Close it with **View > Panels > Report view**
+  or its X button, including inside JellyJams; a normal quit saves that choice
+  for the next startup. FreeCAD's own auto-show settings still apply.
 - **Light/dark widget and viewport colors matching FreeCAD**, with readable sketch geometry
   and dimensions. Under defined geometry is blue, fully defined geometry is black in light mode
   or green in dark mode, and over defined geometry is red. Your FreeCAD theme setting itself

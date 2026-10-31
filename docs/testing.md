@@ -3,7 +3,7 @@
 JellyJams has two test layers:
 
 1. **Headless suite**: [`tests/test_headless.py`](../tests/test_headless.py) with
-   [`tests/headless_stubs.py`](../tests/headless_stubs.py). 528 tests against stubbed
+   [`tests/headless_stubs.py`](../tests/headless_stubs.py). 529 tests against stubbed
    `FreeCAD` / `FreeCADGui` modules and an offscreen Qt. No FreeCAD window, no profile touched.
    Run it before every commit.
 2. **GUI acceptance scripts**: [`tests/gui_smoke.py`](../tests/gui_smoke.py),
@@ -21,7 +21,9 @@ against: [specs/README.md](specs/README.md).
 of a closed Report view in real FreeCAD. The first process checks activation,
 explicit open/close, delayed layout and leave, then saves a disposable profile
 configured to autoload JellyJams. The second process uses that saved profile to
-check actual startup and leave. Expected checks: 7 and 3; `report_startup` must
+check actual startup and leave. The first run also enters with Report view open,
+closes it inside JellyJams and quits directly, covering visibility preservation
+through quit restoration. Expected checks: 9 and 3; `report_startup` must
 follow `report_view`. Actual quit-prompt/Cancel visibility is checked by the
 cancel/discard lifecycle modes too. FreeCAD's auto-show-on-message options are
 not disabled by this feature.

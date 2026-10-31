@@ -63,7 +63,9 @@ When the user leaves JellyJams, or quits FreeCAD while JellyJams is active, the 
   - stacked vertically, with Tasks above Report view: a vertical split, not tabs
 - If only Tasks exists, Tasks alone goes to the right.
 - Closing Report view after activation must also survive the delayed re-dock
-  passes. Reopening it explicitly remains possible. FreeCAD's own auto-show
+  passes, both restore passes on leave/quit, and cancelled quit. Restoring its
+  position must preserve its current open/closed choice, allowing native quit
+  to save that choice for startup. Reopening it explicitly remains possible. FreeCAD's own auto-show
   settings for log messages, warnings and errors are not changed.
 - If Tasks cannot be found, no dock is moved. A warning is printed (see 6).
 - The model tree dock (`Model`) is not moved, hidden or restyled.
@@ -81,7 +83,7 @@ When the user leaves JellyJams, or quits FreeCAD while JellyJams is active, the 
   - area and position
   - tabbing and splitting
   - floating state
-  - visibility
+  - visibility, except Report view keeps its current open/closed choice
   - for example, Tasks returns to its tab next to the model tree if that is where it was
 - Every toolbar that JellyJams hid gets back the visibility it had before entering.
 - Every other toolbar keeps its **current** visibility. This matters most for the toolbars of the workbench being switched to, which FreeCAD has already shown (see the verified ordering in 4.4). They must not be hidden.
@@ -217,6 +219,9 @@ No FreeCAD command is run by this area. Testers use `FreeCADGui.activateWorkbenc
 ### 5.2 Exact restore on leave
 
 - Docks are restored from the snapshot as described in 2.2.
+- Each restore pass records Report view's current explicit visibility before
+  restoring dock positions and reapplies it afterwards. JellyJams arranges this
+  dock but does not own its visibility; user open/close choices must persist.
 - Toolbar visibility:
   - Only the toolbars that JellyJams itself hid during this apply get their visibility from the snapshot.
   - Every other toolbar keeps the visibility it has at the moment of restore. If restoring the snapshot changed it, it is put back.
@@ -229,7 +234,7 @@ No FreeCAD command is run by this area. Testers use `FreeCADGui.activateWorkbenc
   activation-generation guard prevents this pass from affecting quick reentry.
   The pass then re-hides the ribbon if it is not wanted.
 - Consequences, which are intended:
-  - Dock rearrangements the user made while inside JellyJams are discarded on leave, because exact restore wins.
+  - Dock rearrangements the user made while inside JellyJams are discarded on leave, because exact restore wins; Report view's current visibility is preserved.
   - A kept toolbar (File, Edit, Workbench) that the user hid while inside JellyJams stays hidden after leaving.
   - A toolbar that JellyJams hid and the user re-showed inside JellyJams returns to its pre-entry visibility.
   - Toolbar positions return to the snapshot.
@@ -370,3 +375,6 @@ Checks are made at least 3.5 s after each switch, so every delayed re-dock pass 
     closed after activation and every delayed re-dock pass. Explicitly opening
     and closing it works. It is still closed after leave, native quit/relaunch
     with JellyJams autoload, and cancelled quit.
+    Also enter with Report view open, close it inside JellyJams and quit directly:
+    native relaunch must keep it closed. Opening it inside JellyJams must likewise
+    survive both restore passes while its original dock position is restored.

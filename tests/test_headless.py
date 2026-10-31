@@ -2722,6 +2722,21 @@ class Test11Layout(HarnessCase):
         self.layout._redock(self.layout._generation)
         self.assertTrue(report.isVisible(), "an explicitly reopened Report view stays open")
 
+    def test_report_visibility_choice_survives_both_restore_passes(self):
+        window = self.build_window()
+        report = self.docks["Report view"]
+        original_area = window.dockWidgetArea(report)
+        for initially_visible in (True, False):
+            with self.subTest(initially_visible=initially_visible):
+                report.setVisible(initially_visible)
+                self.layout.apply()
+                report.setVisible(not initially_visible)
+                self.layout.revert()
+                self.assertEqual(report.isVisible(), not initially_visible)
+                STUBS.pump(450)
+                self.assertEqual(report.isVisible(), not initially_visible)
+                self.assertEqual(window.dockWidgetArea(report), original_area)
+
     def test_delayed_pass_hides_late_toolbars_and_restores_them_once(self):
         window = self.build_window()
         self.layout.apply()
