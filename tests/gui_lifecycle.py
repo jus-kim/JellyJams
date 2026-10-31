@@ -181,6 +181,10 @@ def close_make_dirty():
     doc = App.newDocument("Dirty")
     doc.addObject("Part::Box", "Box")
     doc.recompute()
+    if MODE == "save":
+        doc.saveAs(os.path.join(OUT_DIR, "quit_saved.FCStd"))
+        doc.getObject("Box").Length = 17
+        doc.recompute()
     # The prompt runs a nested event loop inside close(); our timers keep firing.
     QtCore.QTimer.singleShot(1500, during_prompt)
     QtCore.QTimer.singleShot(0, mw().close)
@@ -196,13 +200,11 @@ def during_prompt():
         return
     st = jj_state()
     RES["info"]["state_during_prompt"] = st
-    # 1.5 s is longer than one 600 ms quit-prompt poll: the guard must NOT have re-applied.
-    note("not_reentered_inside_prompt", not st["theme"] and not st["ribbon"] and not st["orbit"] and not st["appearances"] and st["report_closed"], st)
-    note("nav_restored_inside_prompt", st["nav"] == RES["info"]["nav_before"], st["nav"])
-    note("shortcut_restored_inside_prompt", st["fit"] == "", st["fit"])
-    note("switch_to_wb_restored_inside_prompt", st["switch"] == RES["info"]["switch_before"],
-         f"now={st['switch']!r} was={RES['info']['switch_before']!r}")
-    note("backups_cleared_inside_prompt", not backups_pending(), backups_pending())
+    note("jellyjams_kept_inside_prompt", st["theme"] and st["ribbon"] and st["orbit"] and st["appearances"] and st["report_closed"], st)
+    note("nav_kept_inside_prompt", st["nav"] == "Gui::SolidWorksNavigationStyle", st["nav"])
+    note("shortcut_kept_inside_prompt", st["fit"] == "F", st["fit"])
+    note("switch_to_wb_kept_inside_prompt", all_switches_off(st["switch"]), st["switch"])
+    note("backups_pending_inside_prompt", bool(backups_pending()), backups_pending())
     if MODE == "cancel":
         btn = find_button(modal, "Cancel")
         note("found_cancel", btn is not None)
@@ -211,6 +213,14 @@ def during_prompt():
             btn.click()
             # window-layout AC 15: the re-apply is complete within 2.5 s of Cancel.
             QtCore.QTimer.singleShot(2500, after_cancel)
+        else:
+            quit_app()
+    elif MODE == "save":
+        btn = modal.button(QtWidgets.QMessageBox.StandardButton.Save)
+        note("found_save", btn is not None)
+        save()
+        if btn is not None:
+            btn.click()
         else:
             quit_app()
     else:
@@ -316,5 +326,6 @@ def autoload_after_leave():
 
 
 App.Console.PrintMessage(f"JellyJams-lifecycle mode={MODE} out={OUT_DIR}\n")
-START = {"cancel": close_start, "discard": close_start, "after": after_start, "autoload": autoload_check}[MODE]
+START = {"cancel": close_start, "discard": close_start, "save": close_start,
+         "after": after_start, "autoload": autoload_check}[MODE]
 QtCore.QTimer.singleShot(6000 if MODE == "autoload" else 4000, START)

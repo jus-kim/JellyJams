@@ -1969,6 +1969,62 @@ class Test07QuitGuard(HarnessCase):
 # ==========================================================================
 
 
+class Test07AcceptedQuitGuard(HarnessCase):
+    def setUp(self):
+        super().setUp()
+        self.calls = []
+        self.lifecycle = self.module("jellyjams.lifecycle")
+        self.patch(self.lifecycle, "is_active", lambda: True)
+        self.patch(self.lifecycle, "revert_for_quit", lambda: self.calls.append("restore"))
+        self.patch(self.lifecycle, "reapply_after_cancel", lambda: self.calls.append("reapply"))
+        calls = self.calls
+
+        class Window(QtWidgets.QMainWindow):
+            mainWindowClosed = QtCore.Signal()
+            accept_close = False
+
+            def closeEvent(self, event):
+                if self.accept_close:
+                    self.mainWindowClosed.emit()
+                    self.at_save = list(calls)
+                    event.accept()
+                else:
+                    event.ignore()
+
+        self.window = Window()
+        self.window.show()
+        self.addCleanup(self.window.deleteLater)
+        self.patch(self.module("jellyjams.fcgui"), "main_window", lambda: self.window)
+        self.guard = self.module("jellyjams.quit_guard", fresh=True)
+        self.guard.install()
+        self.assertTrue(self.guard._watcher.accepted_close_connected)
+
+    def test_cancel_keeps_interface_and_never_runs_restore_or_reapply(self):
+        self.window.close()
+        STUBS.pump(750)
+        self.assertTrue(self.window.isVisible())
+        self.assertEqual(self.calls, [])
+
+    def test_accepted_close_restores_synchronously_before_settings_are_saved(self):
+        self.window.accept_close = True
+        self.window.close()
+        self.assertEqual(self.window.at_save, ["restore"])
+        STUBS.pump(750)
+        self.assertEqual(self.calls, ["restore"])
+
+    def test_duplicate_install_and_accepted_signal_restore_only_once(self):
+        self.guard.install()
+        self.window.mainWindowClosed.emit()
+        self.window.mainWindowClosed.emit()
+        self.assertEqual(self.calls, ["restore"])
+
+    def test_inactive_workbench_is_untouched_on_accepted_close(self):
+        self.patch(self.lifecycle, "is_active", lambda: False)
+        self.window.accept_close = True
+        self.window.close()
+        self.assertEqual(self.window.at_save, [])
+
+
 class Test08QtFilter(HarnessCase):
     GLYPH = "render glyph failed err=40 headless sample"
 

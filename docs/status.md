@@ -8,6 +8,31 @@ test mentioned here: [testing.md](testing.md).
 After any code change, re-run the suites and update this page (see
 [Updating this page](#updating-this-page)).
 
+## Keep JellyJams visible during save prompts (2026-10-31)
+
+The user reported the intentional early quit teardown as an unwanted interface
+change. FreeCAD 1.1.4 source confirms that `mainWindowClosed` is emitted only
+after native close/save acceptance and before `saveWindowSettings`. The quit
+watcher now connects synchronously to that signal and runs the existing restore
+steps there. Native prompts retain the ribbon, theme, viewport and Appearances;
+Cancel leaves JellyJams intact. Hosts without the signal retain the conservative
+early-Close/modal-poll fallback. D-24 supersedes the earlier prompt behavior.
+
+Verified on FreeCAD 1.1.4 Windows with disposable profiles:
+
+- **533/533 headless**, no failures/errors/skips, including four accepted-close
+  ordering/idempotency tests plus all six fallback tests (`scratch/accepted_quit_headless.log`).
+  GUI-result validator **10/10**, Python compilation and `git diff --check` passed.
+- Native Cancel **16/16**, Discard **9/9**, relaunch **5/5**, Report view **9/9**,
+  saved Report view autoload **3/3** (`scratch/gui_902sdcvt/`, runner exit **0**).
+- Native Save **9/9**, saved-config checker **7/7** (`scratch/gui_cizb07_q/`).
+  The saved document's Box.Length is **17**, confirming the dirty edit was saved.
+  Discard's saved-config checker also passes **7/7**. Both paths persist the
+  original navigation/shortcuts/switch preferences with no pending backups.
+- Save As cancellation is covered by the signal's native acceptance ordering,
+  but was not separately exercised in the GUI. Compatibility fallback remains
+  headless-verified; the installed host uses the accepted-close path.
+
 ## Report view visibility through quit (2026-10-31)
 
 The user's startup follow-up exposed a missing case: when Report view was open

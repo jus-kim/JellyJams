@@ -107,8 +107,8 @@ float equality across save/reopen is not an appropriate assertion.
 | Fact | Relied on by | Evidence |
 |---|---|---|
 | On quit FreeCAD **never calls `Deactivated()`**. It persists the window layout (`MainWindowState`) and all parameters on exit | [`quit_guard.py`](../jellyjams/quit_guard.py) | Verified 1.1.4; GUI test `gui_lifecycle.py` mode `discard` + `check_saved_cfg.py` |
-| A Close-event filter on the main window runs **before** FreeCAD's own `closeEvent` | `quit_guard.install` | Verified 1.1.4; GUI tests `nav_restored_inside_prompt`, `shortcut_restored_inside_prompt` |
-| With unsaved documents, FreeCAD's "Save changes?" QMessageBox runs a nested event loop inside `closeEvent`: QTimers keep firing, `QApplication.activeModalWidget()` is non-null while it is open, and Cancel aborts the close | `quit_guard._check` | Verified 1.1.4; GUI tests `prompt_is_open`, `not_reentered_inside_prompt`, `reapplied_after_cancel` |
+| A Close-event filter on the main window runs **before** FreeCAD's own `closeEvent` | `quit_guard.install` | Verified 1.1.4; legacy fallback tests in `Test07QuitGuard` |
+| With unsaved documents, FreeCAD's "Save changes?" QMessageBox runs a nested event loop inside `closeEvent`: QTimers keep firing, `QApplication.activeModalWidget()` is non-null while it is open, and Cancel aborts the close | `quit_guard` | Verified 1.1.4; GUI tests `prompt_is_open`, `jellyjams_kept_inside_prompt`, `reapplied_after_cancel` |
 | When the workbench is autoloaded at startup, `Activated()` runs **before** the main window is shown and before FreeCAD restores the saved window state | `layout.apply` deferral, `ribbon.show_if_requested` | Verified 1.1.4; GUI tests `layout_active_after_show`, `ribbon_visible_after_show` |
 
 ## Parameters
@@ -246,3 +246,11 @@ Run this for every new FreeCAD release, on a throwaway configuration (see
    template file names still exist.
 5. Update the baseline line at the top and the Evidence column, and note the release in
    [`CHANGELOG.md`](../CHANGELOG.md).
+
+### Accepted close before persistence (2026-10-31)
+
+FreeCAD 1.1.4 [MainWindow::closeEvent](https://github.com/FreeCAD/FreeCAD/blob/1.1.4/src/Gui/MainWindow.cpp#L1594)
+emits `mainWindowClosed` after `tryClose` accepts and immediately before
+`saveWindowSettings`. A direct Qt connection permits restoring settings after
+all save decisions, without changing the UI behind prompts. Native lifecycle
+Save/Discard tests plus saved-config checks verify this; Cancel keeps JellyJams.

@@ -158,7 +158,8 @@ moving to a different one reverts all of these changes.
   your configuration beforehand has none afterwards either, so FreeCAD's built-in default
   keeps applying to it.
 - If you **cancel** FreeCAD's "Save changes?" prompt while quitting, the JellyJams interface
-  comes back.
+  stays in place. It remains visible while the prompt is open; cleanup happens
+  only after FreeCAD accepts the close.
 - **After a crash**, the next FreeCAD start restores the saved settings JellyJams had changed
   (3D view colors, navigation style, shortcuts, the three "switch to workbench" settings) from
   its backups.

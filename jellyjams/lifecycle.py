@@ -115,7 +115,7 @@ DEACTIVATION_STEPS = [
      "jellyjams.layout", "revert"),
 ]
 
-# Used by the quit guard on Close, before FreeCAD writes its window state and parameters.
+# Used on accepted close before persistence (early Close only on fallback hosts).
 QUIT_REVERT_STEPS = [
     ("appearances", "remove the Appearances tab on quit",
      "jellyjams.appearances", "suspend_for_quit"),
@@ -135,7 +135,7 @@ QUIT_REVERT_STEPS = [
      "jellyjams.layout", "revert"),
 ]
 
-# Used by the quit guard once, after the user cancelled quitting.
+# Used only by the early-Close compatibility fallback after cancelled quit.
 QUIT_REAPPLY_STEPS = [
     ("layout", "set up the window layout again after the quit was cancelled",
      "jellyjams.layout", "apply"),

@@ -3,7 +3,7 @@
 JellyJams has two test layers:
 
 1. **Headless suite**: [`tests/test_headless.py`](../tests/test_headless.py) with
-   [`tests/headless_stubs.py`](../tests/headless_stubs.py). 529 tests against stubbed
+   [`tests/headless_stubs.py`](../tests/headless_stubs.py). 533 tests against stubbed
    `FreeCAD` / `FreeCADGui` modules and an offscreen Qt. No FreeCAD window, no profile touched.
    Run it before every commit.
 2. **GUI acceptance scripts**: [`tests/gui_smoke.py`](../tests/gui_smoke.py),
@@ -393,16 +393,17 @@ must not carry a user override for it.
 
 | `JELLYJAMS_LIFECYCLE_MODE` | Profile | What happens | Checks |
 |---|---|---|---|
-| `cancel` (default when unset) | new copy `cancel` | Part Design, then JellyJams; creates an unsaved document (`Dirty`, one `Part::Box`) and closes the main window. 1.5 s into FreeCAD's "Save changes?" prompt it checks that everything is reverted and nothing was re-applied, then presses Cancel. 2.5 s later it checks the re-apply, closes the document and switches to Part Design; 4 s after that switch it checks the restore and quits. | 16 |
+| `cancel` (default when unset) | new copy `cancel` | Part Design, then JellyJams; creates an unsaved document (`Dirty`, one `Part::Box`) and closes the main window. 1.5 s into FreeCAD's "Save changes?" prompt it checks that JellyJams remains active with its backups pending, then presses Cancel. 2.5 s later it checks that JellyJams stayed intact, closes the document and switches to Part Design; 4 s after that switch it checks the restore and quits. | 16 |
 | `discard` | new copy `discard` | Same up to the prompt checks, then presses Discard. FreeCAD exits and writes `discard_user.cfg`. Inspect that file with `check_saved_cfg.py` before `after`. | 9 |
+| `save` | new copy `save` | Save a scratch document, modify it, close the window and verify JellyJams stays active during the prompt. Click Save; verify the saved config with `check_saved_cfg.py`. | 9 |
 | `after` | the **same** `discard` profile (no new copy) | Relaunch after the Discard quit. Reads `lifecycle_discard.json` from `JELLYJAMS_RESULTS_DIR`, switches to Part Design and checks that the stock toolbars recorded before the quit are visible, the ribbon is hidden, the backups are empty and the three `SwitchToWB` are as before (only Assembly's when the discard run recorded a single value). | 5 (4 if `switch_before` was not recorded) |
 | `autoload` | new copy `autoload` with `AutoloadModule` = `JellyJamsWorkbench` | FreeCAD starts in JellyJams. 6 s after start it checks the active workbench, the applied layout snapshot, the visible ribbon and that only File, Edit and Workbench toolbars are visible; then switches to Part Design and, 4 s later, checks that more than three toolbars are back and the theme is gone. | 6 |
 
 Check names per mode:
 
 - cancel: `active_before_close`, `switch_to_wb_off_before_close`, `prompt_is_open`,
-  `not_reentered_inside_prompt`, `nav_restored_inside_prompt`, `shortcut_restored_inside_prompt`,
-  `switch_to_wb_restored_inside_prompt`, `backups_cleared_inside_prompt`, `found_cancel`,
+  `jellyjams_kept_inside_prompt`, `nav_kept_inside_prompt`, `shortcut_kept_inside_prompt`,
+  `switch_to_wb_kept_inside_prompt`, `backups_pending_inside_prompt`, `found_cancel`,
   `reapplied_after_cancel`, `nav_reapplied_after_cancel`, `shortcut_reapplied_after_cancel`,
   `switch_to_wb_reapplied_after_cancel`, `stock_restored_after_leave`,
   `switch_to_wb_restored_after_leave`, `backups_cleared_after_leave`.

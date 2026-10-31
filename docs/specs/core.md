@@ -315,23 +315,22 @@ If JellyJams is FreeCAD's autoload workbench, Activated runs **before** the main
 
 ### 6.6 Quit guard (FreeCAD never calls Deactivated on quit)
 
-On quit, FreeCAD saves the window layout (`MainWindowState`) and all parameters (`user.cfg`). JellyJams must make sure none of its changes get saved:
+On quit, FreeCAD saves the window layout and parameters. Keep JellyJams active
+through FreeCAD's native save/discard/cancel dialogs. Connect once per session to
+`mainWindowClosed` with a synchronous Qt direct connection: FreeCAD emits it only
+after all close/save decisions succeed, immediately before `saveWindowSettings`.
+At that point run `QUIT_REVERT_STEPS`, clearing all backups before persistence.
+Cancel (including cancelling a Save As dialog) never reaches that signal and
+must leave JellyJams intact, without tearing it down or reapplying it. The guard
+also covers activation while layout application is still deferred.
 
-- While JellyJams is the active workbench (also when an autoload deferral has not applied the layout yet), a **Close-event filter on the main window** (installed at most once per session; it runs before FreeCAD's own close handling) must, as soon as the main window receives a Close event:
-  - restore the window layout,
-  - remove the theme,
-  - restore the viewport colors,
-  - hide the ribbon,
-  - restore the shortcuts,
-  - restore the navigation style,
-  - restore the Assembly, Part Design and TechDraw `SwitchToWB` settings. (They are restored on quit as well; JellyJams does not leave them to the next startup's recovery.)
-
-  All JellyJams backup keys are then cleared. The filter must **not** consume the event: FreeCAD's close goes ahead as usual.
-- **If documents have unsaved changes**, FreeCAD shows its "Save changes?" prompt. That prompt runs a nested event loop in which timers keep firing, and `QApplication.activeModalWidget()` is non-null while it is open.
-  - **While a modal dialog is open**, JellyJams must **not** re-apply anything. It checks again about every 600 ms.
-  - **Cancel** (the window is still visible and JellyJams is still the active workbench once the modal is gone): re-apply the layout, theme, viewport colors, navigation, shortcuts, ribbon and `SwitchToWB` overrides, exactly once each (the theme block exactly once).
-  - **Discard / Save** (the application closes): nothing is re-applied, so the saved `user.cfg` and window state are clean.
-- If JellyJams is not the active workbench when the window closes, the guard does nothing.
+If the host lacks the signal or connection fails, retain the conservative
+Close-event fallback: restore before native close handling, poll only after all
+modal dialogs finish, and reapply once after cancelled quit. This fallback may
+show the stock UI during prompts; it protects exact restoration on other hosts.
+The Close-event filter always returns False, and signal/timer boundaries never
+raise. Duplicate install or accepted-close notifications must not restore twice.
+An inactive JellyJams workbench is untouched in either path.
 
 ### 6.7 Crash
 

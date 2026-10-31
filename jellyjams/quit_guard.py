@@ -5,10 +5,9 @@
 
 Quitting never runs Deactivated, yet FreeCAD still writes its parameters and
 the main-window layout while the window shuts down. A watcher object sits in
-the main window's event stream: when a Close arrives, before FreeCAD acts on
-it, JellyJams is taken down. The watcher then polls until the outcome is known.
-If the user backs out at the "Save changes?" prompt, the window stays open and
-JellyJams is brought back, but only after no modal dialog is left on screen.
+the main window's accepted-close signal, after FreeCAD finishes its save prompts
+and before it saves window settings. Cancel leaves JellyJams untouched. Older
+hosts without that signal use the conservative Close-event/polling fallback.
 """
 
 from PySide import QtCore, QtWidgets
@@ -32,6 +31,23 @@ class _QuitWatcher(QtCore.QObject):
         super().__init__(window)
         self.awaiting_outcome = False
         self.probe_failure_reported = False
+        self.accepted_close_connected = False
+        self.accepted_close_reverted = False
+        try:
+            window.mainWindowClosed.connect(
+                self._accepted_close, QtCore.Qt.ConnectionType.DirectConnection)
+            self.accepted_close_connected = True
+        except Exception:
+            console.log("accepted-close signal unavailable; using the early quit guard")
+
+    def _accepted_close(self):
+        # FreeCAD emits this synchronously after tryClose accepts, immediately
+        # before saveWindowSettings. A queued connection would restore too late.
+        with console.guard("restore settings after the close was accepted"):
+            if self.accepted_close_reverted or not lifecycle.is_active():
+                return
+            self.accepted_close_reverted = True
+            lifecycle.revert_for_quit()
 
     def eventFilter(self, watched, event):
         try:
@@ -42,6 +58,8 @@ class _QuitWatcher(QtCore.QObject):
         return False
 
     def _quit_requested(self):
+        if self.accepted_close_connected:
+            return
         if self.awaiting_outcome or not lifecycle.is_active():
             return
         self.awaiting_outcome = True

@@ -30,6 +30,7 @@ SUITES = {
     "tabs": ("gui_tabs.py", "tabs_results.json", 0),
     "cancel": ("gui_lifecycle.py", "lifecycle_cancel.json", 16),
     "discard": ("gui_lifecycle.py", "lifecycle_discard.json", 9),
+    "save": ("gui_lifecycle.py", "lifecycle_save.json", 9),
     "after": ("gui_lifecycle.py", "lifecycle_after.json", 5),
     "autoload": ("gui_lifecycle.py", "lifecycle_autoload.json", 6),
     "crash": ("gui_crash.py", "crash.json", 2),
@@ -121,7 +122,7 @@ def main():
                 raise ValueError("FreeCAD exited %s, expected %s" % (process.returncode, expected_exit))
             result = json.loads((out / filename).read_text(encoding="utf-8"))
             count = validate_result(result, minimum)
-            if suite == "discard":
+            if suite in ("discard", "save"):
                 info = result["info"]
                 switches = info["switch_before"]
                 check = subprocess.run([

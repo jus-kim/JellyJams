@@ -83,8 +83,9 @@ channel step and check scalar values separately.
 The owned dock and 500 ms target-refresh timer run only in JellyJams. Background
 or closed tabs do not scan targets. Hidden-window startup defers creation;
 repeated enable produces one dock/timer. Leave and quit detach/remove the dock
-and stop the timer before stock layout restoration. Cancelled quit re-creates
-the browser; unsaved editor controls reset. No new parameter, backup or custom
+and stop the timer before stock layout restoration. Native save prompts and cancelled quit retain the browser and editor controls.
+The early-Close compatibility fallback re-creates it after Cancel and resets
+unsaved controls. No new parameter, backup or custom
 document-property contract is introduced. There is no appearance-specific crash
 recovery step; saves already contain native document values.
 
@@ -113,5 +114,5 @@ and construction-failure recovery. Stub tests verify the abort protocol; native 
 Undo/Redo and save/reopen remain real-FreeCAD checks.
 
 Real FreeCAD: `tests/gui_appearances.py`.
-`gui_lifecycle.py` also checks absence during the actual quit prompt and
-re-creation after Cancel/autoload, always using disposable configurations.
+`gui_lifecycle.py` also checks that the dock stays present during the actual quit prompt and
+after Cancel, plus creation on autoload, always using disposable configurations.

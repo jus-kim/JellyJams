@@ -132,7 +132,7 @@ session and every other workbench. The rules:
 
 | Fact | Consequence in JellyJams |
 |---|---|
-| On quit FreeCAD never calls `Deactivated()`, then saves parameters and window state. | Close-event filter in `quit_guard.py` reverts first; re-applies if the quit is cancelled. |
+| On quit FreeCAD never calls `Deactivated()`, then saves parameters and window state. | Direct `mainWindowClosed` hook in `quit_guard.py` reverts after accepted save prompts and before layout persistence. Early-Close/poll fallback only if the signal is unavailable. |
 | On a workbench switch FreeCAD shows the next workbench's toolbars first and calls `Deactivated()` about 200 ms later. | `layout.revert()` restores only the toolbars JellyJams hid. |
 | With autoload, `Activated()` runs before the main window is shown. | `layout.apply()` defers until the window is visible. |
 | Qt fires neither action when two live actions share a shortcut (FreeCAD 1.1: Box Zoom owns `Ctrl+B`, Hide/Show owns `Space`). | `shortcuts.py` unbinds conflicting commands while active and restores them. |

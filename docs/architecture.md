@@ -113,7 +113,7 @@ interpreter and never imports FreeCAD, FreeCADGui, PySide or shiboken, not even 
 | Module | Role | Kind | Spec |
 |---|---|---|---|
 | [`lifecycle.py`](../jellyjams/lifecycle.py) | Initialize / Activated / Deactivated / quit step tables and `run_steps` | runtime | core 4, 6 |
-| [`quit_guard.py`](../jellyjams/quit_guard.py) | Close-event filter on the main window; revert before FreeCAD saves, re-apply after a cancelled quit | runtime | core 6.6 |
+| [`quit_guard.py`](../jellyjams/quit_guard.py) | Direct accepted-close signal before persistence; early-Close/poll fallback on hosts without it | runtime | core 6.6 |
 | [`qt_filter.py`](../jellyjams/qt_filter.py) | Qt message handler that drops "render glyph failed" floods while active | runtime | core 10 |
 | [`diagnostics.py`](../jellyjams/diagnostics.py) | `JellyJams_Diagnostics` command and dialog; environment line | runtime | core 9 |
 
@@ -400,25 +400,21 @@ function is idempotent. Lifecycle schedules no timers itself.
 
 The appearance dock is removed first through `appearances.suspend_for_quit`.
 After Cancel, `appearances.resume_after_cancel` runs after `ribbon.show` and
-before `switch_prefs.apply`. Its timer is stopped throughout the prompt.
+before `switch_prefs.apply`. The dock and timer remain intact throughout native save prompts; suspension occurs on accepted close.
 
 FreeCAD never calls `Deactivated()` on quit, but it saves the window state and all parameters
 while the main window closes. [`quit_guard.py`](../jellyjams/quit_guard.py) installs a
-Close-event filter on the main window (A18), which runs before FreeCAD's own close handling.
+guard on the main window (A18). FreeCAD 1.1.4 emits `mainWindowClosed` after
+`tryClose` accepts all document/view closures, immediately before `saveWindowSettings`.
 
-1. On `QEvent.Type.Close`: if `lifecycle.is_active()` and no re-apply is pending, run
-   `lifecycle.revert_for_quit()` (`QUIT_REVERT_STEPS`), mark pending, and schedule a check in
-   `POLL_MS` (`constants.QUIT_PROMPT_POLL_MS`, 600 ms). The filter **always returns False**: the
-   close is never blocked.
-2. Check: while `QApplication.activeModalWidget()` is not None (FreeCAD's "Save changes?"
-   prompt runs a nested event loop and timers keep firing), check again in 600 ms, any number
-   of times. If the modal state cannot be determined, keep waiting.
-3. When no modal dialog is open: clear pending; if the main window is still visible,
-   JellyJams is FreeCAD's active workbench and `lifecycle.is_active()` is True, run
-   `lifecycle.reapply_after_cancel()` (`QUIT_REAPPLY_STEPS`) exactly once. Otherwise (the
-   quit went through, or the workbench changed) do nothing.
+1. Connect once with `Qt.ConnectionType.DirectConnection`; the synchronous slot
+   runs `lifecycle.revert_for_quit()` once, before native persistence. Never queue it.
+2. During native save prompts, leave JellyJams intact, including its pending backups.
+   Cancel never emits the accepted-close signal and requires no reapplication.
+3. If the signal connection is unavailable, use the early Close-event revert and
+   modal-aware poll/reapply fallback. The event filter always returns False.
 
-| `QUIT_REVERT_STEPS` (on Close) | `QUIT_REAPPLY_STEPS` (after Cancel) |
+| `QUIT_REVERT_STEPS` (accepted close; early Close only on fallback) | `QUIT_REAPPLY_STEPS` (fallback Cancel only) |
 |---|---|
 | `switch_prefs.restore` | `layout.apply` |
 | `ribbon.hide` | `theme.apply` |
@@ -478,7 +474,7 @@ Hooks that outlive one activation are registered once and gate themselves.
 
 | Hook | Registered by | When | Lifetime / gating |
 |---|---|---|---|
-| Close-event filter on the main window | `quit_guard.install` | A18 | session; acts only when `lifecycle.is_active()` |
+| Direct accepted-close signal and fallback Close-event filter on the main window | `quit_guard.install` | A18 | session; acts only when `lifecycle.is_active()` |
 | Qt message handler | `qt_filter.install_and_enable` | A17, first time allowed | session (cannot be uninstalled); drops glyph messages only while enabled |
 | Tree-naming document observer | `naming.enable` | A8, first time | session; acts only while enabled and JellyJams is the active workbench. It also remembers assembly components whose `LinkedObject` was still empty at rename time (FreeCAD's New Part sets it only when its dialog is accepted) and names them when the target arrives; deleting the link or closing its document forgets it, even while inactive |
 | Section/detail labeling observer + queue timer (250 ms) | `view_labels.install` | Initialize | session; gated on `fcgui.jellyjams_active()`; waits while a task dialog is open, a TechDraw tool runs or a view drag is in progress; each pass is one closed `View Label` undo step per document |
