@@ -1017,3 +1017,36 @@ Feature behavior that no GUI script exercises (for example the drawing tools, th
 Relations and Add Mate panels, the sketch tools, dialog terms) is covered by headless logic
 tests only and is **not verified** end to end on real FreeCAD by the automated suites. See
 [status.md](status.md) for the details and the known gaps.
+
+## Temporary Measure task
+
+`measure.py` (runtime; [Measure](specs/measure.md))
+flattens unresolved selection paths and resolves world-space shapes lazily through
+Part. Circular edges/arcs become centre vertices and cylindrical faces become
+finite axis segments by default; a task-local clearance mode uses the original
+shapes. Both are measured with `distToShape`. A selection observer coalesces clear/add notifications into a deferred
+refresh, restoring earlier picks only for native clear-then-add replacement in
+the same event. Single picks report entity size; pairs report distance/angle
+with optional XYZ components; homogeneous multi-picks report totals. Chronological
+pick order is retained for three-point angles even when plain and additive clicks
+are mixed. Lifetime checks use the actual front window, including Start/drawing
+windows; retired callbacks cannot stop a later session, and cleanup drops cached
+graphics even after the old view is deleted. Formatting
+uses FreeCAD's unit schema, including area/volume and angle units.
+
+The task owns a single unpickable Coin `SoAnnotation` (always rendered above
+model geometry). A Qt-painted RGBA table becomes a constant-screen-size Coin
+`SoImage`: white background, black border, black labels/values and a divider.
+Its black leaders have a white underlay. The task also owns a Python task
+form and a lifetime timer. Ribbon dispatch starts it; ribbon hide stops it for
+leave and quit. Form destruction and document/view changes also clean it up.
+There are no persistent settings, document edits, command registrations or new
+lifecycle steps. Existing saved native measurements remain user-owned.
+
+Measure's ribbon entry remains a plain command slot in the content model, with
+a runtime checkable state. `measure.toggle()` starts/stops the task; `is_active()`
+is authoritative. `ribbon.refresh_measure_button()` synchronizes only that button
+on start, stop and form destruction, avoiding unrelated context/UI work while a
+task is being destroyed. Periodic ribbon refresh repeats that synchronization
+after native enabled-state updates and forces the active button enabled so it
+can stop. Its checked-state highlight is in the existing scoped theme block.

@@ -64,6 +64,13 @@ moving to a different one reverts all of these changes.
   so does a list whose items you tick or type into. Toolbar, status-bar and ribbon controls, such
   as the workbench selector you just used, never take `Space`. Docks that open later, from
   another add-on for example, behave the same once you click into them.
+- **Temporary Measure on the Evaluate tab:** click Measure to turn it on (its
+  button stays highlighted), then select geometry for labelled white callouts.
+  One edge/face shows its size; two picks show distance and applicable angles;
+  selected edges/faces show totals. Circular holes use their centres/axes by
+  default; choose *Nearest surfaces (clearance)* for the rim gap. Click empty
+  space to clear picks, or click Measure again to remove the measurements and
+  close the tool. [Supported quantities and limitations](docs/specs/measure.md).
 - **Normal To on `Ctrl+8`**, as in SolidWorks: select **one** face, edge, plane or sketch and the
   view turns to look straight at it. Faces, edges, datum planes and axes go to FreeCAD's own
   *Align to Selection*, which also handles curved faces (it looks along a cylinder's axis); a

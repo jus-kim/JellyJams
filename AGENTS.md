@@ -172,6 +172,7 @@ Modules by area, with the spec that defines each area's behavior:
 | Appearances: colour/finish library, native face/object/component edits and browser dock | `appearance_rules`, `appearances` | [appearances.md](docs/specs/appearances.md) |
 | Ribbon engine | `ribbon`, `ribbon_model`, `ribbon_text`, `ribbon_widgets`, `icons` | [ribbon-engine.md](docs/specs/ribbon-engine.md) |
 | Ribbon content (what each tab holds) | `ribbon_layout` | [ribbon-content.md](docs/specs/ribbon-content.md) |
+| Temporary measurement task and callouts | `measure` | [measure.md](docs/specs/measure.md) |
 | Tree naming | `naming`, `naming_rules` | [naming.md](docs/specs/naming.md) |
 | SolidWorks terms in task dialogs, ISO 128 presets row | `dialog_terms`, `dialog_terms_data` | [dialog-terms.md](docs/specs/dialog-terms.md) |
 | Sketching: stay in JellyJams while sketching and while features are edited, feature from open sketch, sketch first, Sketch context icon, Centerline, Midpoint Line | `sketch_edit`, `edit_guard`, `sketch_gesture`, `sketch_tools`, `context_sketch` | [sketching.md](docs/specs/sketching.md) |

@@ -261,6 +261,7 @@ CONSTANT_VALUES = {
 }
 
 EXPECTED_MODULES = [
+    "measure",
     "appearances", "appearance_rules",
     "constants", "console", "params", "paths", "fcgui", "doc_utils", "commands", "recovery",
     "navigation", "orbit", "orbit_rules", "shortcuts", "lifecycle", "quit_guard", "qt_filter", "diagnostics", "palette",
@@ -279,6 +280,8 @@ PURE_MODULES = ["__init__", "constants", "palette", "appearance_rules", "ribbon_
 NOT_IN_PURE = {"FreeCAD", "FreeCADGui", "PySide", "PySide2", "PySide6", "shiboken2", "shiboken6"}
 
 API_NAMES = {
+    "jellyjams.measure": ["start", "stop", "toggle", "is_active", "MeasureTask", "selected_items",
+                           "measurement", "single_measurement", "shortest_distance", "callout_image"],
     "jellyjams.appearances": ["get_commands", "targets", "apply_appearance", "enable", "disable",
                               "show", "dock", "suspend_for_quit", "resume_after_cancel"],
     "jellyjams.appearance_rules": ["Appearance", "LIBRARY", "FINISHES", "rgb", "face_index", "material_values"],
@@ -333,7 +336,7 @@ API_NAMES = {
     "jellyjams.ribbon_text": ["one_line", "tooltip_name", "plain_text", "same_name", "compose_tooltip"],
     "jellyjams.icons": ["jj_icon", "resource_icon", "command_icon"],
     "jellyjams.ribbon": ["show", "hide", "is_requested", "is_built", "show_if_requested",
-                         "hide_if_not_requested", "rebuild", "refresh_now", "dock", "find_button",
+                         "hide_if_not_requested", "rebuild", "refresh_now", "refresh_measure_button", "dock", "find_button",
                          "tab_titles", "current_tab_title", "context_tabs", "run_entry", "entry_ids",
                          "skipped_ids", "flyout_states", "toggle_states"],
     "jellyjams.naming": ["enable", "disable", "is_enabled", "refresh_drawing"],
@@ -4055,6 +4058,301 @@ class Test13RibbonBuild(HarnessCase):
 # ==========================================================================
 # 14. Naming rules
 # ==========================================================================
+
+
+class Test26Measure(HarnessCase):
+    def setUp(self):
+        super().setUp()
+        self.measure = self.module("jellyjams.measure")
+        self.patch(self.measure, "_session", None)
+
+    def task(self):
+        task = self.measure.MeasureTask(types.SimpleNamespace(Name="Board"), None)
+        self.addCleanup(task.form.deleteLater)
+        selected = []
+        selection = types.SimpleNamespace(
+            getSelectionEx=lambda *args: [types.SimpleNamespace(
+                Object=obj, SubElementNames=[sub]) for obj, sub in selected],
+            addSelection=lambda obj, sub: selected.append((obj, sub)))
+        self.patch(STUBS.gui, "Selection", selection)
+        self.patch(self.module("jellyjams.fcgui"), "defer", lambda fn, ms=0: None)
+        return task, selected
+
+    def test_flatten_same_object_and_whole_object(self):
+        obj = object()
+        other = object()
+        entries = [types.SimpleNamespace(Object=obj, SubElementNames=["Edge1", "Edge2", "Edge1"]),
+                   types.SimpleNamespace(Object=other, SubElementNames=[])]
+        self.assertEqual(self.measure.selected_items(entries),
+                         [(obj, "Edge1"), (obj, "Edge2"), (other, "")])
+
+    def test_normal_click_restores_first_pick_after_native_clear_add(self):
+        task, selected = self.task()
+        obj = object()
+        task.items = [(obj, "Edge1")]
+        task.clearSelection()
+        selected.append((obj, "Edge2"))
+        task.addSelection()
+        # Avoid geometry; only inspect which paths reach the kernel boundary.
+        seen = []
+        def distance(items, *args):
+            seen.extend(items)
+            raise ValueError("unsupported test geometry")
+        self.patch(self.measure, "measurement", distance)
+        task.refresh()
+        self.assertCountEqual(selected, [(obj, "Edge1"), (obj, "Edge2")])
+        self.assertCountEqual(seen, selected)
+
+    def test_click_empty_clears_result_and_annotation(self):
+        task, selected = self.task()
+        task.items = [(object(), "Edge1")]
+        task.result.setText("previous distance")
+        nodes = []
+        task.node = object()
+        task.view = types.SimpleNamespace(getSceneGraph=lambda: types.SimpleNamespace(
+            removeChild=lambda node: nodes.append(node)))
+        task.clearSelection()
+        task.refresh()
+        self.assertEqual(len(nodes), 1)
+        self.assertIsNone(task.node)
+        self.assertEqual(task.result.text(), "")
+        self.assertEqual(task.items, [])
+
+    def test_remove_pick_does_not_restore_it(self):
+        task, selected = self.task()
+        obj = object()
+        task.items = [(obj, "Edge1"), (obj, "Edge2")]
+        selected.append((obj, "Edge1"))
+        task.removeSelection()
+        task.refresh()
+        self.assertEqual(task.items, [(obj, "Edge1")])
+        self.assertIsNone(task.node)
+
+    def test_kernel_uses_unresolved_paths_and_nearest_points(self):
+        calls = []
+        first = types.SimpleNamespace(isNull=lambda: False,
+                                      distToShape=lambda other: (4.0, [("near1", "near2")], []))
+        second = types.SimpleNamespace(isNull=lambda: False)
+        shapes = iter((first, second))
+        def shape(obj, sub, **kwargs):
+            calls.append((obj, sub, kwargs))
+            return next(shapes)
+        self.fakes({"Part": fake_module("Part", getShape=shape)})
+        self.assertEqual(self.measure.shortest_distance([(1, "Link.Edge1"), (2, "Edge2")]),
+                         (4.0, ("near1", "near2")))
+        self.assertEqual(calls, [(1, "Link.Edge1", {"needSubElement": True}),
+                                 (2, "Edge2", {"needSubElement": True})])
+
+    def test_ribbon_routes_measure_without_running_native_command(self):
+        calls = []
+        self.patch(self.measure, "start", lambda: calls.append("start"))
+        ribbon = self.module("jellyjams.ribbon")
+        ribbon.run_entry("Std_Measure")
+        self.assertEqual(calls, ["start"])
+        self.assertEqual(STUBS.run_calls, [])
+
+    def test_ribbon_measure_checked_state_tracks_session_and_stays_stoppable(self):
+        button = QtWidgets.QToolButton()
+        self.addCleanup(button.deleteLater)
+        ui = types.SimpleNamespace(find_button=lambda cmd: button)
+        ribbon = self.module("jellyjams.ribbon")
+        ribbon._refresh_measure_button(ui)
+        self.assertTrue(button.isCheckable())
+        self.assertFalse(button.isChecked())
+        self.patch(self.measure, "_session", types.SimpleNamespace(closed=False))
+        button.setEnabled(False)  # Native Measure is disabled while its task is open.
+        ribbon._refresh_measure_button(ui)
+        self.assertTrue(button.isChecked())
+        self.assertTrue(button.isEnabled())
+        self.measure._session.closed = True
+        ribbon._refresh_measure_button(ui)
+        self.assertFalse(button.isChecked())
+
+    def test_measure_toggle_starts_then_stops(self):
+        calls = []
+        def start():
+            calls.append("start")
+            self.measure._session = types.SimpleNamespace(closed=False)
+        def stop():
+            calls.append("stop")
+            self.measure._session = None
+        self.patch(self.measure, "start", start)
+        self.patch(self.measure, "stop", stop)
+        self.measure.toggle()
+        self.measure.toggle()
+        self.assertEqual(calls, ["start", "stop"])
+        self.assertFalse(self.measure.is_active())
+
+    def test_circular_edges_and_arcs_use_their_center(self):
+        class Circle:
+            Center = "world centre"
+        shape = types.SimpleNamespace(ShapeType="Edge", Curve=Circle())
+        part = types.SimpleNamespace(Circle=Circle, Vertex=lambda center: ("vertex", center))
+        self.assertEqual(self.measure._reference_shape(shape, part), ("vertex", "world centre"))
+
+    def test_clearance_mode_keeps_the_original_circular_geometry(self):
+        shape = types.SimpleNamespace(isNull=lambda: False,
+            distToShape=lambda other: (0.8, [("rim", "edge")], []))
+        self.fakes({"Part": fake_module("Part", getShape=lambda *args, **kwargs: shape)})
+        self.patch(self.measure, "_reference_shape", lambda *args: self.fail("clearance must keep the rim"))
+        self.assertEqual(self.measure.shortest_distance([(1, "Edge1"), (1, "Edge2")], False),
+                         (0.8, ("rim", "edge")))
+
+    def test_cylinder_axis_uses_its_offset_origin_direction_and_negative_parameters(self):
+        class Vector:
+            def __init__(self, *values):
+                self.values = values
+            def __add__(self, other):
+                return Vector(*(a + b for a, b in zip(self.values, other.values)))
+            def __mul__(self, scale):
+                return Vector(*(a * scale for a in self.values))
+        class Cylinder:
+            Center = Vector(184.331627927, -129.148101334, 5.306402814)
+            Axis = Vector(0, 0, -1)
+        shape = types.SimpleNamespace(ShapeType="Face", Surface=Cylinder(),
+                                      ParameterRange=(0, 6.283185307, -1.04263952, 0))
+        part = types.SimpleNamespace(Cylinder=Cylinder, makeLine=lambda a, b: (a.values, b.values))
+        first, last = self.measure._reference_shape(shape, part)
+        self.assertAlmostEqual(first[2], 6.349042334)
+        self.assertEqual(last, Cylinder.Center.values)
+        self.assertEqual(first[:2], (184.331627927, -129.148101334))
+
+    def test_task_result_uses_bold_larger_text(self):
+        task, selected = self.task()
+        self.assertTrue(task.result.font().bold())
+        base = task.form.font()
+        if base.pointSizeF() > 0:
+            self.assertGreaterEqual(task.result.font().pointSizeF(), base.pointSizeF() + 2)
+        else:
+            self.assertGreater(task.result.font().pixelSize(), base.pixelSize())
+
+    def test_callout_has_white_background_black_rectangle_and_black_text(self):
+        rows = [("Radius", "1.25 mm"), ("Center", "1 mm, 2 mm, 3 mm")]
+        bitmap = self.measure.callout_image(rows)
+        self.assertEqual(bitmap.pixelColor(0, 0).name(), "#000000")
+        self.assertEqual(bitmap.pixelColor(2, 2).name(), "#ffffff")
+        self.assertEqual(bitmap.pixelColor(bitmap.width() - 1, bitmap.height() - 1).name(), "#000000")
+        interior_dark = sum(bitmap.pixelColor(x, y).lightness() < 128
+                            for x in range(8, bitmap.width() - 8) for y in range(5, bitmap.height() - 5))
+        self.assertGreater(interior_dark, 100, "Labels and values must be painted inside the box")
+
+    def test_callout_expands_for_coordinates_and_multiple_rows(self):
+        short = self.measure.callout_image([("Length", "1 mm")])
+        long = self.measure.callout_image([("Radius", "1.25 mm"), ("Center", "698.36 mm, 883.79 mm, 1303.9 mm")])
+        self.assertGreater(long.width(), short.width())
+        self.assertGreater(long.height(), short.height())
+
+    def test_single_line_has_length_instead_of_distance(self):
+        class Circle:
+            pass
+        self.fakes({"Part": fake_module("Part", Circle=Circle)})
+        self.patch(self.measure, "_quantity", lambda value, power=1: str(value))
+        edge = types.SimpleNamespace(ShapeType="Edge", Curve=object(), Length=17.05,
+            CenterOfMass="midpoint", FirstParameter=0, LastParameter=1, valueAt=lambda value: "on edge")
+        rows, points = self.measure.single_measurement(edge)
+        self.assertEqual(rows, [("Length", "17.05")])
+        self.assertEqual(points, ("on edge", "on edge"))
+
+    def test_single_vertex_reports_coordinates(self):
+        self.fakes({"Part": fake_module("Part")})
+        self.patch(self.measure, "_quantity", lambda value, power=1: str(value))
+        vertex = types.SimpleNamespace(ShapeType="Vertex", Point=(1, 2, 3))
+        rows, _ = self.measure.single_measurement(vertex)
+        self.assertEqual(rows, [("X", "1"), ("Y", "2"), ("Z", "3")])
+
+    def test_face_perimeter_counts_inner_and_outer_loops(self):
+        face = types.SimpleNamespace(Edges=[types.SimpleNamespace(Length=5, isSeam=lambda face: False),
+                                            types.SimpleNamespace(Length=2, isSeam=lambda face: False),
+                                            types.SimpleNamespace(Length=10, isSeam=lambda face: True)])
+        self.assertEqual(self.measure._perimeter(face), 7)
+
+    def test_stop_is_idempotent_and_disposes_before_closing_task(self):
+        calls = []
+        self.patch(self.measure, "_session", types.SimpleNamespace(
+            dispose=lambda: calls.append("dispose")))
+        self.patch(STUBS.gui.Control, "closeDialog", lambda: calls.append("close"))
+        self.measure.stop()
+        self.measure.stop()
+        self.assertEqual(calls, ["dispose", "close"])
+
+    def test_dispose_detaches_once_and_cancels_pending_refresh(self):
+        task, selected = self.task()
+        calls = []
+        self.patch(STUBS.gui.Selection, "removeObserver", lambda obj: calls.append(obj))
+        task.timer.start(100)
+        task.queue()
+        task.dispose()
+        task.dispose()
+        self.assertEqual(calls, [task])
+        self.assertFalse(task.timer.isActive())
+        task.result.setText("closed")
+        task.refresh()
+        self.assertEqual(task.result.text(), "closed")
+
+    def test_destroyed_form_releases_session_and_annotation(self):
+        task, selected = self.task()
+        calls = []
+        self.patch(STUBS.gui.Selection, "removeObserver", lambda obj: calls.append(obj))
+        self.patch(self.measure, "_session", task)
+        task.on_destroyed()
+        self.assertIsNone(self.measure._session)
+        self.assertTrue(task.closed)
+        self.assertEqual(calls, [task])
+
+    def test_closed_task_timer_cannot_stop_a_later_session(self):
+        task, selected = self.task()
+        task.closed = True
+        calls = []
+        self.patch(self.measure, "stop", lambda: calls.append("stop"))
+        task.check()
+        self.assertEqual(calls, [])
+
+    def test_plain_then_additive_picks_keep_chronological_order_for_three_point_angle(self):
+        task, selected = self.task()
+        obj = object()
+        def unsupported(*args):
+            raise ValueError("geometry is stubbed")
+        self.patch(self.measure, "measurement", unsupported)
+        selected.append((obj, "Vertex1"))
+        task.addSelection()
+        task.refresh()
+        selected.clear()
+        task.clearSelection()
+        selected.append((obj, "Vertex2"))
+        task.addSelection()
+        task.refresh()
+        selected.append((obj, "Vertex3"))
+        task.addSelection()
+        task.refresh()
+        self.assertEqual(task.items, [(obj, "Vertex1"), (obj, "Vertex2"), (obj, "Vertex3")])
+
+    def test_front_window_change_ends_measure_even_if_document_keeps_last_view(self):
+        task, selected = self.task()
+        task.view = object()
+        self.patch(self.measure, "_session", task)
+        self.patch(STUBS.app, "ActiveDocument", task.doc)
+        self.patch(STUBS.gui, "ActiveDocument", types.SimpleNamespace(activeView=lambda: task.view))
+        fc = self.module("jellyjams.fcgui")
+        self.patch(fc, "jellyjams_active", lambda: True)
+        self.patch(fc, "main_window", lambda: types.SimpleNamespace(getActiveWindow=lambda: None))
+        calls = []
+        self.patch(self.measure, "stop", lambda: calls.append("stop"))
+        task.check()
+        self.assertEqual(calls, ["stop"])
+
+    def test_dispose_forgets_scene_data_when_view_already_deleted(self):
+        task, selected = self.task()
+        self.patch(STUBS.gui.Selection, "removeObserver", lambda obj: None)
+        def deleted():
+            raise RuntimeError("the old view has been deleted")
+        task.view = types.SimpleNamespace(getSceneGraph=deleted)
+        task.node = object()
+        task.callout_rows = [("Length", "5 mm")]
+        task.callout_bitmap = object()
+        task.dispose()
+        self.assertIsNone(task.node)
+        self.assertEqual(task.callout_rows, [])
+        self.assertIsNone(task.callout_bitmap)
 
 
 class Test14NamingRules(HarnessCase):

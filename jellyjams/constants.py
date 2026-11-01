@@ -7,6 +7,8 @@ Other modules import these literals from here rather than repeating them.
 No imports at all.
 """
 
+MEASURE_COMMAND = "Std_Measure"
+
 ADDON_NAME = "JellyJams"
 WORKBENCH_KEY = "JellyJamsWorkbench"
 MENU_TEXT = "JellyJams"

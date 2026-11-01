@@ -284,7 +284,7 @@ relations area, which is not part of the ribbon.
 
 | Pos | Kind | Caption | One-line name | Command id | Icon | Notes |
 |---|---|---|---|---|---|---|
-| 1 | L | `Measure` | Measure | `Std_Measure` | FC | |
+| 1 | L | `Measure` | Measure | `Std_Measure` | FC | Temporary centre/axis distance or clearance; see below |
 | 2 | L | `Check` | Check | `Part_CheckGeometry` | FC | |
 | 3 | LF | — | — | — | — | Section flyout |
 | 3a ★ | v | `Section⏎View` | Section View | `Std_ToggleClipPlane` | FC | approximate (2.8) |
@@ -952,3 +952,17 @@ activated. "The ribbon" is the dock with objectName `JellyJamsCommandManager`.
 28. The only `JellyJams_*` command without a ribbon button is
     `JellyJams_ViewOrientation`; every other registered JellyJams command,
     `JellyJams_NormalTo` included, has one.
+
+## Measure selection behavior
+
+The Evaluate Measure entry retains the native command id and icon for availability,
+but ribbon dispatch opens JellyJams' temporary task. It displays geometry-specific
+sizes for one pick, distance/angle for two picks, and appropriate totals for multiple
+edges/faces. White callouts have black borders/text and a label/value divider.
+
+The complete normative behavior, official SolidWorks measurement catalog, supported
+and unsupported modes, and acceptance cases live in [Measure](measure.md). This
+supersedes the earlier distance-only specification. Hole centres/axes remain the
+default, clearance is explicit, and empty selection removes all owned annotations.
+Measure is highlighted while its task remains active; clicking it again stops the
+tool and removes all owned measurements. Clearing picks alone keeps it active.

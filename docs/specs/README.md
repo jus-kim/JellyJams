@@ -32,6 +32,7 @@ Conventions used in all specs:
 | [core.md](core.md) | Core | Entry points, `package.xml`, workbench identity, Initialize / Activated / Deactivated step order, quit guard, autoload, startup crash recovery and backup formats, command registration, Diagnostics, Qt message filter, navigation and orbit response | `lifecycle`, `quit_guard`, `recovery`, `commands`, `diagnostics`, `qt_filter`, `params`, `constants`, `console`, `fcgui`, `paths`, `doc_utils`, `navigation`, `orbit`, `orbit_rules`, `shortcuts`; `InitGui.py`, `Init.py` | 41 |
 | [ribbon-engine.md](ribbon-engine.md) | Ribbon engine | The CommandManager-style dock: button kinds, labels, icons, tooltips, enabled-state refresh, toggle, context tab switching, click dispatch, visibility guard, rebuild, remembered flyout choices | `ribbon`, `ribbon_model`, `ribbon_text`, `ribbon_widgets`, `icons`, `sketch_gesture` | 36 |
 | [ribbon-content.md](ribbon-content.md) | Ribbon content | The five tabs (Features, Sketch, Evaluate, Assembly, Drawing), every group, button, flyout, fallback and icon source; summary counts; module preloading; flyout parameter keys; `JellyJams_NormalTo` as the Evaluate tab's Normal To | `ribbon_layout`, `fcgui` (preload), `constants` | 28 |
+| [measure.md](measure.md) | Measure | Geometry-specific sizes, centre/axis distance and clearance, angles and totals, temporary white callouts, checked button and cleanup; reference measurement catalog | `measure`, `ribbon`, `palette`, `theme` | 10 |
 | [window-layout.md](window-layout.md) | Window layout | Toolbars kept and hidden, Tasks and Report view docked right, exact restore on leave, quit/close guard with Cancel re-apply, autoload deferral | `layout`, `quit_guard`, `lifecycle` | 26 |
 | [look.md](look.md) | Look | Light/dark palettes, scoped main-window stylesheet block, WCAG contrast requirements, 3D background gradient and sketch colors with persisted backup and recovery | `palette`, `theme`, `viewport`, `recovery`, `quit_guard` | 42 |
 | [naming.md](naming.md) | Naming | SolidWorks labels in the model and drawing tree: numbering, origin planes, assembly folders, components and `(f)` marker, mates, drawing objects, existing-drawing refresh | `naming`, `naming_rules`, `constants` | 25 |
@@ -62,6 +63,7 @@ Use this table to find the spec before you edit a module. All modules are in [`j
 | `layout.py` | [window-layout.md](window-layout.md) |
 | `ribbon.py`, `ribbon_model.py`, `ribbon_text.py`, `ribbon_widgets.py` | [ribbon-engine.md](ribbon-engine.md) |
 | `ribbon_layout.py` | [ribbon-content.md](ribbon-content.md) |
+| `measure.py` | [measure.md](measure.md), including the reference measurement catalog |
 | `icons.py` | [ribbon-engine.md](ribbon-engine.md) 2.7, [relations.md](relations.md) 2.4, [assembly.md](assembly.md) 2.1.3 |
 | `naming.py`, `naming_rules.py` | [naming.md](naming.md) |
 | `dialog_terms.py`, `dialog_terms_data.py` | [dialog-terms.md](dialog-terms.md), [drawing-symbols-export.md](drawing-symbols-export.md) 2.10 |

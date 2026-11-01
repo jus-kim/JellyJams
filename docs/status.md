@@ -1,6 +1,6 @@
 # Implementation and test status
 
-Status of JellyJams **0.1.0** as of **2026-10-31**, measured on **FreeCAD 1.1.4 (Windows)**.
+Status of JellyJams **0.1.0** as of **2026-11-01**, measured on **FreeCAD 1.1.4 (Windows)**.
 This page is the record of what is built, what is verified, and what is open. The behavior
 it is measured against is defined in the [specifications](specs/README.md). How to run every
 test mentioned here: [testing.md](testing.md).
@@ -1021,3 +1021,235 @@ relying on them.
 4. Change a status only on test evidence: Implemented needs an assertion at the level where the
    behavior can fail; otherwise use Partial or Not verified.
 5. When a roadmap feature gets a spec, move it from the roadmap into a new area table.
+
+## Selection-driven Measure (2026-11-01)
+
+Initial boundary-only implementation; its measurement reference is superseded by
+the centre-to-edge correction below. The results in this section are historical.
+
+The Evaluate Measure button now opens a temporary shortest-distance task. Two
+ordinary clicks accumulate features; geometry is resolved through placed links
+and measured with `Part.getShape` / `distToShape`. Empty selection clears both
+result and scene annotation. No measurement objects, preference writes or
+selection-style changes are made. The native Tools menu command is unchanged.
+
+The task is owned by `ribbon`: `run_entry` starts it and `hide` stops it on
+leave/quit. Form destruction also disposes the observer and annotation; a timer
+ends it on active-document/view changes. This intentionally replaces native
+Measure's auto-mode/history behavior for the ribbon only. Required behavior and
+acceptance cases: [ribbon-content](specs/ribbon-content.md#measure-selection-behavior).
+
+Verification on FreeCAD 1.1.4 Windows:
+
+- **543/543 headless**, no failures/errors/skips (`scratch/measure_headless_final.log`).
+- **24/24 native Measure checks**, disposable profile (`scratch/gui_lcg_q8ha/`):
+  circular-edge/straight-edge and cylindrical-wall minimums, circle boundary gap,
+  linked component placement, ordinary mouse clicks, empty-space clearing,
+  external close/reopen, workbench leave, and no measurement document objects.
+- Smoke **31/31** and all five ribbon tabs (`scratch/gui_h6f3p3cb/`).
+  GUI-result validator **10/10**, compilation and `git diff --check` passed.
+- The first native mouse-input tests missed their targets because projected
+  viewport coordinates were physical pixels on a 125% DPI screen. Converting
+  them to Qt logical pixels fixed the harness; final picks are recorded as
+  `Edge1`, `Edge2` and empty space. Earlier runs were not clean passes.
+- Native scene export visually inspected; the full-window Qt grab showed GL
+  capture artifacts, so it is not evidence of viewport rendering quality.
+  Active-document/view-change cleanup is implemented but not separately
+  exercised by the native suite. The pictured user PCB file was not available.
+
+## Measure hole centres and supplied PCB regression (2026-11-01)
+
+The user clarified that the intended measurement is from the hole centre to the
+PCB edge. The previous boundary-only implementation was geometrically correct
+for rim clearance but did not implement that intent. The default task reference
+is now **Centers / axes**: circular edges/arcs become centre vertices and
+cylindrical faces become finite axis segments after world-space resolution.
+**Nearest surfaces (clearance)** explicitly selects the original boundary-gap
+behavior. Reference choice is temporary and updates the current annotation.
+Empty-selection and task/lifecycle cleanup are retained.
+
+Inspected `moddoMOUISE_A1 Part 2.stp` from the user's Downloads, without modifying
+the file. Its PCB solid 202, Edge1066 and Edge1015 establish exactly **1.500 mm**
+centre-to-edge, with hole radius **0.575 mm** and rim clearance **0.925 mm**.
+The STEP ring is represented by circular arcs, so recognition does not require
+a closed edge. The native task's annotation begins at the circle centre.
+
+Verification:
+
+- **545/545 headless**, no failures/errors/skips (`scratch/measure_center_headless.log`).
+  Added centre recognition for circular arcs and an explicit-clearance regression.
+- Native FreeCAD 1.1.4, disposable profile: **29/29 Measure checks**
+  (`scratch/gui_xjao4rni/`), including all 25 default cases and four optional
+  supplied-STEP assertions: 1.500 mm, visible task result, annotation at the
+  centre, and 0.925 mm in clearance mode. Native scene export visually inspected
+  (`supplied_pcb_measure.png`). The default synthetic suite separately passed
+  **25/25** in `scratch/gui_vogetrft/`.
+- GUI-result validator **10/10**, compilation and `git diff --check` passed.
+  No native Measure settings or document measurement objects were introduced.
+  The user STEP file remains an optional local fixture and is not committed.
+
+## Hole wall measurement labels and readability (2026-11-01)
+
+The user reported `0 mm` after selecting a hole's inner face and PCB edge and
+requested larger, bolder labels. Inspection of the supplied STEP confirms
+cylindrical Face1799 with perimeter Edge1015 gives **1.500 mm** with the existing
+axis conversion, as does a live task using that exact pair. A numerical zero was
+not reproduced for this pair; no live user FreeCAD window was available to read
+the original selection. No new geometry correction is claimed here.
+
+Two rendering limitations are fixed: the label previously used Coin's fixed-size
+default bitmap font, which ignores the configured size and cannot become bold;
+and its scene separator allowed coplanar PCB geometry to depth-test the annotation.
+The task now uses a resolved installed font family in **bold at 22 screen pixels**
+inside `SoAnnotation`, so the full label and line render above the model. The task
+result is also bold and two points larger. This prevents clipped/hidden digits;
+it does not establish that clipping caused the user's original zero report.
+
+Verification:
+
+- **547/547 headless**, no failures/errors/skips (`scratch/measure_wall_headless.log`),
+  including the supplied cylinder's offset origin, downward axis and negative
+  V range, plus the task result's font emphasis.
+- **36/36 native Measure checks**, disposable profile (`scratch/gui_l06yk2wr/`):
+  all prior cases plus the actual cylindrical wall/edge pair, result and endpoint
+  distance 1.500 mm, complete `1.50 mm` scene label, always-visible annotation,
+  named 22-pixel bold font and bold task result. The oblique scene export
+  `supplied_pcb_wall_measure.png` was visually inspected and the full bold text
+  is legible above the PCB. Empty-selection and leave cleanup still pass.
+- The first added wall test cleared and re-added the new pair in one event;
+  that intentionally invokes additive replacement, keeping an earlier pick.
+  Separating the clear and next selection into successive events fixed the
+  harness. That initial run was not a clean pass.
+- GUI-result validator **10/10**, compilation and `git diff --check` passed.
+  All native tests used disposable config files; the user's STEP file was read
+  without modification and remains an optional local fixture.
+
+## White measurement cards and geometry-specific readouts (2026-11-01)
+
+The latest user request supersedes the earlier plain bold label and distance-only
+scope. Measure now draws an opaque white rectangle with a black one-pixel border,
+black regular text, and a divider between label/value columns, following the
+supplied examples. Qt font metrics size an 18-pixel screen-space card, and Coin
+`SoImage` displays its RGBA pixels inside the existing unpickable `SoAnnotation`.
+Black leaders with white underlays remain visible on dark backgrounds. The task
+result remains bold; no native preferences or document objects are changed.
+
+Single selections report Length; Radius/Diameter/Center and Circumference or arc
+length/chord/angle; point coordinates; face Area/Perimeter; cylindrical and
+spherical properties; and whole-body Area/Volume. Pairs report distance or centre
+distance, applicable acute line/plane/axis angles, optional XYZ components and
+edge/face totals. Three vertices measure an angle at the second vertex; larger
+edge/face selections give totals. Periodic seam edges are excluded from perimeter.
+The previous selection clearing, linked placement and lifecycle cleanup remain.
+
+The official Measure tool help and `IMeasure` results were consulted. The new
+[Measure spec/catalog](specs/measure.md) lists supported quantities and explicit
+gaps: maximum/custom arc distances, independent projection/normal modes, projected
+area, arbitrary surface-point picks and custom coordinate systems/rotation are
+not implemented. Volume is documented as an extension, not an `IMeasure` result.
+Pair angles currently use the smaller unoriented angle, not supplementary/reflex
+choices. The catalog replaces the earlier distance-only ribbon-content contract.
+
+Verification on FreeCAD 1.1.4 Windows:
+
+- **552/552 headless**, no failures/errors/skips (`scratch/measure_cards_headless.log`).
+  Added white/black card pixels/text sizing, single length/coordinates and
+  perimeter seam-exclusion checks; existing selection and axis tests still pass.
+- **64/64 native Measure checks** with disposable configs and the optional
+  supplied STEP (`scratch/gui_8aantpcz/`). The 53 standard cases include labels,
+  values, card rendering for eight geometry types, face/body quantities, line
+  and three-point angles, XYZ and totals, periodic seams, centre/clearance modes,
+  native mouse clicks, clearing, external close and leave. Eleven supplied-file
+  checks retain the exact **1.500 mm** rim-centre/inner-wall-axis result and
+  **0.925 mm** clearance. Native scene exports and individual card PNGs visually
+  inspected; the white/black label is legible over the actual PCB.
+- GUI-result validator **10/10**, Python compilation and `git diff --check` pass.
+  Earlier exploratory runs exposed unsupported exponentiation of FreeCAD Unit
+  objects and a harness assumption that 100 mm² must format as `100 mm²` instead
+  of `1 cm²`. Unit construction now parses dimensional unit strings; the test
+  compares the underlying area. Those earlier runs were not clean passes.
+
+Reference documentation for specialized unsupported modes is not verification
+of those modes. No user model, saved measurements or profile files were modified.
+
+## Measure button active state and toggle-off (2026-11-01)
+
+The Measure ribbon button now stays checked/highlighted for the lifetime of the
+measurement task. Checked buttons use Selection fill and an Accent border in
+both themes. The active Measure button remains enabled even when FreeCAD disables
+its native Measure action during a task, so pressing it again always stops the
+session and removes its callouts, leaders, rows, image data and task form.
+
+Checked state follows the real session: clearing picks leaves the tool selected
+and ready, while task/external close or leaving unchecks it immediately. Failed
+activation is reconciled after dispatch. Start remains idempotent; only ribbon
+clicks use toggle behavior. Targeted button synchronization on task destruction
+avoids a full ribbon/context refresh inside widget teardown. No persistent
+preference, command id, ribbon count or recovery format changes.
+
+Verification:
+
+- **554/554 headless**, no failures/errors/skips (`scratch/measure_toggle_headless.log`),
+  including authoritative checked state, keeping the active button stoppable,
+  and start/stop toggle dispatch.
+- **73/73 native Measure checks** including the optional user PCB
+  (`scratch/gui_9u84ea0y/`): actual button on/off/reopen, visible painted highlight,
+  all owned measurement state removed on off, continued active state with empty
+  selection, unchecked on external close/leave, plus all geometry/style cases.
+  `measure_button_on.png` and `measure_button_off.png` visually inspected.
+- Broader native run `scratch/gui_erc5hmbq/`: Measure **61/61** before the added
+  pixel assertion, smoke **31/31**, all five tabs, native dark/light themes
+  **22/22 each**, runner exit **0**. Final targeted synchronization and visual
+  assertion were subsequently covered by the 73-check run above.
+- GUI-result validator **10/10**, compilation and `git diff --check` pass.
+  Native tests used disposable profiles. The user profile and STEP file were
+  not modified.
+
+## Pre-PR Measure audit (2026-11-01)
+
+Audited the complete pending Measure change: geometry and units, selection order,
+world/link placement, native command dispatch, checked state and scoped styling,
+Qt/Coin lifetimes, failure cleanup, profile isolation, restore/recovery behavior,
+CI coverage, metadata/licenses and specification consistency. Added user-facing
+usage and the missing module/API/spec-index entries. No release bump is made.
+
+Four findings were reproduced with failing headless regressions and corrected:
+
+- A retired task timer could call the global stop function after replacement.
+  Lifetime checks now ignore closed or non-current sessions.
+- Checking the document's remembered view missed the actual Start/drawing window.
+  Start and lifetime checks now follow `getMainWindow().getActiveWindow()` with
+  the established active-view fallback; Measure refuses activation without a camera.
+- A deleted native view could prevent cached scene/image state from being cleared.
+  Cleanup now releases owned data before attempting to detach old scene graphics.
+- Restoring an earlier pick appended it after the newest native selection. Mixing
+  plain and additive picks could move the middle vertex of a three-point angle.
+  Measurement now preserves chronological order across both kinds of click.
+
+Final verification on Windows / FreeCAD 1.1.4:
+
+- **559/559 headless**, no failures/errors/skips, using both FreeCAD's PySide shim
+  (`scratch/measure_pr_audit_headless.log`) and PySide6 aliases
+  (`scratch/measure_pr_audit_alias_headless.log`). The ordinary system Python
+  lacks PySide6, so the alias run used bundled Python 3.11 with shim selection
+  redirected in a scratch-only launcher; no system package was installed.
+- The complete **20-suite native runner passed**, exit **0**
+  (`scratch/gui_3a6hk425/`): Measure 62, smoke 31, sketch 20, orientation 84,
+  orbit 49, features/drawing 51, assembly tree 104, appearances 38, Report view 9,
+  Report startup 3, five tabs captured, Cancel 16, Discard 9, Save 9, after-quit 5,
+  autoload 6, crash 2, recovery 3, dark and light themes 22 each. Saved-config
+  validation passed after both Save and Discard.
+- That full run began before the audit fixes were finished. The final production
+  Measure paths were subsequently verified by **83/83 native checks**, exit **0**
+  (`scratch/gui_pdn3160c/`), including the optional supplied STEP, mixed pick-order
+  angle, Start-page teardown/refusal, document switch/closure, cached-data cleanup
+  and reopening. The supplied hole still measures **1.500 mm** to the PCB edge.
+- GUI-result validator **10/10**, Python compilation and staged whitespace checks
+  pass. All native tests used disposable configs. No STEP file, config, image,
+  scratch output or generated bytecode is included in the commit.
+
+The known advanced measurement gaps remain explicitly listed in
+[the Measure catalog](specs/measure.md). The earlier reported numerical zero for
+the exact supplied inner-face/edge pair remains unreproduced; verified rendering
+and the current regressions show 1.500 mm. No additional actionable finding
+remained in this audit. Hosted CI status must be checked on the PR separately.

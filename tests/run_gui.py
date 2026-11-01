@@ -18,6 +18,7 @@ import xml.etree.ElementTree as ET
 
 REPO = Path(__file__).resolve().parent.parent
 SUITES = {
+    "measure": ("gui_measure.py", "measure.json", 72),
     "smoke": ("gui_smoke.py", "gui_smoke_results.json", 31),
     "sketch": ("gui_sketch_first.py", "sketch_first.json", 20),
     "orientation": ("gui_orientation.py", "orientation.json", 84),

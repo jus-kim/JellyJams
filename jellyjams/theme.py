@@ -103,6 +103,10 @@ def _rules(colors=None):
             ("background-color", p.HOVER),
             ("border", "1px solid " + p.ACCENT),
         ]),
+        ((tabs + " QToolButton:checked",), [
+            ("background-color", p.SELECTION),
+            ("border", "1px solid " + p.ACCENT),
+        ]),
         ((tabs + " QToolButton:pressed",), [
             ("background-color", p.PRESSED),
             ("border", "1px solid " + p.ACCENT_DARK),

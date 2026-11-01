@@ -310,7 +310,7 @@ _SKETCH = Tab(constants.TAB_SKETCH, [
 
 _EVALUATE = Tab(constants.TAB_EVALUATE, [
     Group("Analysis", [
-        Cmd("Std_Measure", "Measure"),
+        Cmd(constants.MEASURE_COMMAND, "Measure"),
         Cmd("Part_CheckGeometry", "Check"),
         Flyout([
             Cmd("Std_ToggleClipPlane", "Section\nView"),
