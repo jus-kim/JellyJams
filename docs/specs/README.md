@@ -153,4 +153,4 @@ Hooks that stay registered for the whole session (document observers, applicatio
 3. Update the **Implemented in** block when modules move or are split.
 4. Record what is verified in [../status.md](../status.md), not in the spec.
 
-License: LGPL-3.0-or-later. Copyright (c) 2026 jus-kim.
+License: MIT. Copyright (c) 2026 jus-kim.

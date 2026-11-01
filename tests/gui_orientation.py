@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# SPDX-License-Identifier: LGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
 """
 GUI test of the Orientation panel (Space) and Normal To (Ctrl+8). Run inside the full

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# SPDX-License-Identifier: LGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
 """
 Headless test harness for JellyJams.
@@ -57,7 +57,7 @@ WATCHDOG_SECONDS = 300
 
 HEADER = [
     "# -*- coding: utf-8 -*-",
-    "# SPDX-License-Identifier: LGPL-3.0-or-later",
+    "# SPDX-License-Identifier: MIT",
     "# SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>",
 ]
 WB = "JellyJamsWorkbench"
@@ -956,7 +956,17 @@ class Test01ReleaseMetadata(HarnessCase):
             self.assertRegex((element.text or "").strip(), r"^[A-Za-z0-9.+-]+$")
             self.assertTrue(element.get("file"), "license without file attribute")
             self.assertTrue(os.path.isfile(os.path.join(REPO, element.get("file"))), element.get("file"))
-        self.assertIn("LGPL-3.0-or-later", [(element.text or "").strip() for element in licenses])
+        self.assertEqual([((element.text or "").strip(), element.get("file"))
+                          for element in licenses], [("MIT", "LICENSE")])
+        with open(os.path.join(REPO, "LICENSE"), encoding="utf-8") as handle:
+            license_text = handle.read()
+        with open(os.path.join(REPO, "LICENSES", "MIT.txt"), encoding="utf-8") as handle:
+            self.assertEqual(license_text, handle.read())
+        for required in ("MIT License", "Copyright (c) 2026 jus-kim",
+                         "Permission is hereby granted, free of charge",
+                         "copyright notice and this permission notice",
+                         'THE SOFTWARE IS PROVIDED "AS IS"'):
+            self.assertIn(required, license_text)
 
     def test_content_workbench(self):
         root = self.package()
@@ -5982,7 +5992,7 @@ class Test21Icons(HarnessCase):
                 self.assertTrue(body.startswith("<!--"), "the SPDX comment must follow the XML declaration")
                 comment = body[:body.index("-->")]
                 # AGENTS.md R1: both SPDX lines in the one comment directly after the declaration
-                self.assertIn("SPDX-License-Identifier: LGPL-3.0-or-later", comment, path)
+                self.assertIn("SPDX-License-Identifier: MIT", comment, path)
                 self.assertIn("SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>", comment,
                               "%s: the copyright line must be in the same comment as the license line" % path)
                 lowered = text.lower()

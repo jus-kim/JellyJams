@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Adopt the MIT License for JellyJams code and original icons; update SPDX
+  headers, package metadata, contributor guidance and documentation.
+
 ## 0.1.0 — 2026-10-28
 
 First release.

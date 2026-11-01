@@ -19,7 +19,7 @@ of each feature is defined by the specifications in [`specs/`](specs). Related d
 **Source of truth.** When this document and the code disagree, the code and the tests in
 [`tests/`](../tests) win. Fix this document in the same change.
 
-Version 0.1.0 (2026-10-28), minimum FreeCAD 1.1, license LGPL-3.0-or-later. Checked against
+Version 0.1.0 (2026-10-28), minimum FreeCAD 1.1, license MIT. Checked against
 the code on 2026-10-28.
 
 ## Contents
@@ -55,7 +55,7 @@ These hold for the whole code base. Most are enforced by the headless tests.
 | English only; no translation layer | everywhere | review |
 | No bundled third-party assets: FreeCAD commands use FreeCAD's icons at runtime, new drawings use FreeCAD's installed templates | [`icons.py`](../jellyjams/icons.py), [`templates.py`](../jellyjams/templates.py) | icon tests, review |
 | The version string lives only in [`jellyjams/__init__.py`](../jellyjams/__init__.py) (`__version__`); [`package.xml`](../package.xml) and [`CHANGELOG.md`](../CHANGELOG.md) must match it | `__init__.py` | release-metadata tests |
-| Every Python file starts with the same three header lines (encoding, license identifier `LGPL-3.0-or-later`, copyright `2026 jus-kim`); copy them from any existing module. SVG files carry the same information in an XML comment directly after the XML declaration | every file | hygiene and icon tests |
+| Every Python file starts with the same three header lines (encoding, license identifier `MIT`, copyright `2026 jus-kim`); copy them from any existing module. SVG files carry the same information in an XML comment directly after the XML declaration | every file | hygiene and icon tests |
 | JellyJams registers no QToolBar of its own, never calls `QApplication.setStyleSheet`, never writes `Preferences/MainWindow`, and styles FreeCAD's widgets only through the one main-window block. Widgets JellyJams creates may carry their own stylesheet | [`theme.py`](../jellyjams/theme.py), [`layout.py`](../jellyjams/layout.py) | GUI smoke test (`no_jj_toolbars`), review |
 | No error pop-ups. All Report-view output goes through [`console.py`](../jellyjams/console.py) with the prefix `JellyJams: ` (messages forwarded by the Qt message filter are the one exception) | `console.py` | console-based tests |
 | Every persistent FreeCAD parameter JellyJams overrides is backed up before the first write and restored exactly, including removing keys that did not exist | section 7 | headless round-trip tests, GUI smoke and lifecycle tests |
@@ -71,7 +71,7 @@ Init.py                 headless entry: header and docstring only
 InitGui.py              registers the workbench, runs startup crash recovery
 package.xml             Addon Manager manifest (version, freecadmin 1.1.0, branch main)
 README.md, CHANGELOG.md
-LICENSE, LICENSES/      LGPL-3.0-or-later (and the GPL-3.0 text it refers to)
+LICENSE, LICENSES/      MIT License (LICENSES/MIT.txt mirrors LICENSE)
 resources/icons/        jellyjams.svg (workbench) + 28 original SVGs: JellyJams commands, relations, two Orientation panel buttons
 jellyjams/              the package (flat, one level; see section 3)
 tests/                  headless harness + GUI scripts (see section 13)

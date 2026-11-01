@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# SPDX-License-Identifier: LGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
 """The JellyJams ribbon, a tabbed command bar in the style of the SolidWorks CommandManager.
 

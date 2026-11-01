@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# SPDX-License-Identifier: LGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
 """What JellyJams runs when FreeCAD initializes, activates and deactivates the
 workbench, and what the quit guard undoes and redoes.

@@ -7,7 +7,7 @@ assembly and drawing helpers. When the user leaves the workbench, quits, or rest
 crash, FreeCAD's stock UI and settings come back exactly.
 Not affiliated with or endorsed by Dassault Systèmes.
 
-License LGPL-3.0-or-later, (c) 2026 jus-kim. Repository: https://github.com/jus-kim/JellyJams.
+License MIT, (c) 2026 jus-kim. Repository: https://github.com/jus-kim/JellyJams.
 
 This page lists every document in the repository and the order to read them in.
 
@@ -21,7 +21,7 @@ This page lists every document in the repository and the order to read them in.
 | [../AGENTS.md](../AGENTS.md) | Rules and workflow for contributors and AI coding agents: non-negotiable rules, exact-restore discipline, code conventions, repo map, how to run tests. |
 | [../CLAUDE.md](../CLAUDE.md) | Entry file for coding agents that look for a `CLAUDE.md`; it only imports `AGENTS.md`. |
 | [../CHANGELOG.md](../CHANGELOG.md) | Release notes per version (heading format `## <version> — <date>` is checked by the tests). |
-| [../LICENSE](../LICENSE), [../LICENSES/](../LICENSES) | GNU LGPL-3.0-or-later and the GNU GPL-3.0 text it builds on. |
+| [../LICENSE](../LICENSE), [../LICENSES/MIT.txt](../LICENSES/MIT.txt) | MIT License for JellyJams code and original icons. |
 
 ### Project state and testing
 

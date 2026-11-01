@@ -21,7 +21,7 @@ To change a decision, add a new entry that supersedes the old one and mark the o
 | [D-08](#d-08-use-freecads-installed-techdraw-templates-at-runtime) | Use FreeCAD's installed TechDraw templates at runtime | Accepted |
 | [D-09](#d-09-label-only-renames-with-collision-numbering) | Label-only renames with collision numbering | Accepted |
 | [D-10](#d-10-english-only-user-interface) | English-only user interface | Accepted |
-| [D-11](#d-11-license-lgpl-30-or-later) | License: LGPL-3.0-or-later | Accepted |
+| [D-11](#d-11-license-lgpl-30-or-later) | Original license (historical) | Superseded by D-25 |
 | [D-12](#d-12-lifecycle-order-as-data-with-per-step-isolation) | Lifecycle order as data, with per-step isolation | Accepted |
 | [D-13](#d-13-stay-in-jellyjams-while-sketching-and-in-assemblies) | Stay in JellyJams while sketching and in assemblies | Accepted, extended by D-16 |
 | [D-14](#d-14-pure-modules-and-a-headless-harness) | Pure modules and a headless harness | Accepted |
@@ -33,6 +33,7 @@ To change a decision, add a new entry that supersedes the old one and mark the o
 | [D-20](#d-20-match-viewport-and-sketch-colors-to-the-native-theme-too) | Match viewport/sketch colors too | Accepted |
 | [D-21](#d-21-balance-orbit-input-without-replacing-native-navigation) | Balance orbit input without replacing native navigation | Accepted |
 | [D-22](#d-22-defer-orbit-discovery-outside-native-focus-change-callbacks) | Defer orbit discovery outside native focus-change callbacks | Accepted |
+| [D-25](#d-25-adopt-the-mit-license) | Adopt the MIT License | Accepted |
 
 ---
 
@@ -297,7 +298,8 @@ Status: Accepted. Code: all user-visible strings are literals in the modules (fo
 
 ## D-11. License: LGPL-3.0-or-later
 
-Status: Accepted. Code: [`LICENSE`](../LICENSE), [`LICENSES/`](../LICENSES), the header of every
+Status: Superseded by [D-25](#d-25-adopt-the-mit-license), 2026-11-01.
+Historical record; the current license is MIT. Code: [`LICENSE`](../LICENSE), [`LICENSES/`](../LICENSES), the header of every
 source file, `license` in [`package.xml`](../package.xml).
 
 **Context.**
@@ -789,3 +791,31 @@ connected, protecting exact restore on other hosts. No backup formats change.
 Native Cancel/Save/Discard and saved-profile/relaunch regressions verify the new
 ordering. Headless tests cover synchronous pre-save restoration, no changes on
 Cancel, inactive workbenches, duplicate notification/install and the old fallback.
+
+## D-25. Adopt the MIT License
+
+Status: Accepted, 2026-11-01. Supersedes D-11 at the copyright holder's request.
+Code: [`LICENSE`](../LICENSE), [`LICENSES/MIT.txt`](../LICENSES/MIT.txt), the header of every
+source file, `license` in [`package.xml`](../package.xml).
+
+**Context.**
+* The project wants broad reuse, including commercial use and proprietary forks,
+  while retaining the author's copyright and permission notices in redistributed copies.
+* FreeCAD and its runtime assets retain their own licenses; JellyJams looks up those
+  assets at runtime rather than bundling them.
+
+**Decision.**
+* License JellyJams code and original icons under the MIT License (`MIT`),
+  (c) 2026 jus-kim. Ship the complete text in `LICENSE` and `LICENSES/MIT.txt`.
+  Every Python file carries the SPDX license header; XML and SVG files carry it
+  in an XML comment.
+* Bundle no third-party assets (D-07, D-08).
+
+**Consequences.**
+* Commercial use, modification and redistribution, including proprietary forks,
+  are permitted. Copies or substantial portions must retain the copyright and
+  permission notices; public advertising credit and disclosure of modifications
+  are not required.
+* Contributions must be original or under terms permitting inclusion under MIT;
+  hygiene and icon tests enforce SPDX headers, and metadata tests check the license texts.
+* This change does not revoke permissions granted for earlier published copies.

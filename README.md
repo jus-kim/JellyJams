@@ -280,7 +280,7 @@ Read [AGENTS.md](AGENTS.md) (rules and workflow for contributors and coding agen
 JellyJams bundles no third-party assets.
 
 - The workbench icon and the icons of JellyJams' own commands in `resources/icons/` are original
-  artwork made for this project (LGPL-3.0-or-later, like the code).
+  artwork made for this project (MIT, like the code).
 - Ribbon buttons for FreeCAD commands show FreeCAD's own icons, looked up at runtime from your
   FreeCAD installation.
 - New drawings use the ISO TechDraw templates installed with FreeCAD, found at runtime.
@@ -289,8 +289,13 @@ JellyJams bundles no third-party assets.
 
 ## License
 
-JellyJams is licensed under the **GNU Lesser General Public License v3.0 or later**
-(LGPL-3.0-or-later). See [LICENSE](LICENSE) and [LICENSES/](LICENSES). Copyright (c) 2026 jus-kim.
+JellyJams is licensed under the **MIT License**. See [LICENSE](LICENSE) and
+[LICENSES/MIT.txt](LICENSES/MIT.txt). Copyright (c) 2026 jus-kim.
+
+Commercial use, modification and redistribution are permitted, including in
+closed-source software. Copies or substantial portions of JellyJams must retain
+the copyright and permission notices. The license does not require public
+advertising credit or publication of modifications.
 
 SolidWorks is a trademark of Dassault Systèmes. JellyJams uses the name only to describe the
 style of interface it provides and ships no Dassault Systèmes assets.

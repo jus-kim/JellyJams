@@ -24,7 +24,7 @@ SolidWorks-style UI while it is the active workbench:
 | Version | single source: `__version__` in [jellyjams/\_\_init\_\_.py](jellyjams/__init__.py); mirrored in [package.xml](package.xml) and [CHANGELOG.md](CHANGELOG.md) |
 | Minimum FreeCAD | 1.1.0 (developed and tested on FreeCAD 1.1.4, Windows) |
 | Runtime | Python 3.11 and PySide6 as bundled with FreeCAD; standard library only, no third-party packages |
-| License | LGPL-3.0-or-later, (c) 2026 jus-kim ([LICENSE](LICENSE), [LICENSES/](LICENSES)) |
+| License | MIT, (c) 2026 jus-kim ([LICENSE](LICENSE), [LICENSES/](LICENSES)) |
 | Repository | https://github.com/jus-kim/JellyJams (branch `main`) |
 
 "SolidWorks" is used only as descriptive terminology. JellyJams is not affiliated with or
@@ -60,7 +60,7 @@ The exact header for R1:
 
 ```python
 # -*- coding: utf-8 -*-
-# SPDX-License-Identifier: LGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
 ```
 

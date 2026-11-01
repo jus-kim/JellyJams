@@ -88,7 +88,7 @@ It must be valid against `<package format="1" xmlns="https://wiki.freecad.org/Pa
 | `date` | Release date in `YYYY-MM-DD` form. For `0.1.0`: `2026-10-28`. |
 | `icon` | Relative path to the workbench icon file. The file must exist. |
 | `maintainer` | `jus-kim`, attribute `email="hi@jus.kim"` |
-| `license` | One element per license, with an official SPDX identifier (not abbreviated) as text and a `file` attribute pointing to an existing file in the add-on. Which licenses to use is a project decision. |
+| `license` | Exactly one element: SPDX identifier `MIT`, with `file="LICENSE"`. The complete MIT text, including `Copyright (c) 2026 jus-kim`, is in `LICENSE` and mirrored in `LICENSES/MIT.txt`. JellyJams code and original icons use SPDX identifier `MIT` in their headers (decision D-25). |
 | `url` | `type="repository"`, `branch="main"`, text `https://github.com/jus-kim/JellyJams`. The branch must be given, because the Addon Manager otherwise assumes `master`. If a `type="readme"` URL is added, it must point into the same branch (`/blob/main/`). |
 | `freecadmin` | `1.1.0`. It must agree with the add-on's minimum FreeCAD version (1.1). |
 | `tag` | Search keywords (for example ribbon, ui, theme, solidworks-style). Tags are search metadata, not identifiers. |

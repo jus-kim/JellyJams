@@ -8,6 +8,23 @@ test mentioned here: [testing.md](testing.md).
 After any code change, re-run the suites and update this page (see
 [Updating this page](#updating-this-page)).
 
+## MIT licensing (2026-11-01)
+
+At the copyright holder's request, JellyJams code and original icons now use
+the MIT License (decision D-25, superseding D-11). Updated `LICENSE`,
+`LICENSES/MIT.txt`, all Python/XML/SVG SPDX headers, package metadata,
+contributor guidance, documentation and license expectations. Removed the
+obsolete bundled license texts. D-11 remains explicitly marked as a historical,
+superseded decision; earlier published copies retain their granted permissions.
+
+Validation: **559/559 headless**, no failures/errors/skips, using FreeCAD 1.1.4's
+Python and Qt shim (`scratch/mit_headless.log`); GUI-result validator **10/10**;
+`git diff --check` passed. Metadata checks require MIT in `package.xml`, matching
+complete license texts and the author's copyright notice. Hygiene/icon checks
+require MIT SPDX headers. Syntax-tree comparison confirms that all **68**
+modified production Python files retain identical executable code. Native GUI
+suites were not rerun for this license-only change.
+
 ## Keep JellyJams visible during save prompts (2026-10-31)
 
 The user reported the intentional early quit teardown as an unwanted interface

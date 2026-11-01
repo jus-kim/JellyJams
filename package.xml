@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <!--
-SPDX-License-Identifier: LGPL-3.0-or-later
+SPDX-License-Identifier: MIT
 SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
 -->
 <package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
@@ -9,7 +9,7 @@ SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim>
   <version>0.1.0</version>
   <date>2026-10-28</date>
   <maintainer email="hi@jus.kim">jus-kim</maintainer>
-  <license file="LICENSE">LGPL-3.0-or-later</license>
+  <license file="LICENSE">MIT</license>
   <url type="repository" branch="main">https://github.com/jus-kim/JellyJams</url>
   <url type="readme">https://github.com/jus-kim/JellyJams/blob/main/README.md</url>
   <icon>resources/icons/jellyjams.svg</icon>
