@@ -53,6 +53,7 @@ module to its spec.
 | [specs/look.md](specs/look.md) | Palette and WCAG contrast rules, the main-window theme block, 3D background gradient and sketch colors with backup and recovery. |
 | [specs/ribbon-engine.md](specs/ribbon-engine.md) | How the ribbon is drawn and kept alive: button kinds, labels, icons, tooltips, enabled states, context tab switching, click dispatch, remembered flyout choices. |
 | [specs/ribbon-content.md](specs/ribbon-content.md) | What the five tabs contain: every group, button, flyout, fallback and icon source. |
+| [specs/measure.md](specs/measure.md) | Official reference measurement catalog, supported geometry readouts, centre/axis distance and clearance, white callout cards and temporary selection behavior. |
 | [specs/naming.md](specs/naming.md) | SolidWorks names in the model and drawing tree: numbering, origin planes, assembly folders, the `(f)` marker, mates, drawing objects. |
 | [specs/dialog-terms.md](specs/dialog-terms.md) | SolidWorks terms inside FreeCAD's own task dialogs and the ISO 128 line-thickness presets row. |
 | [specs/sketching.md](specs/sketching.md) | Sketch editing stays in JellyJams, feature from the open sketch, the Sketch context icon, Centerline, Midpoint Line, sketch first for profile features, feature editing stays in JellyJams. |

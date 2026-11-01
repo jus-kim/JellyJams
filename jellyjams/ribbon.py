@@ -196,6 +196,9 @@ def hide():
     """Hide the ribbon and stop the refresh; the widgets stay for the next show()."""
     global _requested
     _requested = False
+    with console.guard("stop ribbon measurements"):
+        from jellyjams import measure
+        measure.stop()
     with console.guard("hide the ribbon dock"):
         ui = _live_ui()
         if ui is None:
@@ -280,6 +283,7 @@ def _refresh(ui):
         sketch = _sketch_editing()
         _update_context(ui, sketch, _assembly_active(), _active_sheet())
         ui.refresh_states(sketch)
+        _refresh_measure_button(ui)
         _refresh_failure = None
     except Exception as exc:
         text = str(exc)
@@ -287,6 +291,26 @@ def _refresh(ui):
         if text != _refresh_failure:
             _refresh_failure = text
             console.log("ribbon update error: {}".format(text))
+
+
+def _refresh_measure_button(ui):
+    """The running task owns Measure's checked state and must remain stoppable."""
+    from jellyjams import measure
+    button = ui.find_button(constants.MEASURE_COMMAND)
+    if button is not None:
+        active = measure.is_active()
+        button.setCheckable(True)
+        button.setChecked(active)
+        if active:
+            button.setEnabled(True)
+
+
+def refresh_measure_button():
+    """Synchronize only Measure, including while a task form is being destroyed."""
+    with console.guard("refresh the Measure button"):
+        ui = _live_ui()
+        if ui is not None:
+            _refresh_measure_button(ui)
 
 
 def _sketch_editing():
@@ -395,12 +419,20 @@ def run_entry(cmd_id, index=None):
     """Carry out a ribbon click. Every button, flyout and toggle calls this.
 
     Order: first stop a running Centerline / Midpoint Line tool (unless the
-    click is for that same tool); then, for clicks without an index, let the
-    open-sketch gesture take over a profile feature; otherwise run the command
+    click is for that same tool). For clicks without an index, Measure opens
+    the temporary selection-driven task; the open-sketch gesture can take over
+    a profile feature. Otherwise run the command
     with FreeCADGui.runCommand(cmd_id[, index]).
     """
     try:
         _stop_sketch_tool(cmd_id)
+        if index is None and cmd_id == constants.MEASURE_COMMAND:
+            from jellyjams import measure
+            try:
+                measure.toggle()
+            finally:
+                refresh_measure_button()
+            return
         if index is None and _gesture_took_over(cmd_id):
             return
         fcgui.run_command(cmd_id, index)

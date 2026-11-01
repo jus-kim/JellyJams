@@ -254,3 +254,40 @@ emits `mainWindowClosed` after `tryClose` accepts and immediately before
 `saveWindowSettings`. A direct Qt connection permits restoring settings after
 all save decisions, without changing the UI behind prompts. Native lifecycle
 Save/Discard tests plus saved-config checks verify this; Cancel keeps JellyJams.
+
+## Native Measure selection behavior
+
+FreeCAD 1.1.4's [TaskMeasure source](https://github.com/FreeCAD/FreeCAD/blob/1.1.4/src/Mod/Measure/Gui/TaskMeasure.cpp)
+starts new measurements for normal selection without Ctrl and can auto-save
+previous results. Its additive-selection and auto-save actions persist QSettings.
+JellyJams avoids overriding those preferences: its ribbon starts a temporary task
+using `Part.getShape(root, path, needSubElement=True)` and `distToShape`, with
+unresolved selection paths (`getSelectionEx(docName, 0)`). Native GUI regression
+`gui_measure.py` verifies finite-edge/circle and cylinder distances, placed links,
+plain native mouse clicks, empty clicks, external task closure and leave cleanup.
+Native [MeasureDistance](https://github.com/FreeCAD/FreeCAD/blob/1.1.4/src/Mod/Measure/App/MeasureDistance.cpp)
+also special-cases two circles as centre-to-centre;
+`distToShape` on the original shapes supplies the boundary gap. JellyJams now
+uses centre vertices/finite axis segments before that call by default, following
+the user's centre-to-edge correction. Original geometry is used only when the
+task's clearance reference is selected. The supplied STEP file's partial circular
+Edge1066 (solid 202) has radius 0.575 mm: its centre to PCB Edge1015 is exactly
+1.500 mm, while the rim clearance is 0.925 mm (native kernel inspection and
+optional `gui_measure.py` supplied-file regression).
+
+Coin's [SoFont documentation](https://www.coin3d.org/coin/classSoFont.html)
+specifies that its default built-in 2D bitmap font ignores size and cannot be
+styled bold. Measure therefore resolves an installed UI font family and requests
+`:Bold` at 22 screen pixels. Its dimension node is `SoAnnotation`, so coplanar
+PCB geometry cannot depth-test away parts of the line or label. The supplied
+PCB's cylindrical Face1799 and perimeter Edge1015 compute 1.500 mm with the
+existing finite-axis conversion; the optional GUI regression now covers that
+exact face as well as its circular rim, complete label text and font settings.
+
+The subsequent boxed-callout update replaces `SoFont`/`SoText2` with an RGBA
+image painted by Qt and displayed by Coin `SoImage` inside `SoAnnotation`.
+This makes the white background, black outline, text and two-column divider
+independent of scene lighting/theme and Coin's font backend. Native scene
+exports confirm the upright table rendering. Face perimeter excludes
+`edge.isSeam(face)` edges (also used by installed FreeCAD CAM code), so a periodic
+cylinder does not count its seam and a closed sphere has no artificial perimeter.

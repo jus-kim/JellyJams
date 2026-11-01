@@ -85,7 +85,7 @@ and the values MUST be exactly these. Hex values are sRGB `#rrggbb`.
 | Accent dark | `#115a99` | Frame of a pressed ribbon button |
 | Hover | `#e8f2fb` | Fill of a ribbon button, panel button or tree item under the mouse |
 | Pressed | `#cfe6f8` | Fill of a pressed ribbon button; hovered drop-down arrow area of a split button |
-| Selection | `#cfe6f8` | Selected tree item, list item, menu item (always with dark Text on top) |
+| Selection | `#cfe6f8` | Selected tree/list/menu item and checked ribbon button (always with dark Text on top) |
 | Tree text | `#1f2328` | Model tree item text |
 
 **Dark widget palette** (same roles; defined in `palette.DARK_WIDGET_PALETTE`)
@@ -161,7 +161,7 @@ The ribbon is a dock with objectName `JellyJamsCommandManager` containing a tab 
 | Tab-widget pane | Ribbon surface background; no frame except a 1 px Border line along its bottom edge | – | – | – |
 | Tab strip | Ribbon tab strip background | – | – | – |
 | Ribbon tab | Tab strip background, Text secondary; no frame; a 2 px transparent indicator along the bottom edge; padding about 3 px vertical / 14 px horizontal; minimum width 60 px | Text color becomes Text | Ribbon surface background, Text color, 2 px Accent indicator along the bottom edge | – |
-| Ribbon button (any tool button inside `JellyJamsCommandManagerTabs`) | Transparent background, Text color, 1 px transparent frame, 3 px corner radius, padding about 2 px / 4 px, label font 8 pt | Hover fill, 1 px Accent frame | Pressed fill, 1 px Accent dark frame | Text disabled |
+| Ribbon button (any tool button inside `JellyJamsCommandManagerTabs`) | Transparent background, Text color, 1 px transparent frame, 3 px corner radius, padding about 2 px / 4 px, label font 8 pt | Hover fill, 1 px Accent frame | Pressed: Pressed fill and 1 px Accent dark frame. Checked: Selection fill and 1 px Accent frame | Text disabled |
 | Split button (tool button in Qt `MenuButtonPopup` mode) | As a ribbon button, but with about 16 px right padding for the arrow; the arrow sub-control has no frame and is about 12 px wide | Arrow area gets the Pressed fill | – | – |
 | Drop-down menu opened from a ribbon button | Panel background, Text color, 1 px Border frame; items padded about 4 px top/bottom, 18 px right, 8 px left | – | Highlighted item: Selection fill, Text color | – |
 | Group separator (QFrame objectName `JellyJamsGroupDivider`) | Vertical line, 1 px wide, Border color; margins about 4 px top/bottom and 3 px left/right | – | – | – |

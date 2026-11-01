@@ -3,7 +3,7 @@
 JellyJams has two test layers:
 
 1. **Headless suite**: [`tests/test_headless.py`](../tests/test_headless.py) with
-   [`tests/headless_stubs.py`](../tests/headless_stubs.py). 533 tests against stubbed
+   [`tests/headless_stubs.py`](../tests/headless_stubs.py). 559 tests against stubbed
    `FreeCAD` / `FreeCADGui` modules and an offscreen Qt. No FreeCAD window, no profile touched.
    Run it before every commit.
 2. **GUI acceptance scripts**: [`tests/gui_smoke.py`](../tests/gui_smoke.py),
@@ -840,3 +840,35 @@ Every `.py` file in `tests/` needs the three-line header too (`Test02Hygiene.tes
 - Use snake_case check names; [status.md](status.md) refers to them by name.
 - Run it only with a throwaway profile, add its command to this page, and record the result in
   [status.md](status.md).
+
+Run the temporary Measure regression with
+`python tests/run_gui.py --suites measure`. It uses disposable configs and records
+`measure.json`, a full-window capture and `measure_view.png` (native scene export).
+Its 72 checks cover geometry-specific labels and values, white/black cards,
+line/arc/circle/face/cylinder/sphere/vertex/body readouts, angles and totals,
+circle-centre distance, optional boundary clearance, cylindrical axes, placed links,
+plain mouse clicks, empty-space clearing, external task closure/reopening and
+cleanup on leaving. `Test26Measure` runs the stub-testable selection and dispatch
+logic with the full headless suite.
+
+For the user-supplied `moddoMOUISE_A1 Part 2.stp`, set the optional
+`JELLYJAMS_MEASURE_STEP` environment variable to its absolute path before running
+the Measure suite. Eleven additional assertions exercise its solid 202, Edge1066
+and Edge1015 through the live task: 1.500 mm centre distance, visible result,
+annotation endpoint at the circle centre, and 0.925 mm clearance. This fixture
+is not committed or required for CI; the default synthetic cases cover both modes.
+The additional inner-wall cases select Face1799 and Edge1015, verify the same
+1.500 mm result/endpoints and full label text, and check always-visible annotation
+rendering, an opaque white/black image callout, and a bold task result. An oblique native
+scene export is saved as `supplied_pcb_wall_measure.png` for visual inspection.
+The current complete run has 83 checks with the optional supplied file. Individual
+callout PNGs (`measure_line_card.png`, `measure_arc_card.png`, `measure_face_card.png`,
+etc.) and `supplied_pcb_distance_card.png` allow direct visual QA of the style.
+The toggle checks click the actual ribbon button on/off/reopen, verify checked
+and enabled state, compare its painted highlight with the inactive state,
+confirm all owned measurement data is cleared on toggle-off, and verify empty
+selection keeps Measure on while external close/leave uncheck it. Button crops
+are saved as `measure_button_on.png` and `measure_button_off.png`.
+The audit cases additionally cover chronological picks for three-point angles,
+Start-page activation/refusal, active-document switch/closure, cleanup after a
+deleted view and reopening before workbench leave.

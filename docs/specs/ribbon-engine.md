@@ -311,6 +311,8 @@ Which tooltip each kind shows:
   - sets each flyout enabled according to its **current** variant's command;
   - updates each toggle's shown variant (3.3), then sets it enabled according
     to the shown variant's command.
+  - finally synchronizes Measure's checked/highlighted state from the active
+    temporary task, keeping the active button enabled so it can toggle off.
 - If asking FreeCAD fails (command missing, exception), the button stays
   **enabled** (when in doubt, clickable).
 - Effect example: sketch tools become clickable only while a sketch is being
@@ -382,9 +384,13 @@ command:
    command is not run directly. With no sketch being edited and nothing to use
    as the profile, a sketch-first feature opens a new sketch instead
    ([sketching.md](sketching.md) 2.6) and runs once that sketch is exited.
-3. Otherwise the command runs through `FreeCADGui.runCommand(id)` or, for an
+3. The unindexed `Std_Measure` ribbon entry calls `measure.toggle()` instead of
+   the native task. It opens/stops the temporary tool with geometry-specific
+   sizes, pair distances/angles and totals; see [measure.md](measure.md).
+   Ribbon hide stops this task before stock layout restoration, including quit.
+4. Otherwise the command runs through `FreeCADGui.runCommand(id)` or, for an
    indexed entry, `FreeCADGui.runCommand(id, index)`.
-4. Any failure is reported in the Report view (error naming the command and
+5. Any failure is reported in the Report view (error naming the command and
    the reason) and never propagates into Qt.
 
 ### 3.6 Feature from open sketch (SolidWorks gesture)
