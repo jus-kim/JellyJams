@@ -1,12 +1,43 @@
 # Implementation and test status
 
-Status of JellyJams **0.1.0** as of **2026-11-05**, measured on **FreeCAD 1.1.4 and 26.3 RC2 (Windows)**.
+Status of JellyJams **0.1.0** as of **2026-11-08**, measured on **FreeCAD 1.1.4 and 26.3 RC2 (Windows)**.
 This page is the record of what is built, what is verified, and what is open. The behavior
 it is measured against is defined in the [specifications](specs/README.md). How to run every
 test mentioned here: [testing.md](testing.md).
 
 After any code change, re-run the suites and update this page (see
 [Updating this page](#updating-this-page)).
+
+## Consolidated PR Verification (2026-11-08)
+
+The sketch, pointer-tool, host-compatibility, geometry and documentation changes
+are collected in [PR #4](https://github.com/jus-kim/JellyJams/pull/4).
+Fresh pre-publication checks use only disposable profiles:
+
+| Verification | FreeCAD 1.1.4 | FreeCAD 26.3 RC2 |
+|---|---:|---:|
+| Full headless suite | 640/640, 42.2 seconds | 640/640, 41.9 seconds |
+| Full native GUI coverage | Interrupted; 6 suites passed | 26/26 suites, 741 assertions |
+| GUI result-validator unit suite | 10/10 | Shared runner |
+
+GitHub's Linux and Windows headless/runner checks also pass for implementation
+commit `ad694dc`. The full 26.3 GUI sweep is under `scratch/gui_d9tlb1wd`.
+Its initial Smart Dimension check observed a three-pixel cursor change, and
+Orientation's no-selection check encountered a selected face, causing dependent
+assertions to fail. Both suites pass unchanged in the separate native rerun
+`scratch/gui_x4bpcdwr` (22/22 and 84/84); no tolerances or assertions were relaxed.
+Original failed results are retained. The 1.1.4 sweep under
+`scratch/gui_0_taciue` passed quick access, plane selection, sketch aids, host
+compatibility, surface geometry and Measure (236 assertions across six suites).
+Smart Dimension recorded a two-pixel cursor change; the user confirmed active
+mouse/keyboard use on this desktop. The runner and its own disposable FreeCAD
+process were stopped during Smoke to avoid further interference. This partial
+run does not establish a fresh full 1.1.4 pass; earlier dated native passes below
+remain historical evidence. PR #4 stays a draft pending an uninterrupted rerun.
+Completed native coverage includes geometry
+recompute/save/reopen, sketch editing, all ribbon tabs, assembly/drawing helpers,
+appearances, measurement, pointer/keyboard controls, light/dark themes and
+leave/quit/cancel/crash restoration. Save/Discard include saved-config checks.
 
 ## Pointer tools and document context (2026-11-05)
 
