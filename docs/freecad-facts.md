@@ -24,6 +24,88 @@ Evidence column:
 Related: [architecture.md](architecture.md) (where each behavior is used),
 [decisions.md](decisions.md) (why).
 
+## Sketch drawing aids (2026-11-04)
+
+In 26.3 RC2, New Sketch with no preselected plane creates an empty sketch and
+opens `PartGui::TaskAttacher` before sketch edit starts. The chosen origin plane
+is stored through an Origin path such as `XY_Plane.` with `MapMode=FlatFace`.
+Native OK invokes the workflow callback that enters sketch edit. Older hosts
+use `PartDesignGui::TaskFeaturePick`, whose list-selection signal only selects;
+double-click confirms. That picker's viewport confirmation also depends on
+`Preferences/Selection/singleClickFeatureSelect`. JellyJams confirms a valid
+plane only during its pending sketch-first flow and never changes that preference.
+Sources: [SketchWorkflow.cpp](https://github.com/FreeCAD/FreeCAD/blob/9fb16e7f9/src/Mod/PartDesign/Gui/SketchWorkflow.cpp),
+[TaskAttacher.cpp](https://github.com/FreeCAD/FreeCAD/blob/9fb16e7f9/src/Mod/Part/Gui/TaskAttacher.cpp),
+[TaskFeaturePick.cpp](https://github.com/FreeCAD/FreeCAD/blob/9fb16e7f9/src/Mod/PartDesign/Gui/TaskFeaturePick.cpp).
+`getSubObject` defaults to returning geometry; `retType=1` returns the referenced
+document object needed for plane type checks.
+
+Native Smart Dimension intentionally places linear previews below the pointer:
+`DrawSketchHandlerDimension::mouseMove` calls `moveConstraint` with `OffsetConstraint`;
+`ViewProviderSketch::moveConstraint` subtracts `(height + width) * 0.01` from
+linear label distance. `View3DInventorViewer::getDimensions` handles the camera
+height and viewport aspect ratio. In the 26.3 RC2 probe this was approximately
+20 logical pixels on a 125% display; physical pointer coordinates did not change.
+`sketch_dimension` removes only that label offset for ribbon-launched linear
+previews. Sources:
+[CommandConstraints.cpp](https://github.com/FreeCAD/FreeCAD/blob/9fb16e7f9/src/Mod/Sketcher/Gui/CommandConstraints.cpp),
+[ViewProviderSketch.cpp](https://github.com/FreeCAD/FreeCAD/blob/9fb16e7f9/src/Mod/Sketcher/Gui/ViewProviderSketch.cpp),
+[View3DInventorViewer.cpp](https://github.com/FreeCAD/FreeCAD/blob/9fb16e7f9/src/Gui/View3DInventorViewer.cpp).
+
+Native snapping observes Bool `Snap` and `SnapToObjects` in
+`Preferences/Mod/Sketcher/Snap`. Auto constraints are controlled by each sketch
+view provider's saved `Autoconstraints` property. Changing the global
+`Preferences/Mod/Sketcher/General/AutoConstraints` propagates to other sketch view
+providers, so JellyJams changes only the edited view property. The Constraints
+task's action follows property changes. Source inspection:
+[SnapManager.cpp](https://github.com/FreeCAD/FreeCAD/blob/1.1.0/src/Mod/Sketcher/Gui/SnapManager.cpp),
+[ViewProviderSketch.cpp](https://github.com/FreeCAD/FreeCAD/blob/1.1.0/src/Mod/Sketcher/Gui/ViewProviderSketch.cpp),
+[TaskSketcherConstraints.cpp](https://github.com/FreeCAD/FreeCAD/blob/1.1.0/src/Mod/Sketcher/Gui/TaskSketcherConstraints.cpp).
+Native verification is recorded in [status.md](status.md).
+
+`Gui::AutoSaver` is a child of the application and serializes recovery files
+directly from its timer event, bypassing `signalStartSave`/`signalFinishSave`.
+JellyJams protects recovery serialization with a filter on that QObject and a
+deferred resume. Temporary view-property changes use scoped `NoModify`, the status
+checked by `ViewProviderDocumentObject::onChanged` before marking a document modified.
+Sources: [AutoSaver.cpp](https://github.com/FreeCAD/FreeCAD/blob/1.1.0/src/Gui/AutoSaver.cpp),
+[ViewProviderDocumentObject.cpp](https://github.com/FreeCAD/FreeCAD/blob/1.1.0/src/Gui/ViewProviderDocumentObject.cpp).
+
+## FreeCAD 26.3 RC2 compatibility observations (2026-11-03)
+
+Installed build: `26.3.0RC2R20261018`, commit `9fb16e7f9`, Python 3.13.15,
+Qt/PySide6 6.11.2 on Windows. The older tables below retain their original
+1.1.4 evidence; the complete cross-version results are in [status.md](status.md).
+
+- Native Assembly icons now require `AssemblyGui` resources before the Python
+  command modules load. This module is optional on older hosts.
+- The Tasks dock retains separate document panels inside wrapper widgets and
+  a stack. Find the `Gui::TaskView::TaskPanel` visible relative to the dock;
+  assuming it is the direct scroll-area widget fails. Relative visibility also
+  works while the Appearances dock is the raised tab. Native Add Mate and Add
+  Relations checks exercise this discovery.
+- `Gui.Control.closeDialog(guiDocument)` closes the specified document's task.
+  Measure uses its owner document; a deleted owner is skipped on that host.
+  A read-only `activeDialog(guiDocument)` probe distinguishes the legacy global
+  task API, which still needs closing after its document was deleted. An actual
+  GUI document is required: explicitly passing `None` raises `TypeError` even
+  in 26.3 RC2 (despite the newer type stub advertising it). A `TypeError`
+  fallback preserves the legacy no-argument API. The native host-compatibility
+  test switches to a second document and verifies its sketch survives cleanup.
+- `App::Link` view providers expose `ShapeAppearance` (a material list) instead
+  of `ShapeMaterial`. Assigning a one-element list with `OverrideMaterial=True`
+  provides the component-local override. Native appearance tests cover source
+  and sibling isolation, Undo/Redo and save/reopen on both host layouts.
+- Compiled form objectNames use `__` instead of `::` namespace separators.
+  Match both forms of the catalog names. Balloon and rich-annotation labels
+  have new descriptive names; Line Format's `cb_Visible` is now a checkbox.
+  Native dialog tests verify the actual displayed terms and ISO preset writes.
+  The 17 catalog `.ui` files were also compared against the official
+  [26.3rc2 source](https://github.com/FreeCAD/FreeCAD/tree/26.3rc2/src/Mod).
+- Bundled Python's Qt plugin directory is `<FreeCAD>/lib/qt6/plugins`.
+  Offscreen tests must supply that path when the binding's compiled-in path
+  points to the nonexistent `bin/lib/qt6/plugins` location.
+
 ---
 
 ## Platform and runtime
@@ -217,6 +299,29 @@ Source for the installed revision:
 | FreeCAD forwards Qt messages to the Report view with a C++ message handler that cannot be reinstalled from Python once replaced. A Python handler installed with `qInstallMessageHandler` therefore stays for the session and must forward everything it does not drop | `qt_filter.install_and_enable` (self-test probe on install) | Not verified by a test; the install prints `Qt message filter active, self-test ok` or reports that the probe did not arrive |
 
 ---
+
+## Pointer tools: keyboard and native task controls (2026-11-05)
+
+`tests/gui_quick_access.py` verifies that Sketcher's drawing widget can consume
+letter keys before they reach a main-window filter. The scoped S/D filters
+therefore cover native OpenGL drawing widgets as well as view/dock windows;
+drawings also need their QGraphicsView viewport. Native shortcut conflicts stay
+configured while ShortcutOverride handling gives the popup precedence.
+
+TaskPanel and button-box widgets can survive feature-task replacement. Pending
+confirmation includes named native form identities, not only panel identity.
+The native wrapper `Gui.Control.activeTaskDialog().getDocumentName()` provides
+an additional ownership check: 1.1 has a global task dialog, while 26.3 selects
+one by document. Switching documents must not expose a foreign task's actions.
+Sources: [1.1 task wrapper](https://github.com/FreeCAD/FreeCAD/blob/1.1.0/src/Gui/TaskView/TaskDialogPython.cpp),
+[26.3 control](https://github.com/FreeCAD/FreeCAD/blob/9fb16e7f9/src/Gui/Control.cpp).
+
+Native quantity controls expose `rawValue`. A Qt `setProperty("value", ...)`
+can instead add a dynamic property without changing the native field. The GUI
+test changes Pad length through `rawValue` and confirms the committed geometry.
+Popup tests on Windows run sequentially: foreground changes in another native
+FreeCAD window can dismiss an otherwise correct Qt popup. New native checks
+pass on both 1.1.4 and 26.3 RC2; final run folders are recorded in [status](status.md).
 
 ## Re-verification checklist
 

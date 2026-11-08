@@ -28,15 +28,17 @@ Conventions used in all specs:
 
 | Spec | Area | What it specifies | Main modules | Acceptance criteria |
 |---|---|---|---|---|
+| [surface-geometry.md](surface-geometry.md) | Reconstructed surfaces | Mathematical geometry tools, editable B-spline control points, save/reopen, error reporting and reference-radius semantics | `surface_geometry`, `surface_feature`, `surface_rules`, `local_fillet`, `surface_boolean` | 6 |
 | [appearances.md](appearances.md) | Appearances | Official-reference browser, native colour/finish presets, face/object/component edits, undo and cleanup | `appearance_rules`, `appearances` | 9 |
 | [core.md](core.md) | Core | Entry points, `package.xml`, workbench identity, Initialize / Activated / Deactivated step order, quit guard, autoload, startup crash recovery and backup formats, command registration, Diagnostics, Qt message filter, navigation and orbit response | `lifecycle`, `quit_guard`, `recovery`, `commands`, `diagnostics`, `qt_filter`, `params`, `constants`, `console`, `fcgui`, `paths`, `doc_utils`, `navigation`, `orbit`, `orbit_rules`, `shortcuts`; `InitGui.py`, `Init.py` | 41 |
-| [ribbon-engine.md](ribbon-engine.md) | Ribbon engine | The CommandManager-style dock: button kinds, labels, icons, tooltips, enabled-state refresh, toggle, context tab switching, click dispatch, visibility guard, rebuild, remembered flyout choices | `ribbon`, `ribbon_model`, `ribbon_text`, `ribbon_widgets`, `icons`, `sketch_gesture` | 36 |
+| [ribbon-engine.md](ribbon-engine.md) | Ribbon engine | The CommandManager-style dock: button kinds, labels, icons, tooltips, enabled-state refresh, toggle, per-document context tabs, click dispatch, visibility guard, rebuild, remembered flyout choices | `ribbon`, `ribbon_model`, `ribbon_text`, `ribbon_widgets`, `icons`, `sketch_gesture`, `access_rules` | 37 |
+| [quick-access.md](quick-access.md) | Pointer tools | S command search, D and viewport confirmation, native task identity, typing protection and cleanup | `quick_access`, `access_rules` | 12 |
 | [ribbon-content.md](ribbon-content.md) | Ribbon content | The five tabs (Features, Sketch, Evaluate, Assembly, Drawing), every group, button, flyout, fallback and icon source; summary counts; module preloading; flyout parameter keys; `JellyJams_NormalTo` as the Evaluate tab's Normal To | `ribbon_layout`, `fcgui` (preload), `constants` | 28 |
 | [measure.md](measure.md) | Measure | Geometry-specific sizes, centre/axis distance and clearance, angles and totals, temporary white callouts, checked button and cleanup; reference measurement catalog | `measure`, `ribbon`, `palette`, `theme` | 10 |
 | [window-layout.md](window-layout.md) | Window layout | Toolbars kept and hidden, Tasks and Report view docked right, exact restore on leave, quit/close guard with Cancel re-apply, autoload deferral | `layout`, `quit_guard`, `lifecycle` | 26 |
 | [look.md](look.md) | Look | Light/dark palettes, scoped main-window stylesheet block, WCAG contrast requirements, 3D background gradient and sketch colors with persisted backup and recovery | `palette`, `theme`, `viewport`, `recovery`, `quit_guard` | 42 |
 | [naming.md](naming.md) | Naming | SolidWorks labels in the model and drawing tree: numbering, origin planes, assembly folders, components and `(f)` marker, mates, drawing objects, existing-drawing refresh | `naming`, `naming_rules`, `constants` | 25 |
-| [sketching.md](sketching.md) | Sketching | Sketch editing stays in JellyJams, feature from the open sketch, "Sketch" context icon, Centerline, Midpoint Line, sketch first for profile features (target body, container selections, subtractive features only with a solid by FreeCAD's `isSolid` rule, also when retargeting, Hole Wizard refused by JellyJams without one, left to FreeCAD without a target body, stale plane picks), feature editing stays in JellyJams (also under other add-ons' wrappers) | `sketch_edit`, `sketch_gesture`, `context_sketch`, `sketch_tools`, `edit_guard` | 61 |
+| [sketching.md](sketching.md) | Sketching | Sketch editing stays in JellyJams, feature from the open sketch, "Sketch" context icon, Centerline, Midpoint Line, sketch first for profile features (target body, container selections, subtractive features only with a solid by FreeCAD's `isSolid` rule, also when retargeting, Hole Wizard refused by JellyJams without one, left to FreeCAD without a target body, stale plane picks), feature editing stays in JellyJams (also under other add-ons' wrappers) | `sketch_edit`, `sketch_assist`, `sketch_dimension`, `sketch_gesture`, `context_sketch`, `sketch_tools`, `edit_guard` | 69 |
 | [orientation.md](orientation.md) | Orientation panel and Normal To | The SolidWorks Spacebar dialog and Normal To: `JellyJams_ViewOrientation` on `Space` and `JellyJams_NormalTo` on `Ctrl+8` and the Evaluate tab (the sketch plane in a sketch with nothing selected; otherwise exactly one pick: any face, edge or vertex, a datum or a one-face or one-edge object through FreeCAD's Align to Selection, a whole sketch looked at along the path it was picked through, links included; a hint in the status bar and at the pointer with nothing to look at), both available in sketches and task dialogs (`CmdType` `Alter3DView`) while the main window's active window is a 3D view (docked, undocked, fullscreen, split; not the Start page), the panel at the pointer (Normal To, remembered view, Zoom to Fit, standard views around Front, Isometric / Trimetric / Dimetric), pin, click outside (generation, keyboard and settle checks, the keyboard taken back while settling), Esc / Space, the keyboard given back to the window that had it, who gets Space (pointer over a 3D view, viewer, split view or the model tree, focused controls, Tab-focused panel buttons, toolbars and status bar, item views, docks, docks made later), buttons that follow FreeCAD's active state, theme-proof colors, close on leave, SolidWorks features not available | `orientation`, `commands`, `shortcuts`, `lifecycle`, `ribbon_layout` | 48 |
 | [relations.md](relations.md) | Add Relations panel | Sketch entity recognition, offered relations per selection, existing relations list and delete, panel placement and styling | `relations_rules`, `relations_panel`, `panel_host`, `icons` | 27 |
 | [assembly.md](assembly.md) | Assembly | Add Mate panel, drag-and-drop `.FCStd` insertion, `SwitchToWB` overrides of Assembly, Part Design and TechDraw with exact restore, New Assembly, Rotate Component | `mate_rules`, `mate_panel`, `panel_host`, `assembly_drop`, `switch_prefs`, `assembly_commands` | 42 |
@@ -53,6 +55,7 @@ Use this table to find the spec before you edit a module. All modules are in [`j
 
 | Module | Spec(s) |
 |---|---|
+| `surface_geometry.py`, `surface_feature.py`, `surface_rules.py`, `local_fillet.py`, `surface_boolean.py` | [surface-geometry.md](surface-geometry.md) |
 | `__init__.py`, `constants.py`, `console.py`, `params.py`, `paths.py`, `fcgui.py`, `doc_utils.py`, `commands.py` | [core.md](core.md) (shared infrastructure used by every area) |
 | `lifecycle.py`, `quit_guard.py` | [core.md](core.md), [window-layout.md](window-layout.md) |
 | `recovery.py` | [core.md](core.md) section 7, [look.md](look.md) 5.4, [assembly.md](assembly.md) 5.2 |
@@ -62,12 +65,13 @@ Use this table to find the spec before you edit a module. All modules are in [`j
 | `palette.py`, `theme.py`, `viewport.py` | [look.md](look.md) |
 | `layout.py` | [window-layout.md](window-layout.md) |
 | `ribbon.py`, `ribbon_model.py`, `ribbon_text.py`, `ribbon_widgets.py` | [ribbon-engine.md](ribbon-engine.md) |
+| `quick_access.py`, `access_rules.py` | [quick-access.md](quick-access.md); context memory in [ribbon-engine.md](ribbon-engine.md) 3.4 |
 | `ribbon_layout.py` | [ribbon-content.md](ribbon-content.md) |
 | `measure.py` | [measure.md](measure.md), including the reference measurement catalog |
 | `icons.py` | [ribbon-engine.md](ribbon-engine.md) 2.7, [relations.md](relations.md) 2.4, [assembly.md](assembly.md) 2.1.3 |
 | `naming.py`, `naming_rules.py` | [naming.md](naming.md) |
 | `dialog_terms.py`, `dialog_terms_data.py` | [dialog-terms.md](dialog-terms.md), [drawing-symbols-export.md](drawing-symbols-export.md) 2.10 |
-| `sketch_edit.py`, `sketch_gesture.py`, `context_sketch.py`, `sketch_tools.py`, `edit_guard.py` | [sketching.md](sketching.md), [ribbon-engine.md](ribbon-engine.md) 3.5 and 3.6 |
+| `sketch_edit.py`, `sketch_assist.py`, `sketch_dimension.py`, `sketch_gesture.py`, `context_sketch.py`, `sketch_tools.py`, `edit_guard.py` | [sketching.md](sketching.md), [ribbon-engine.md](ribbon-engine.md) 3.5 and 3.6 |
 | `panel_host.py` | [relations.md](relations.md) 2.2, [assembly.md](assembly.md) 2.1 |
 | `relations_rules.py`, `relations_panel.py` | [relations.md](relations.md) |
 | `mate_rules.py`, `mate_panel.py`, `assembly_drop.py`, `switch_prefs.py`, `assembly_commands.py` | [assembly.md](assembly.md) (`switch_prefs.py`: section 5) |
@@ -99,6 +103,7 @@ Every FreeCAD-owned setting JellyJams changes is backed up first in `User parame
 | `OriginalSwitchToWB` | `Preferences/Mod/Assembly` `SwitchToWB` | [assembly.md](assembly.md) |
 | `OriginalPartDesignSwitchToWB` | `Preferences/Mod/PartDesign` `SwitchToWB` | [assembly.md](assembly.md) |
 | `OriginalTechDrawSwitchToWB` | `Preferences/Mod/TechDraw/General` `SwitchToWB` | [assembly.md](assembly.md) |
+| `OriginalSketchSnapping` | `Preferences/Mod/Sketcher/Snap` `Snap` and `SnapToObjects`, only during sketch edits | [sketching.md](sketching.md) 2.8 |
 
 **JellyJams' own preferences** (kept across sessions, never restored)
 

@@ -7,7 +7,7 @@ import math
 
 from PySide import QtCore, QtGui, QtWidgets
 
-from jellyjams import console, fcgui
+from jellyjams import console, doc_utils, fcgui
 
 _session = None
 
@@ -466,5 +466,28 @@ def stop():
         with console.guard("stop measurements"):
             task.dispose()
         with console.guard("close measurement task"):
-            fcgui.gui().Control.closeDialog()
+            # 26.3 owns a task dialog per document. After a document switch,
+            # closing the active task would leave ours behind (or close someone
+            # else's). A deleted document has lost its document-owned dialog,
+            # but older hosts still need their global task panel closed.
+            gui = fcgui.gui()
+            if doc_utils.is_alive(task.doc):
+                owner = gui.getDocument(task.doc.Name)
+                try:
+                    gui.Control.closeDialog(owner)
+                except TypeError:
+                    # 1.1 has only the application-wide, no-argument operation.
+                    gui.Control.closeDialog()
+            else:
+                active = gui.activeDocument()
+                if active is None:
+                    # No other document's task can be affected.
+                    gui.Control.closeDialog()
+                else:
+                    try:
+                        # Read-only capability probe using a real GuiDocument.
+                        # 26.3 accepts that object, but explicitly rejects None.
+                        gui.Control.activeDialog(active)
+                    except TypeError:
+                        gui.Control.closeDialog()
     _refresh_button()

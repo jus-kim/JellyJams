@@ -49,7 +49,7 @@ SWITCH_GROUPS = {
     "TechDraw": "User parameter:BaseApp/Preferences/Mod/TechDraw/General",
 }
 BACKUP_KEYS = ("OriginalNavigationStyle", "OriginalShortcuts", "OriginalViewColors", "OriginalSwitchToWB",
-               "OriginalPartDesignSwitchToWB", "OriginalTechDrawSwitchToWB")
+               "OriginalPartDesignSwitchToWB", "OriginalTechDrawSwitchToWB", "OriginalSketchSnapping")
 THEME_OPEN = "/* @jellyjams-stylesheet-open */"
 # Pause between a workbench switch and the next look at the window. The window-layout spec
 # reads the state no sooner than 3.5 s after a switch, when every delayed re-dock has run.

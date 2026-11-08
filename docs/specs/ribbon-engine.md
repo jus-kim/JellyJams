@@ -209,6 +209,10 @@ then is `getIcon()` allowed to answer.
 The ribbon must not change icons, texts or shortcuts of FreeCAD's own
 toolbars, menus or commands: everything above applies to ribbon widgets only.
 
+Preload the optional native `AssemblyGui` resource module before indexing icons
+on hosts that provide it (26.3). Its absence on 1.1 is normal; errors inside an
+available module are reported with the other command-module loading failures.
+
 The same icon lookup must be available to other JellyJams areas (the Add
 Relations panel and the Add Mate panel show buttons for the same FreeCAD
 commands and must show the same icons as the ribbon).
@@ -329,31 +333,38 @@ Which tooltip each kind shows:
 - JellyJams layout: variant 1 = `PartDesign_NewSketch` ("Sketch"), variant 2
   = `Sketcher_LeaveSketch` ("Exit Sketch").
 
-### 3.4 Context tab switching (transition-only)
+### 3.4 Document and edit context
 
 The ribbon switches tabs like SolidWorks, but only on the **transition** into
 a context. After the automatic switch the user may click any other tab and
 the ribbon will not force it back on later refreshes. Each rule applies only
-if its target tab exists.
+if its target tab exists. With an active document, choices are remembered per
+document identity and mode in a bounded, session-only cache. A new part starts
+on Features, a new assembly on Assembly, and a new drawing on Drawing. Returning
+to another document restores that document's last tab for its current mode.
 
 - **Sketch** (tab "Sketch"): when sketch editing starts (definition in 3.3),
   remember the current tab, then switch to "Sketch". When sketch editing ends,
   switch back to the remembered tab (even if the user changed tabs inside the
-  sketch) and forget it. Editing any other object type (e.g. a
+  sketch). Every new sketch-edit entry selects Sketch, regardless of a manual
+  tab choice made during an earlier sketch edit. Editing any other object type (e.g. a
   `PartDesign::Pad` feature) causes no switch. Sheet sketches created by the
   Drawing tab's sheet-sketch tools are ordinary sketches: editing one switches
   to "Sketch", exiting returns to "Drawing".
+  The prior tab also returns when native sketch edit has replaced the sheet
+  window with a 3D window; this return survives switching documents mid-edit.
 - **Assembly** (tab "Assembly"): when an assembly becomes active — FreeCAD's
   Assembly helper `UtilsAssembly.activeAssembly()` returns an
   `Assembly::AssemblyObject` (i.e. an assembly in edit mode) — switch to
   "Assembly", unless the ribbon is currently in the sketch context. When it
-  becomes inactive, nothing changes. If the Assembly module is unavailable,
+  becomes inactive, restore that document's remembered part-mode tab, defaulting
+  to Features. If the Assembly module is unavailable,
   "no active assembly" is assumed.
 - **Drawing** (tab "Drawing"): when a drawing sheet window becomes the active
   MDI window — the main window's `QMdiArea` active sub-window holds a widget
   whose Qt class name is `TechDrawGui::MDIViewPage` — switch to "Drawing".
-  Leaving the sheet window changes nothing; returning to it later is a new
-  transition and switches again.
+  Leaving the sheet restores the target document/mode's remembered tab;
+  returning to it restores its remembered drawing-mode tab.
 - If several transitions are detected in the same refresh, the Sketch rule
   wins (it is applied last).
 - Context state is compared with the state last observed while the ribbon was
@@ -370,6 +381,12 @@ if its target tab exists.
     drawing objects.
 
 ### 3.5 Running a command (button click)
+
+The existing `Sketcher_Dimension` slot runs through `sketch_dimension.run` after
+stopping any prior preview correction. It calls the native command once and
+aligns new linear previews to the pointer ([sketching.md](sketching.md) 2.9).
+Every other ribbon click stops that correction before dispatch. Ribbon hide
+also stops it, covering leave and quit without new lifecycle steps or preferences.
 
 Whenever any ribbon button, flyout (main part or menu choice) or toggle runs a
 command:
@@ -766,3 +783,7 @@ a refresh" means wait at least 0.6 s.
 36. The theme block (`/* @jellyjams-stylesheet-open */` … `/* @jellyjams-stylesheet-close */`) styles the
     ribbon: the tab pane, tool buttons, flyout split buttons and separators
     pick up the JellyJams colors (objectNames and popup mode as in 4.1).
+37. Select Evaluate in part A, open part B and enter/leave a sketch, then return
+    to A: B starts on Features, sketch entry selects Sketch, leaving restores
+    Features, and A restores Evaluate. Drawing and assembly entry use their
+    respective tabs without making a new part inherit them.

@@ -38,6 +38,8 @@ class _ContextState:
         self.assembly = False
         self.sheet = None
         self.pre_sketch_tab = None
+        from jellyjams.access_rules import ContextMemory
+        self.memory = ContextMemory()
 
 
 _context = _ContextState()
@@ -190,12 +192,21 @@ def show():
             return
         _requested = True
         _start(ui)
+        with console.guard("enable pointer tools", level="log"):
+            from jellyjams import quick_access
+            quick_access.enable()
 
 
 def hide():
     """Hide the ribbon and stop the refresh; the widgets stay for the next show()."""
     global _requested
     _requested = False
+    with console.guard("remove pointer tools", level="log"):
+        from jellyjams import quick_access
+        quick_access.disable()
+    with console.guard("stop the Smart Dimension preview correction"):
+        from jellyjams import sketch_dimension
+        sketch_dimension.stop()
     with console.guard("stop ribbon measurements"):
         from jellyjams import measure
         measure.stop()
@@ -350,6 +361,21 @@ def _same_widget(a, b):
 def _update_context(ui, sketch, assembly, sheet):
     state = _context
 
+    doc = getattr(FreeCAD, "ActiveDocument", None)
+    if doc is not None and getattr(doc, "Name", None):
+        document = (doc.Name, str(getattr(doc, "Uid", id(doc))))
+        title = (constants.TAB_SKETCH if sketch else constants.TAB_DRAWING if sheet is not None
+                 else constants.TAB_ASSEMBLY if assembly else constants.TAB_FEATURES)
+        wanted = state.memory.choose(document, title, ui.current_title())
+        if wanted:
+            ui.select_tab(wanted)
+        if sheet is not None:
+            _attach_sheet_drag(sheet)
+            if not _same_widget(sheet, state.sheet):
+                _on_sheet_entered()
+        state.sheet, state.sketch, state.assembly = sheet, sketch, assembly
+        return
+
     if sheet is not None:
         _attach_sheet_drag(sheet)
     entered_sheet = sheet is not None and not _same_widget(sheet, state.sheet)
@@ -426,6 +452,11 @@ def run_entry(cmd_id, index=None):
     """
     try:
         _stop_sketch_tool(cmd_id)
+        from jellyjams import sketch_dimension
+        sketch_dimension.stop()
+        if index is None and cmd_id == constants.SKETCH_DIMENSION_COMMAND:
+            sketch_dimension.run()
+            return
         if index is None and cmd_id == constants.MEASURE_COMMAND:
             from jellyjams import measure
             try:

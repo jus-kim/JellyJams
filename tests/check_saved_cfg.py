@@ -37,7 +37,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 BACKUP_KEYS = ("OriginalNavigationStyle", "OriginalShortcuts", "OriginalViewColors", "OriginalSwitchToWB",
-               "OriginalPartDesignSwitchToWB", "OriginalTechDrawSwitchToWB")
+               "OriginalPartDesignSwitchToWB", "OriginalTechDrawSwitchToWB", "OriginalSketchSnapping")
 # Commands JellyJams binds (F, Ctrl+B, Ctrl+7, Ctrl+8, Space) or unbinds while active (Box Zoom
 # loses Ctrl+B, Show/Hide loses Space); none may keep an override after a quit.
 # Std_AlignToSelection (FreeCAD's own Normal To) is checked too: JellyJams leaves it alone.

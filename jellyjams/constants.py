@@ -8,6 +8,8 @@ No imports at all.
 """
 
 MEASURE_COMMAND = "Std_Measure"
+SKETCH_DIMENSION_COMMAND = "Sketcher_Dimension"
+SKETCH_LEAVE_COMMAND = "Sketcher_LeaveSketch"
 
 ADDON_NAME = "JellyJams"
 WORKBENCH_KEY = "JellyJamsWorkbench"
@@ -28,6 +30,14 @@ PARAM_TECHDRAW_REZ = "User parameter:BaseApp/Preferences/Mod/TechDraw/Rez"
 PARAM_TECHDRAW_FILES = "User parameter:BaseApp/Preferences/Mod/TechDraw/Files"
 PARAM_DOCUMENT = "User parameter:BaseApp/Preferences/Document"
 PARAM_GENERAL = "User parameter:BaseApp/Preferences/General"
+PARAM_SKETCH_SNAP = "User parameter:BaseApp/Preferences/Mod/Sketcher/Snap"
+KEY_SKETCH_SNAP = "Snap"
+KEY_SKETCH_SNAP_OBJECTS = "SnapToObjects"
+PROP_AUTO_CONSTRAINTS = "Autoconstraints"
+CLASS_AUTO_SAVER = "Gui::AutoSaver"
+CLASS_FEATURE_PICK = "PartDesignGui::TaskFeaturePick"
+CLASS_TASK_ATTACHER = "PartGui::TaskAttacher"
+OBJ_FEATURE_PICK_LIST = "listWidget"
 
 # --- keys in PARAM_ROOT ---------------------------------------------------------------
 KEY_QT_FILTER = "SilenceGlyphWarnings"
@@ -39,10 +49,11 @@ KEY_SHORTCUT_BACKUP = "OriginalShortcuts"
 KEY_ASSEMBLY_BACKUP = "OriginalSwitchToWB"
 KEY_PARTDESIGN_BACKUP = "OriginalPartDesignSwitchToWB"
 KEY_TECHDRAW_BACKUP = "OriginalTechDrawSwitchToWB"
+KEY_SKETCH_ASSIST_BACKUP = "OriginalSketchSnapping"
 KEY_NOTE_HEIGHT = "LastNoteHeight"
 KEY_NOTE_UNIT = "LastNoteUnit"
 BACKUP_KEYS = (KEY_VIEW_BACKUP, KEY_NAV_BACKUP, KEY_SHORTCUT_BACKUP, KEY_ASSEMBLY_BACKUP,
-               KEY_PARTDESIGN_BACKUP, KEY_TECHDRAW_BACKUP)
+               KEY_PARTDESIGN_BACKUP, KEY_TECHDRAW_BACKUP, KEY_SKETCH_ASSIST_BACKUP)
 
 # --- theme markers --------------------------------------------------------------------
 THEME_BEGIN = "/* @jellyjams-stylesheet-open */"
@@ -74,6 +85,8 @@ OBJ_DIAGNOSTICS_DIALOG = "JellyJamsDiagnosticsDialog"
 OBJ_NOTE_DIALOG = "JellyJamsNoteDialog"
 OBJ_SCALE_MENU = "JellyJamsViewScaleMenu"
 OBJ_APPEARANCES = "JellyJamsAppearances"
+OBJ_QUICK_ACCESS = "JellyJamsQuickAccess"
+OBJ_CONFIRMATION = "JellyJamsConfirmation"
 
 # --- FreeCAD Qt names -----------------------------------------------------------------
 DOCK_TASKS = "Tasks"
@@ -85,6 +98,7 @@ CLASS_TASK_PANEL = "Gui::TaskView::TaskPanel"
 CLASS_SHEET_WINDOW = "TechDrawGui::MDIViewPage"
 CLASS_VIEW3D = "Gui::View3DInventor"
 CLASS_VIEWER3D = "Gui::View3DInventorViewer"
+CLASS_MODEL_TREE = "Gui::TreeWidget"
 
 # --- FreeCAD type ids used in several areas -------------------------------------------
 TYPE_SKETCH = "Sketcher::SketchObject"
@@ -95,6 +109,8 @@ TYPE_LINK = "App::Link"
 TYPE_PART = "App::Part"
 TYPE_BODY = "PartDesign::Body"
 TYPE_PART_FEATURE = "Part::Feature"
+TYPE_PART_FEATURE_PYTHON = "Part::FeaturePython"
+TYPE_PART_BOX = "Part::Box"
 TYPE_GROUP = "App::DocumentObjectGroup"
 TYPE_PAGE = "TechDraw::DrawPage"
 TYPE_TEMPLATE = "TechDraw::DrawSVGTemplate"
@@ -116,6 +132,7 @@ TYPE_LEADER = "TechDraw::DrawLeaderLine"
 # "JellyJams_" followed by the tool's ribbon name without spaces; the five sketch
 # shapes for the drawing sheet end in "OnSheet".
 CMD_PREFIX = "JellyJams_"
+
 CMD_DIAGNOSTICS = "JellyJams_Diagnostics"
 CMD_CENTERLINE = "JellyJams_Centerline"
 CMD_MIDPOINT_LINE = "JellyJams_MidpointLine"
@@ -228,6 +245,7 @@ SKETCH_FIRST_FEATURES = (
 NEW_SKETCH_COMMAND = "PartDesign_NewSketch"
 ACTIVE_BODY_KEY = "pdbody"   # ActiveView.getActiveObject key of FreeCAD's active PartDesign body
 GUI_COMMAND_MODULES = ("PartGui", "SketcherGui", "PartDesignGui", "TechDrawGui")
+OPTIONAL_GUI_COMMAND_MODULES = ("AssemblyGui",)
 ASSEMBLY_COMMAND_MODULES = (
     "CommandCreateAssembly",
     "CommandInsertLink",
@@ -253,6 +271,23 @@ START_TAB = TAB_FEATURES
 # --- JellyJams document properties ----------------------------------------------------
 # Saved inside .FCStd files: renaming any of these breaks documents that use them.
 PROP_GROUP = "JellyJams"
+# Mathematical geometry stored in reconstructed document features (schema 1).
+PROP_GEOMETRY_DATA = "GeometryDefinition"
+PROP_GEOMETRY_ERROR = "GeometryError"
+PROP_SOURCE_FEATURE_NAME = "SourceFeatureName"
+PROP_SOURCE_NOMINAL_RADIUS = "SourceNominalRadius"
+SURFACE_POLES_PREFIX = "Surface"
+SURFACE_POLES_SUFFIX = "Poles"
+PROP_ROUND_BASE = "RoundBase"
+PROP_ROUND_SCOPE = "RoundScope"
+PROP_ROUND_RADIUS = "Radius"
+PROP_ROUND_OPERATION = "RoundOperation"
+PROP_BOOLEAN_BASE = "BooleanBase"
+PROP_BOOLEAN_TOOL = "BooleanTool"
+PROP_BOOLEAN_OPERATION = "BooleanOperation"
+PROP_BOOLEAN_TOLERANCE = "BooleanTolerance"
+PROP_KEEP_LARGEST_SOLID = "KeepLargestSolid"
+PROP_DISCARDED_SOLIDS = "DiscardedSolids"
 PROP_HOST_SHEET = "HostSheet"
 PROP_SHOWN_SKETCH = "ShownSketch"
 PROP_BORDER_INDEX = "BorderLineIndex"

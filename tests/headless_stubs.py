@@ -955,6 +955,12 @@ def install():
     if _STUBS is not None:
         return _STUBS
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    # The 26.3 Windows bundle locates plugins relative to FreeCAD.exe, but
+    # python.exe reports bin/lib/qt6/plugins. Supply the installed directory.
+    plugins = os.path.join(INTERPRETER_FREECAD_DIR, "lib", "qt6", "plugins")
+    if os.path.isdir(plugins):
+        os.environ.setdefault("QT_PLUGIN_PATH", plugins)
+        os.environ.setdefault("QT_QPA_PLATFORM_PLUGIN_PATH", os.path.join(plugins, "platforms"))
     if REPO_DIR in sys.path:
         sys.path.remove(REPO_DIR)
     sys.path.insert(0, REPO_DIR)

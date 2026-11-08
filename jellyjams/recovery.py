@@ -80,11 +80,16 @@ def _recover_switch_prefs():
     importlib.import_module("jellyjams.switch_prefs").recover()
 
 
+def _recover_sketch_assist():
+    importlib.import_module("jellyjams.sketch_assist").recover()
+
+
 RECOVERY_STEPS = (
     ("repair the 3D view colors", _recover_viewport),
     ("repair the navigation style", _recover_navigation),
     ("repair the keyboard shortcuts", _recover_shortcuts),
     ("repair the workbench-switch preferences", _recover_switch_prefs),
+    ("repair sketch snapping preferences", _recover_sketch_assist),
 )
 
 

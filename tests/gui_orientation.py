@@ -355,17 +355,23 @@ def pointer_info():
 
 
 def point_at(widget):
-    """Move the real mouse pointer to the middle of `widget`: who gets Space depends on it."""
-    point = widget.mapToGlobal(widget.rect().center())
+    """Place the pointer on an exposed part of the widget and verify native hit testing."""
     # The no-screen overload uses the primary screen. Explicitly use this
     # widget's screen for native coordinate conversion on mixed-DPI desktops.
-    QtGui.QCursor.setPos(widget.screen(), point)
-    process()
+    attempts = []
+    for x, y in ((.5, .5), (.25, .25), (.75, .75), (.25, .75), (.75, .25)):
+        point = widget.mapToGlobal(QtCore.QPoint(int(widget.width() * x), int(widget.height() * y)))
+        QtGui.QCursor.setPos(widget.screen(), point)
+        qtest().qWait(50)
+        hit = QtWidgets.QApplication.widgetAt(QtGui.QCursor.pos())
+        attempts.append((point.x(), point.y(), window_name(hit)))
+        if hit is widget or (hit is not None and widget.isAncestorOf(hit)):
+            break
     info = pointer_info()
     actual = QtGui.QCursor.pos()
     info.update(requested_pointer=(point.x(), point.y()), actual_pointer=(actual.x(), actual.y()),
                 target=window_name(widget), target_visible=widget.isVisible(),
-                target_screen=widget.screen().name())
+                target_screen=widget.screen().name(), pointer_attempts=attempts)
     return info
 
 

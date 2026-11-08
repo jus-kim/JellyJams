@@ -63,8 +63,9 @@ edit; an unrelated active transaction is neither joined nor
 closed. Container traversal prevents cycles.
 
 `App::Link` and `Assembly::AssemblyLink` stop resolution: never follow a link to
-edit its source. Set native `ShapeMaterial` and `OverrideMaterial` on the selected
-component only. Per-face linked-instance overrides are unsupported; choose
+edit its source. Set native `ShapeMaterial` (1.1), or the local `ShapeAppearance`
+material list (26.3), and `OverrideMaterial` on the selected component only.
+Select the property by capability. Per-face linked-instance overrides are unsupported; choose
 **Whole selected objects**. Source and sibling instances remain unchanged.
 
 ## 4. Rendering, persistence and lifecycle

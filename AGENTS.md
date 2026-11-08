@@ -22,8 +22,8 @@ SolidWorks-style UI while it is the active workbench:
 |---|---|
 | Workbench key / class | `JellyJamsWorkbench` (MenuText `JellyJams`) |
 | Version | single source: `__version__` in [jellyjams/\_\_init\_\_.py](jellyjams/__init__.py); mirrored in [package.xml](package.xml) and [CHANGELOG.md](CHANGELOG.md) |
-| Minimum FreeCAD | 1.1.0 (developed and tested on FreeCAD 1.1.4, Windows) |
-| Runtime | Python 3.11 and PySide6 as bundled with FreeCAD; standard library only, no third-party packages |
+| Minimum FreeCAD | 1.1.0 (tested on FreeCAD 1.1.4 and 26.3 RC2, Windows) |
+| Runtime | FreeCAD's bundled Python (3.11 on 1.1.4, 3.13 on 26.3 RC2) and PySide6; standard library only, no third-party packages |
 | License | MIT, (c) 2026 jus-kim ([LICENSE](LICENSE), [LICENSES/](LICENSES)) |
 | Repository | https://github.com/jus-kim/JellyJams (branch `main`) |
 
@@ -76,7 +76,8 @@ session and every other workbench. The rules:
   that [jellyjams/recovery.py](jellyjams/recovery.py) can restore it at the next start after a
   crash. Current backup keys (`constants.BACKUP_KEYS`): `OriginalViewColors`,
   `OriginalNavigationStyle`, `OriginalShortcuts`, `OriginalSwitchToWB`,
-  `OriginalPartDesignSwitchToWB`, `OriginalTechDrawSwitchToWB`. Their formats are on-disk
+  `OriginalPartDesignSwitchToWB`, `OriginalTechDrawSwitchToWB`, `OriginalSketchSnapping`.
+  The last backup exists only during sketch editing. Their formats are on-disk
   contracts; do not change them without keeping old backups readable.
 - **Never overwrite a pending backup.** A leftover backup holds the real originals.
 - **Cover all three exit paths:** `DEACTIVATION_STEPS` (leave), `QUIT_REVERT_STEPS` and
@@ -110,7 +111,7 @@ session and every other workbench. The rules:
 - **Pure modules** import nothing from FreeCAD or PySide and must run under plain Python:
   `jellyjams/__init__.py`, `constants`, `palette`, `ribbon_layout`, `ribbon_model`,
   `ribbon_text`, `naming_rules`, `relations_rules`, `mate_rules`, `dialog_terms_data`,
-  `pdf_merge`, `orbit_rules`, `appearance_rules`. Put new rules logic in a pure module so it can be unit-tested.
+  `pdf_merge`, `orbit_rules`, `appearance_rules`, `surface_rules`, `access_rules`. Put new rules logic in a pure module so it can be unit-tested.
 - **Boundaries never raise.** Workbench methods, command `GetResources/Activated/IsActive`,
   observers, event filters, timers and slots catch everything (`console.guard`,
   `console.guarded`, `console.safe_call`). Event filters return `False` on internal failure.
@@ -170,12 +171,14 @@ Modules by area, with the spec that defines each area's behavior:
 | Window layout | `layout` | [window-layout.md](docs/specs/window-layout.md) |
 | Look: theme, 3D background, sketch colors | `palette`, `theme`, `viewport` | [look.md](docs/specs/look.md) |
 | Appearances: colour/finish library, native face/object/component edits and browser dock | `appearance_rules`, `appearances` | [appearances.md](docs/specs/appearances.md) |
+| Reconstructed analytic/NURBS geometry and editable surface control grids | `surface_geometry`, `surface_feature`, `surface_rules`, `local_fillet`, `surface_boolean` | [surface-geometry.md](docs/specs/surface-geometry.md) |
 | Ribbon engine | `ribbon`, `ribbon_model`, `ribbon_text`, `ribbon_widgets`, `icons` | [ribbon-engine.md](docs/specs/ribbon-engine.md) |
+| Pointer tools and document/context tab memory | `quick_access`, `access_rules` | [quick-access.md](docs/specs/quick-access.md), [ribbon-engine.md](docs/specs/ribbon-engine.md) 3.4 |
 | Ribbon content (what each tab holds) | `ribbon_layout` | [ribbon-content.md](docs/specs/ribbon-content.md) |
 | Temporary measurement task and callouts | `measure` | [measure.md](docs/specs/measure.md) |
 | Tree naming | `naming`, `naming_rules` | [naming.md](docs/specs/naming.md) |
 | SolidWorks terms in task dialogs, ISO 128 presets row | `dialog_terms`, `dialog_terms_data` | [dialog-terms.md](docs/specs/dialog-terms.md) |
-| Sketching: stay in JellyJams while sketching and while features are edited, feature from open sketch, sketch first, Sketch context icon, Centerline, Midpoint Line | `sketch_edit`, `edit_guard`, `sketch_gesture`, `sketch_tools`, `context_sketch` | [sketching.md](docs/specs/sketching.md) |
+| Sketching: stay in JellyJams while sketching and while features are edited, feature from open sketch, sketch first, Sketch context icon, Centerline, Midpoint Line | `sketch_edit`, `sketch_assist`, `sketch_dimension`, `edit_guard`, `sketch_gesture`, `sketch_tools`, `context_sketch` | [sketching.md](docs/specs/sketching.md) |
 | Add Relations panel | `panel_host` (shared with Add Mate), `relations_rules`, `relations_panel` | [relations.md](docs/specs/relations.md) |
 | Assembly: Add Mate panel, file drop, switch-to-workbench overrides (Assembly, Part Design, TechDraw), New Assembly, Rotate Component | `mate_rules`, `mate_panel`, `assembly_drop`, `switch_prefs`, `assembly_commands` | [assembly.md](docs/specs/assembly.md) |
 | Drawing sheet: Make Drawing, Sheet Properties, templates, shapes, Text, Insert Picture, on-sheet picking | `drawing_common`, `sheet_pick`, `templates`, `make_drawing`, `sheet_properties`, `sheet_sketch`, `sheet_text`, `insert_picture` | [drawing-sheet.md](docs/specs/drawing-sheet.md) |

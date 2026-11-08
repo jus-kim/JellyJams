@@ -43,6 +43,11 @@ moving to a different one reverts all of these changes.
 - **SolidWorks mouse-button mapping** using FreeCAD's native preset, with balanced horizontal
   and vertical orbit response on wide viewports. Orbit mode, pivot and sensitivity preferences
   are left unchanged.
+- **Pointer tools:** press **S** for context tools and searchable commands at the
+  pointer, including inside sketches and drawings. Search familiar names or
+  native names such as Pad. Press **D** for the active feature's native OK/Cancel
+  controls or **Exit Sketch**. The same confirmation controls appear near the
+  viewport's upper-right corner. Text-entry controls keep their S/D keys.
 - **SolidWorks keyboard shortcuts** while JellyJams is active:
 
   | Key | Action |
@@ -103,11 +108,17 @@ moving to a different one reverts all of these changes.
 ### Sketching
 
 - Opening a sketch keeps you in JellyJams (no jump to the Sketcher workbench).
+- **Snapping and automatic constraints turn on when you edit a sketch**, so native
+  drawing tools connect to the origin, sketch corners and edges. Your previous
+  settings return when editing ends. Use *Convert Entities* for external model edges.
+- **Smart Dimension's linear preview follows the pointer** when started from the
+  ribbon, without FreeCAD's extra placement gap.
 - **Sketch first:** press *Extruded Boss/Base* (or *Extruded Cut*, *Revolved Boss/Base*,
   *Revolved Cut*, *Hole Wizard*) when there is no sketch to use, and a new sketch opens instead
   of FreeCAD's "No sketch to work on" warning: pick a plane (or select a plane or flat face
-  first), draw the profile, click *Exit Sketch*, and the feature starts on that sketch. If a
-  finished sketch is already there, the feature uses it as before. The cut features (*Extruded
+  first), draw the profile, click *Exit Sketch*, and the feature starts on that sketch.
+  A single click on a plane in the picker enters the sketch. If a finished sketch is already
+  there, the feature uses it as before. The cut features (*Extruded
   Cut*, *Revolved Cut*, *Hole Wizard*) do this only once the body has a solid feature (a Pad,
   for example) to cut; before that FreeCAD tells you right away that there is nothing to cut,
   and for *Hole Wizard* the status bar says that it needs a solid to cut into. With several
@@ -178,7 +189,7 @@ JellyJams environment details with a **Copy to clipboard** button, for bug repor
 
 ## Requirements
 
-- FreeCAD **1.1.0 or newer**. Developed and tested on FreeCAD 1.1.4 on Windows.
+- FreeCAD **1.1.0 or newer**. Tested on FreeCAD 1.1.4 and 26.3 RC2 on Windows.
 - Nothing else: JellyJams uses only the Python, Qt and modules bundled with FreeCAD.
 
 ## Install
@@ -242,19 +253,18 @@ third-angle sheet templates derived from FreeCAD's templates stay cached in the
 
 ## Status
 
-Version 0.1.0, first release. On FreeCAD 1.1.4 for Windows, automated GUI tests cover the ribbon
-(all five tabs), theme, navigation, shortcuts, tree naming of a sketch, a pad and the origin
-planes, the Assembly setting override, sketch first for *Extruded Boss/Base*, staying in
-JellyJams while a feature is edited, the Orientation panel on Space, and the restore of the theme, navigation style, shortcuts,
-Assembly setting, toolbars and ribbon on leave, on quit (including a cancelled quit) and with
-JellyJams autoloaded at startup. They also cover Normal To on `Ctrl+8` and on the Evaluate tab
-(on curved faces, datums and a sketch shown through a link), `Space` and `Ctrl+8` in a sketch, in
-an undocked 3D view and with the Start page in front, `Space` on a focused check box with the
-pointer over the dialog and over the 3D view and in a dock opened later, and *Hole Wizard* in a
-body without a solid and with several bodies. All GUI results were recorded on 2026-10-28.
-The restored 3D view color values, startup crash recovery and the other sketch, assembly and drawing tools are covered by tests of their logic outside the FreeCAD GUI,
-not yet by GUI tests; a real crash has not been tested. Installing from the published repository
-through the Addon Manager has not been tested yet. Linux and macOS are not verified.
+Version 0.1.0, with compatibility updates verified on 2026-11-03 against FreeCAD 1.1.4
+and 26.3 RC2 for Windows. Each host passed 585 headless tests and 22 native GUI suites
+(616 assertions, including the supplied STEP measurement fixture), plus saved-configuration
+checks. Coverage includes the ribbon, sketch/feature editing, orientation and orbit,
+appearances, Measure, assembly and drawing helpers, surface geometry, themes, quit and
+cancelled-quit restore, autoload, forced termination and startup recovery. Representative
+1.1.4 documents also passed opening, editing, saving and reopening in 26.3.
+
+The reported intermittent assembly freeze has not reproduced in this sweep, including
+tests using copies of the user's profiles, and remains open. Installing through the
+published Addon Manager entry, Linux and macOS are not verified. These checks do not
+establish compatibility with every user document or a later FreeCAD release candidate.
 
 Details: [docs/status.md](docs/status.md). All documentation: [docs/README.md](docs/README.md).
 

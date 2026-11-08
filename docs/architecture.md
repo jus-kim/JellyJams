@@ -142,6 +142,16 @@ its temporary UI is removed on leave/quit without new preference backups.
 | [`ribbon_widgets.py`](../jellyjams/ribbon_widgets.py) | Qt widgets: `RibbonUI`, `PlainButton`, `FlyoutButton`, `ToggleButton` | runtime | ribbon-engine 2 |
 | [`icons.py`](../jellyjams/icons.py) | icon lookup: JellyJams icons from `resources/icons`, FreeCAD icons at runtime | runtime | ribbon-engine 2.7 |
 | [`ribbon.py`](../jellyjams/ribbon.py) | public API: show / hide / visibility guard / rebuild / `run_entry` / refresh / test services | runtime | ribbon-engine |
+| [`access_rules.py`](../jellyjams/access_rules.py) | native/familiar command search and per-document/context tab memory | pure | quick-access; ribbon-engine 3.4 |
+| [`quick_access.py`](../jellyjams/quick_access.py) | scoped S/D filters, searchable ribbon catalog, task-bound confirmation popup/corner | runtime | [quick-access](specs/quick-access.md) |
+
+Ribbon show/hide owns quick-access enable/disable, including quit and cancelled
+quit through the existing ribbon lifecycle steps. S/D use scoped transient
+ShortcutOverride handling; no shortcut parameters, commands or backup formats
+are added. Native form identities protect pending confirmation. Discovery runs
+from a timer, outside native widget destruction/focus callbacks. Context memory
+uses document identity plus part/sketch/assembly/drawing mode, with a bounded
+session-only cache. Every sketch entry still selects Sketch.
 
 ### 3.5 Naming and dialog terms
 
@@ -154,9 +164,35 @@ its temporary UI is removed on leave/quit without new preference backups.
 
 ### 3.6 Sketching
 
+`sketch_gesture._watch` confirms a single valid plane through the native task's
+OK button, only while its own sketch-first intent is picking in the active
+document. It recognizes both the older feature picker and 26.3's attachment
+editor. The latter already owns a new sketch and an Origin support path; resolve
+the referenced plane with `getSubObject(path, 1)`. No global click preference or
+attachment property is overridden. Native acceptance enters sketch edit, which
+the existing state machine continues to watch.
+
+`sketch_assist` watches native GUI edit boundaries and App save/close boundaries.
+Activation enables it after `sketch_edit.install`; deactivation disables it after
+`sketch_edit.uninstall`. It also disables first in quit-revert and enables last
+in quit-reapply. Its 150 ms fallback poll handles an already open sketch and hosts
+without GUI edit observers. `recovery` restores `OriginalSketchSnapping` at startup.
+The backup holds `Snap` and `SnapToObjects` as `[existed, bool-or-null]` in JSON;
+the group is `Preferences/Mod/Sketcher/Snap`. The per-sketch `Autoconstraints`
+original stays in memory and is restored before file saves and edit exit, then
+resumed after save while still editing. The global AutoConstraints preference and
+other sketches are untouched. See [sketching 2.8](specs/sketching.md#28-automatic-snapping-and-constraints).
+Automatic recovery serializes directly without start/finish-save signals. A filter
+on the specific `Gui::AutoSaver` QObject restores the view setting before its timer
+event and defers resuming until after serialization. It is removed on leave/quit;
+the application itself receives no filter. Scoped `NoModify` avoids marking a
+document modified for temporary setting changes and preserves existing property flags.
+
 | Module | Role | Kind | Spec |
 |---|---|---|---|
 | [`sketch_edit.py`](../jellyjams/sketch_edit.py) | keeps sketch editing inside JellyJams (wraps `TempoVis.activateWorkbench` while installed) | runtime | [sketching](specs/sketching.md) |
+| [`sketch_assist.py`](../jellyjams/sketch_assist.py) | native snapping and automatic constraints on sketch entry, with edit/save/quit restore and crash recovery | runtime | [sketching](specs/sketching.md) 2.8 |
+| [`sketch_dimension.py`](../jellyjams/sketch_dimension.py) | ribbon Smart Dimension's linear preview follows the pointer; viewport filter removed on next command/hide/leave/quit, no new preferences | runtime | [sketching](specs/sketching.md) 2.9 |
 | [`edit_guard.py`](../jellyjams/edit_guard.py) | keeps feature editing inside JellyJams: wraps `FreeCADGui.activateWorkbench` while installed; requests from FreeCAD command strings (a `<string>` code object in the wrapper's caller frame or the frames above it, `FRAME_SEARCH_DEPTH` = 6 frames in all, so other add-ons' wrappers in between do not hide it) wait one event-loop turn and are dropped when an object entered edit meanwhile, Python callers pass straight through; tracks whether its wrapper is still in the call chain (`_in_chain`), so a re-install under another add-on's wrapper only re-arms it | runtime | sketching 2.7 |
 | [`sketch_gesture.py`](../jellyjams/sketch_gesture.py) | feature-from-open-sketch (leave the sketch, then start the profile feature) and sketch first (`PartDesign_NewSketch` when there is nothing to use as the profile, then the feature when the new sketch is exited); container-only selections cleared, subtractive features only with a solid in the target body (`_target_body`: active body, else the only body; `_has_solid` mirrors FreeCAD's `Body::isSolid()`: a `PartDesign::Feature` in the body's `Group`), free sketches before the insert point only (`_after_insert_point`), stale plane picks dropped, retarget only for `SKETCH_FIRST_FEATURES` and, for the cutting ones, not when the target body is known and holds no solid (`_nothing_to_cut`, true only for a known target body, also used before a sketch-first starts); a cutting feature without a target body (several bodies, none active) is left to FreeCAD, which asks for the body (`_maybe_start_sketch_first` returns False, no refusal); in a target body without a solid `_refuse_without_solid` leaves Pocket and Groove to FreeCAD's own refusal (`REFUSED_BY_FREECAD`, returns False) and refuses Hole itself (status-bar text for `NEEDS_SOLID_MS` and a warning, returns True), both on a fresh press and while picking; every chain of checks (`_watch(expected)`) belongs to one sketch-first and stops once it is no longer the pending one; pure helpers `needs_new_sketch`, `advance` | runtime | sketching 2.2 and 2.6, ribbon-engine 3.6 |
 | [`sketch_tools.py`](../jellyjams/sketch_tools.py) | `JellyJams_Centerline`, `JellyJams_MidpointLine` | runtime | sketching |
@@ -226,6 +262,21 @@ its temporary UI is removed on leave/quit without new preference backups.
 
 ---
 
+### Reconstructed surface geometry
+
+`surface_geometry` (runtime, lazy Part import) rebuilds schema-1 analytic/NURBS
+supports and oriented 3D boundaries. `surface_feature` (runtime) supplies the
+persistent document proxy and native editable vector-list properties.
+`surface_rules` is pure: schema numbering and finite U-major control grids.
+`local_fillet` supplies linked, scoped constant-radius material-change tools.
+Its `RoundBase`, `RoundScope`, `Radius` and `RoundOperation` properties persist in
+documents; the radius drives recomputation through the geometry API.
+`surface_boolean` supplies linked geometry API Booleans with explicit largest-cell
+selection; its input links, operation, tolerance and cell-selection properties
+persist in documents. No application state or UI hooks are involved.
+The [surface geometry spec](specs/surface-geometry.md) defines their document
+contract. These modules install no UI hooks, commands, or preference overrides.
+
 ## 4. Import and dependency rules
 
 1. **Top-level imports** may only be: the standard library, `FreeCAD`, `FreeCADGui`, FreeCAD's
@@ -243,7 +294,7 @@ its temporary UI is removed on leave/quit without new preference backups.
    inside functions only.
 4. **Pure modules** import nothing from FreeCAD, FreeCADGui, PySide or shiboken, not even
    lazily: `__init__`, `constants`, `palette`, `ribbon_layout`, `ribbon_model`, `ribbon_text`,
-   `naming_rules`, `relations_rules`, `mate_rules`, `dialog_terms_data`, `pdf_merge`. The list
+   `naming_rules`, `relations_rules`, `mate_rules`, `dialog_terms_data`, `pdf_merge`, `surface_rules`. The list
    lives in `PURE_MODULES` in [`tests/test_headless.py`](../tests/test_headless.py), which
    checks it by AST and by running the modules in a plain interpreter.
 5. Every module must import cleanly under the headless stubs (`EXPECTED_MODULES` in the test
@@ -398,7 +449,8 @@ function is idempotent. Lifecycle schedules no timers itself.
 
 ### 5.5 Quit
 
-The appearance dock is removed first through `appearances.suspend_for_quit`.
+Sketch drawing aids are restored first through `sketch_assist.disable`, followed
+by removal of the appearance dock through `appearances.suspend_for_quit`.
 After Cancel, `appearances.resume_after_cancel` runs after `ribbon.show` and
 before `switch_prefs.apply`. The dock and timer remain intact throughout native save prompts; suspension occurs on accepted close.
 
@@ -509,7 +561,7 @@ every value, so a change is always deliberate.
 |---|---|---|
 | Identity | `ADDON_NAME`, `WORKBENCH_KEY`, `MENU_TEXT`, `MENU_NAME`, `WORKBENCH_TOOLTIP`, `LOG_PREFIX` | `LOG_PREFIX = "JellyJams: "` |
 | Parameter groups | `PARAM_ROOT`, `PARAM_RIBBON`, `PARAM_VIEW`, `PARAM_SHORTCUT`, `PARAM_ASSEMBLY`, `PARAM_PARTDESIGN`, `PARAM_TECHDRAW_GENERAL`, `PARAM_TECHDRAW_REZ`, `PARAM_TECHDRAW_FILES`, `PARAM_DOCUMENT`, `PARAM_GENERAL` | `PARAM_GENERAL` is defined but not read by any module at present |
-| Keys in `PARAM_ROOT` | `KEY_QT_FILTER`, `KEY_CONTEXT_SKETCH`, `KEY_VIEW_BACKUP`, `KEY_NAV_BACKUP`, `KEY_SHORTCUT_BACKUP`, `KEY_ASSEMBLY_BACKUP`, `KEY_PARTDESIGN_BACKUP`, `KEY_TECHDRAW_BACKUP`, `KEY_NOTE_HEIGHT`, `KEY_NOTE_UNIT`, `BACKUP_KEYS` | backup key literals are stored in users' `user.cfg` and must never change; `BACKUP_KEYS` lists all six |
+| Keys in `PARAM_ROOT` | `KEY_QT_FILTER`, `KEY_CONTEXT_SKETCH`, `KEY_VIEW_BACKUP`, `KEY_NAV_BACKUP`, `KEY_SHORTCUT_BACKUP`, `KEY_ASSEMBLY_BACKUP`, `KEY_PARTDESIGN_BACKUP`, `KEY_TECHDRAW_BACKUP`, `KEY_NOTE_HEIGHT`, `KEY_NOTE_UNIT`, `BACKUP_KEYS` | backup key literals are stored in users' `user.cfg` and must never change; `BACKUP_KEYS` lists all seven |
 | Theme markers | `THEME_BEGIN`, `THEME_END` | |
 | JellyJams objectNames | `OBJ_RIBBON`, `OBJ_RIBBON_TABS`, `OBJ_RIBBON_STACK`, `OBJ_RIBBON_SEPARATOR`, `OBJ_BTN_PREFIX`, `OBJ_FLY_PREFIX`, `OBJ_TOG_PREFIX`, `OBJ_PANEL*`, `OBJ_PANEL_DOCK`, `OBJ_CONTEXT_TOOLBAR`, `OBJ_LINE_WIDTH_PRESETS`, `OBJ_SHEET_PROPERTIES`, `OBJ_PICTURE_FORM`, `OBJ_SURFACE_FINISH`, `OBJ_WELD_SYMBOL`, `OBJ_DIAGNOSTICS_DIALOG`, `OBJ_NOTE_DIALOG`, `OBJ_SCALE_MENU`, `OBJ_PREFIX` | all start with `OBJ_PREFIX` (`JellyJams`) |
 | FreeCAD Qt names | `DOCK_TASKS`, `TASK_DOCK_CANDIDATES`, `DOCK_REPORT`, `MODEL_DOCK_CANDIDATES`, `KEPT_TOOLBAR_WORDS`, `CLASS_TASK_PANEL`, `CLASS_SHEET_WINDOW`, `CLASS_VIEW3D` | `KEPT_TOOLBAR_WORDS = ("File", "Edit", "Workbench")` |
@@ -541,6 +593,8 @@ All group paths start with `User parameter:BaseApp/Preferences/`.
 | `Mod/JellyJams` | `OriginalViewColors` | String (JSON) | viewport | while active | D18 / quit / recovery step 1 |
 | `Mod/JellyJams` | `OriginalNavigationStyle` | String (JSON) | navigation | while active | D17 / quit / recovery step 2 |
 | `Mod/JellyJams` | `OriginalShortcuts` | String (JSON) | shortcuts | while active | D16 / quit / recovery step 3 |
+| `Mod/JellyJams` | `OriginalSketchSnapping` | String (JSON) | sketch_assist | during sketch edits | edit exit / leave / quit / recovery step 5 |
+| `Mod/Sketcher/Snap` | `Snap`, `SnapToObjects` | Bool | sketch_assist | during sketch edits (True) | exact; absent keys removed |
 | `Mod/JellyJams` | `OriginalSwitchToWB`, `OriginalPartDesignSwitchToWB`, `OriginalTechDrawSwitchToWB` | String `1` / `0` / `absent` | switch_prefs | while active | D4 / quit / recovery step 4 (each key removed after its restore) |
 | `Mod/JellyJams` | `LastNoteHeight`, `LastNoteUnit` | Float (mm) / String (`mm` or `pt`) | sheet_text | yes, as a preference | kept |
 | `Mod/JellyJams/FlyoutChoices` | `<flyout id>` | String (variant entry id) | ribbon_widgets | when a variant is picked | kept |
@@ -581,6 +635,12 @@ event-loop turn and reads them then). They are stored in `.FCStd` files.
 | `SymbolType` | `App::PropertyString` (`surface` / `weld`) | JellyJams | `DrawViewSymbol` | surface_finish, weld_symbol | naming, insert_picture, sheet_drag |
 | `MaterialRemoval`, `AllAroundOutline` | String / Bool | JellyJams | surface symbol | surface_finish | surface_finish |
 | `WeldSettings`, `ArrowheadX`, `ArrowheadY` | String (JSON) / Float / Float | JellyJams | weld symbol | weld_symbol | weld_symbol |
+
+Reconstructed geometry additionally stores `GeometryDefinition`, `GeometryError`,
+`SourceFeatureName`, optional reference-only `SourceNominalRadius`, and editable
+`SurfaceNNPoles` in the `JellyJams` property group. Schema 1 is defined in
+[surface-geometry.md](specs/surface-geometry.md); its values contain mathematical
+geometry, not external files or serialized BREP.
 
 ### 7.4 Files outside documents
 

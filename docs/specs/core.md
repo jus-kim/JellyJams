@@ -174,6 +174,11 @@ FreeCAD calls Activated each time the user switches **to** JellyJams, and also w
 
 ### 4.5 Leaving the workbench: Deactivated
 
+The activation code inserts `sketch_assist.enable` immediately after
+`sketch_edit.install` within A9. It inserts `sketch_assist.disable` immediately
+after `sketch_edit.uninstall` within D10 on leave. These watch sketch editing
+without changing idle preferences ([sketching.md](sketching.md) 2.8).
+
 FreeCAD calls Deactivated when the user switches **away** from JellyJams to another workbench. It does **not** call it on quit (section 6.6). The steps run in **reverse order**, each guarded on its own like in Activated, with an error that names the feature:
 
 | # | Step | Result |
@@ -250,6 +255,10 @@ an ultrawide viewport makes horizontal orbiting much slower.
   leaves no hook behind. No new persistent setting or backup format is introduced.
 
 ### 4.8 SolidWorks keyboard shortcuts (A5, D14)
+
+Plain S/D pointer tools use transient scoped event handling owned by ribbon
+visibility, rather than parameter overrides. Their typing, modal and cleanup
+rules are defined in [quick-access.md](quick-access.md).
 
 While JellyJams is active, `Preferences/Shortcut` holds these overrides (`shortcuts.SHORTCUTS`, in this order):
 
@@ -339,6 +348,18 @@ No Deactivated and no quit guard run. Backups remain in `user.cfg` if FreeCAD ha
 ---
 
 ## 7. Startup crash recovery
+
+`OriginalSketchSnapping` additionally restores `Snap` and `SnapToObjects` in
+`Preferences/Mod/Sketcher/Snap` through `sketch_assist.recover`. Its JSON object
+maps each key to `[existed, bool-or-null]`; absent keys use `[false, null]`.
+This backup exists only while a sketch edit is active, so idle activation
+acceptance checks do not require it. Successful recovery removes the backup and
+reports the snapping preferences left by an unclean exit.
+
+Quit-revert runs `sketch_assist.disable` before the appearance-dock step, and
+quit-reapply runs `sketch_assist.enable` after all other steps. The original
+per-sketch `Autoconstraints` value is also restored before document serialization;
+the temporary value must never be saved in a model (sketching 2.8).
 
 Runs from `InitGui.py` at every GUI startup, after workbench registration. It runs before any workbench activation and whether or not JellyJams will be used in this session.
 

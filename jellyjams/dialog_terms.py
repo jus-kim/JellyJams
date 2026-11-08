@@ -92,6 +92,7 @@ def process_once():
 
 def process_form(form):
     form_name = _object_name(form)
+    form_name = data.FORM_ALIASES.get(form_name, form_name)
     spec = data.FORMS.get(form_name)
     if spec is None:
         return 0
@@ -247,12 +248,12 @@ def _find_forms(window):
     global _form_pattern
     try:
         if _form_pattern is None:
-            names = "|".join(QtCore.QRegularExpression.escape(name) for name in data.FORM_NAMES)
+            names = "|".join(QtCore.QRegularExpression.escape(name) for name in data.FORM_OBJECT_NAMES)
             _form_pattern = QtCore.QRegularExpression("^(?:%s)$" % names)
         return list(window.findChildren(QtWidgets.QWidget, _form_pattern))
     except TypeError:
         forms = []
-        for name in data.FORM_NAMES:
+        for name in data.FORM_OBJECT_NAMES:
             forms.extend(window.findChildren(QtWidgets.QWidget, name))
         return forms
 

@@ -54,7 +54,7 @@ def _paintable(obj):
     if view is None:
         return False
     if _is_link(obj):
-        return hasattr(view, "ShapeMaterial") and hasattr(view, "OverrideMaterial")
+        return (hasattr(view, "ShapeMaterial") or hasattr(view, "ShapeAppearance")) and hasattr(view, "OverrideMaterial")
     return _face_count(obj) > 0 and hasattr(view, "ShapeAppearance")
 
 
@@ -169,7 +169,11 @@ def apply_appearance(appearance, scope=0):
         for obj, faces in chosen:
             view = obj.ViewObject
             if _is_link(obj):
-                view.ShapeMaterial = _material(values)
+                if hasattr(view, "ShapeMaterial"):
+                    view.ShapeMaterial = _material(values)
+                else:
+                    # 26.3 exposes the local link material as a material list.
+                    view.ShapeAppearance = [_material(values)]
                 view.OverrideMaterial = True
             elif faces is None:
                 view.ShapeAppearance = [_material(values)]

@@ -185,7 +185,8 @@ def check_double_click():
     panel.transparency.setValue(0)
     panel.apply_button.click()
     note("component_uses_native_local_override", link.ViewObject.OverrideMaterial
-         and abs(link.ViewObject.ShapeMaterial.DiffuseColor[0] - 223 / 255) < .001)
+         and abs((link.ViewObject.ShapeMaterial if hasattr(link.ViewObject, "ShapeMaterial")
+                  else link.ViewObject.ShapeAppearance[0]).DiffuseColor[0] - 223 / 255) < .001)
     note("component_colour_does_not_change_source", snapshot(box) == STATE["source_before"])
     note("sibling_component_unchanged", not sibling.ViewObject.OverrideMaterial)
     doc.undo()

@@ -3,7 +3,7 @@
 JellyJams has two test layers:
 
 1. **Headless suite**: [`tests/test_headless.py`](../tests/test_headless.py) with
-   [`tests/headless_stubs.py`](../tests/headless_stubs.py). 559 tests against stubbed
+   [`tests/headless_stubs.py`](../tests/headless_stubs.py). 640 tests against stubbed
    `FreeCAD` / `FreeCADGui` modules and an offscreen Qt. No FreeCAD window, no profile touched.
    Run it before every commit.
 2. **GUI acceptance scripts**: [`tests/gui_smoke.py`](../tests/gui_smoke.py),
@@ -15,7 +15,64 @@ JellyJams has two test layers:
 Current results and what is still unverified: [status.md](status.md). Behavior the tests check
 against: [specs/README.md](specs/README.md).
 
+`python tests/run_gui.py --suites quick_access` checks S/D against live native
+shortcut conflicts, sketch/part/assembly/drawing contexts, searchable flyout
+variants, native command dispatch, typing protection, selection, native Pad
+accept/cancel, disabled controls, task/document identity, per-document tab
+return (including drawing-to-sketch-to-3D), service cleanup and unchanged
+shortcut parameters (**44 checks**).
+It writes popup/corner screenshots. Run popup suites on one GUI host at a time:
+Windows dismisses native popups when another FreeCAD window gains foreground.
+Native quantity edits use `rawValue`; writing an undeclared Qt `value` property
+can create a dynamic property without changing the feature.
+
+`python tests/run_gui.py --suites plane_pick` checks one-choice sketch entry in
+fresh documents, including real viewport clicks on XY/XZ/YZ planes, the legacy
+picker's list (or a native plane-selection event on 26.3's attachment editor),
+correct support, one sketch, JellyJams staying active and cancellation. It seeds
+native double-click selection in its disposable config and checks that the
+production code leaves that preference unchanged. Coin ray queries identify an
+exposed plane face before exactly one native mouse click.
+
+`python tests/run_gui.py --suites sketch_assist` checks automatic native sketch
+snapping and auto constraints with disposable configs. It seeds disabled/absent
+snap keys and a sketch with auto constraints off, draws a line using viewport
+mouse events near the origin and an existing endpoint, and checks Coincident
+constraints, serialized originals when saving during edit, exit/reentry, leave,
+quit-revert/Cancel-reapply, already open sketches and absent-key restoration.
+It also delivers a native AutoSaver timer event and inspects the serialized
+recovery file, then verifies live resumption and filter removal on leave.
+`--suites crash recover` additionally covers persisted snapping recovery after
+abrupt termination while a sketch is being edited.
+On Windows that test terminates its own process with `TerminateProcess` to bypass
+C-runtime/DLL cleanup with live editor threads; other platforms use `os._exit`.
+The runner still requires exit code 86 and a complete result before recovery.
+
+`--suites smart_dimension` uses native viewport events to check linear preview
+alignment for horizontal/vertical edges, repeated movement, confirmation,
+continuous creation, Escape cancellation, subsequent tools and workbench leave.
+It records model-space label distances and errors in logical screen pixels;
+all configs and output are disposable. Radius/angle/arc-length preview behavior
+is deliberately native and is not certified by these pointer checks.
+
 ## Automated runner and CI (2026-10-29)
+
+The default runner now includes 26 suites. `host_compatibility` checks 23 native
+drawing-dialog and document-task behaviors on both FreeCAD 1.1.4 and 26.3 RC2:
+Balloon/annotation terminology, line visibility and ISO presets, and closing
+Measure without closing a different document's sketch task. `surface_geometry`
+adds 27 checks for the reconstructed geometry and linked feature modules.
+
+Run the complete newer-host sweep with:
+
+```powershell
+python tests/run_gui.py --freecad "C:/Program Files/FreeCAD 26.3/bin/FreeCAD.exe" --timeout 300
+& "C:/Program Files/FreeCAD 26.3/bin/python.exe" tests/test_headless.py
+```
+
+The headless harness locates the bundled Qt plugin directory for both install
+layouts, including 26.3's `lib/qt6/plugins`, before creating its offscreen Qt
+application. No machine-wide environment changes are needed.
 
 `python tests/run_gui.py --suites report_view report_startup` verifies preservation
 of a closed Report view in real FreeCAD. The first process checks activation,
@@ -57,11 +114,16 @@ in `gui_appearances.py`, which runs separately in real FreeCAD with scratch prof
 
 Pointer-dependent orientation checks use the widget's own screen in
 `QCursor.setPos(screen, point)` and record requested/actual cursor coordinates.
+They try exposed positions and confirm native hit testing before sending keys,
+so an overlay covering the center does not invalidate the input setup.
 The no-screen overload targets the primary screen; the explicit screen avoids
 that assumption on mixed-DPI desktops ([Qt 6.8 QCursor documentation](https://doc.qt.io/qt-6.8/qcursor.html)).
 Orbit cleanup comparisons recreate the baseline viewport dimensions after stock
 dock/toolbars are restored, because native orbit response depends on viewport
-size. Neither harness adjustment changes production Space routing or navigation.
+size. If Windows clips the outer window to the monitor's maximum track size,
+the test temporarily fixes the viewport size and restores its constraints after
+comparison. The exact-size and response assertions remain unchanged. Neither
+harness adjustment changes production Space routing or navigation.
 
 To run all real FreeCAD suites locally, with JellyJams already installed:
 
@@ -81,7 +143,8 @@ config files. Keep other FreeCAD windows closed and avoid input during tests.
 
 The runner exits nonzero for a failed process, timeout, missing result, exception,
 failed assertion, insufficient check count or incomplete five-tab capture. It also
-runs `check_saved_cfg.py` after Discard and writes `summary.json`. The `crash`
+runs `check_saved_cfg.py` after Discard and Save, retaining separate
+`discard_saved_cfg.json` and `save_saved_cfg.json`, and writes `summary.json`. The `crash`
 process deliberately exits 86 after saving active preferences; only that suite
 accepts that exit code. `test_gui_runner.py` tests result validation without Qt.
 

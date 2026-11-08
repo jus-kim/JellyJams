@@ -1,12 +1,321 @@
 # Implementation and test status
 
-Status of JellyJams **0.1.0** as of **2026-11-01**, measured on **FreeCAD 1.1.4 (Windows)**.
+Status of JellyJams **0.1.0** as of **2026-11-05**, measured on **FreeCAD 1.1.4 and 26.3 RC2 (Windows)**.
 This page is the record of what is built, what is verified, and what is open. The behavior
 it is measured against is defined in the [specifications](specs/README.md). How to run every
 test mentioned here: [testing.md](testing.md).
 
 After any code change, re-run the suites and update this page (see
 [Updating this page](#updating-this-page)).
+
+## Pointer tools and document context (2026-11-05)
+
+Implemented the first versions of audit items **UX01, UX02 and UX04**:
+
+- **S:** tools for the current part, sketch, assembly or drawing, plus searchable
+  ribbon commands and flyout variants. Familiar and native names both match.
+  Dispatch uses the ribbon route and rechecks document/context/availability.
+- **D and viewport corner:** native OK/Cancel for the active feature, or
+  Exit Sketch. Disabled native buttons stay disabled. Native document ownership
+  and form identities reject foreign or stale task controls.
+- **Context tabs:** new parts start on Features; document/mode choices return
+  when switching windows; every sketch-edit entry selects Sketch. Manual tab
+  changes are respected until the next context transition.
+
+The service is owned by ribbon visibility and existing quit/reapply paths.
+S/D use scoped transient filters, preserve typing and selection, and add no
+shortcut settings, backup formats or document properties. Specs:
+[quick access](specs/quick-access.md), [ribbon context](specs/ribbon-engine.md#34-document-and-edit-context).
+
+Full headless suites pass **640/640 on both bundled Python runtimes** (1.1.4:
+40.6 seconds; 26.3 RC2: 40.2 seconds), including **19 new quick-access tests**.
+The drawing sketch's prior tab also returns when FreeCAD leaves the 3D window
+active, including document switches during edit. The initial
+S popup is a searchable list; customizable icon grids, the shared left manager
+and the remaining audit proposals are future work. Undocked/split windows and
+every native task type have not been newly certified.
+
+Native Windows regression checks, always with disposable configs:
+
+| Suite | 1.1.4 | 26.3 RC2 |
+|---|---:|---:|
+| Quick access, native confirmation and document/context return | 44/44 | 44/44 |
+| Smoke: ribbon, theme, navigation, shortcuts and restore | 31/31 | 31/31 |
+| Sketch-first and feature editing | 20/20 | 20/20 |
+| Orientation and keyboard ownership | 84/84 | 84/84 |
+| Quit Cancel / Discard / Save / autoload | 16/16; 9/9; 9/9; 6/6 | 16/16; 9/9; 9/9; 6/6 |
+| Earlier reported bugs: linear dimension / sketch assist / one plane choice | 22/22; 35/35; 35/35 | 22/22; 35/35; 35/35 |
+
+Results: 1.1.4 `scratch/gui_m3wnrkmx` (broader lifecycle/ribbon checks),
+`scratch/gui_1m02mzay` (orientation), `scratch/gui_jv56e0mf` (final quick access),
+`scratch/gui_muuavqdm` (reported sketch bugs); 26.3 RC2 `scratch/gui_y5xg5pix`
+(broader lifecycle/ribbon/orientation checks), `scratch/gui__dgojtc0` (reported
+sketch bugs), `scratch/gui_9wkxp62a` (final quick access). Discard/Save include the runner's saved-config checks. Earlier
+popup/quantity-field harness failures were corrected; the passing reruns are
+listed here. New popup and corner screenshots were visually inspected: native
+icons, readable text/selection in the dark palette and no clipping. Popup suites run one host
+at a time because foreground changes dismiss native popups.
+
+## Interface audit and roadmap (2026-11-05)
+
+The [interface audit](audits/2026-11-05-interface-audit.md) compares the running
+SolidWorks Design Professional 2026 SP4.0 part/sketch workflow with current
+JellyJams on 26.3 RC2. It includes current official 2027 documentation, whose
+readable What's New PDF is marked PRERELEASE, a proposed layout schematic,
+28 prioritized improvements and a native acceptance plan. Assembly/drawing
+findings use code, specs, official references and earlier verification records;
+they are not a new full manual comparison of those workflows.
+
+An isolated native probe confirmed a 290-pixel idle Tasks dock in an 1800-pixel
+window, retained Drawing-tab selection on a part, native numeric-input support,
+and remaining differences in task headers, sketch status and preview appearance.
+Live Windows capture displayed geometry correctly; artifacts in Qt OpenGL grabs
+are not classified as a rendering bug. The fresh five-tab capture completed
+without errors under `scratch/gui_0emxjmr1`. The interactive fixture used only
+`scratch/ux_audit_live/user.cfg` and `system.cfg`.
+
+The initial audit delivered documentation and original schematic artwork;
+runtime code was unchanged at that point. Its 619-test baseline is historical.
+The implementation follow-up above records the subsequently implemented items
+and new verification; other proposals remain future work.
+
+## Single-click sketch-first plane selection (2026-11-05)
+
+In a fresh file, Extruded Boss/Base now enters sketch edit after a single plane
+choice. The existing sketch-first watcher confirms the native dialog only for
+one valid plane in its own pending document. FreeCAD 26.3 creates the sketch
+before opening `PartGui::TaskAttacher`; its support must resolve to one plane
+and its attachment mode must be active. Older hosts use the selected plane row
+in `PartDesignGui::TaskFeaturePick`. Both paths press the native enabled OK
+button; the older host's button box sits beside the task panel. No preferences
+or document properties are overridden.
+
+Native Windows checks use disposable configs with
+`Selection/singleClickFeatureSelect` explicitly false. The new `plane_pick`
+suite passes **35/35 on both 1.1.4 and 26.3 RC2**: actual single viewport clicks
+on XY/XZ/YZ, the legacy list or 26.3 selection notification, correct support,
+exactly one sketch, staying in JellyJams, waiting before choosing, native Cancel
+and the preference staying false. Results: `scratch/gui_1v3nwpxx` (1.1.4) and
+`scratch/gui_f8dgdwm_` (26.3). Coin face queries include the camera to find an
+exposed click position; navigation animation is disabled only in the disposable
+test profile. No OS pointer warping or repeated clicks are used.
+
+The existing sketch-first GUI suite passes **20/20 on both hosts**, including
+starting the extrusion after leaving a drawn sketch (`scratch/gui_poi5_av8`
+and `scratch/gui_k0gxlf7f`). Seven headless regressions cover valid/invalid,
+hidden/disabled/multiple rows, stale intents/documents, unrelated tasks,
+attachment support paths and the older sibling button box.
+The full headless suite passes **619/619 on each host**; the GUI result-validator
+suite passes **10/10**, and `git diff --check` is clean.
+
+Unverified: every datum-plane placement, keyboard-only plane selection and
+undocked viewport configurations in real FreeCAD. This change intentionally
+confirms only planes during the pending sketch-first flow.
+
+## Smart Dimension preview follows the pointer (2026-11-04)
+
+The ribbon's existing native Smart Dimension command now removes FreeCAD's
+deliberate linear-preview gap (about 20 logical pixels in the 26.3 RC2 probe at
+125% scaling). `sketch_dimension` delivers each native mouse move once, then
+corrects only the new linear label distance. It never warps the pointer or
+changes dimension values. Confirmed/pre-existing labels stay fixed; native
+dialogs, Escape, continuous creation and type inference remain native.
+The temporary viewport filter is stopped by subsequent ribbon commands and
+ribbon hide/leave/quit. No persistent preferences, commands or lifecycle steps
+were added. Radius, angle and arc-length previews retain native placement.
+
+Verification on Windows with disposable configs:
+
+| Check | FreeCAD 1.1.4 | FreeCAD 26.3 RC2 |
+|---|---:|---:|
+| Full headless suite, including 8 preview regressions | 612/612 | 612/612 |
+| Native Smart Dimension: horizontal/vertical preview alignment, repeated moves, native confirmation, continuous creation, Escape, labels staying fixed, other tools and leave | 22/22 | 22/22 |
+| Smoke / sketch-first regression | not rerun for this change | 31 / 20 |
+
+Native results: `scratch/gui_8wq3x9as` (1.1.4) and `scratch/gui_m_1fi3p5`
+(26.3 RC2). The earlier 26.3 smoke/sketch run is under `scratch/gui_3lu8zwsv`.
+The result-validator suite passes 10/10; `git diff --check` is clean.
+
+The native tests use synthetic viewport events without also warping the OS
+pointer, avoiding duplicate asynchronous mouse moves. They end the continuous
+native tool before destroying the document. Early 1.1.4 test runs hit native
+heap corruption (3221226356) when directly closing an edited document with
+Dimension still active; a separate control run with only native Dimension and
+no preview correction reproduced the same exit in `scratch/dimension_baseline`.
+Final runs exit normally after leaving the sketch first. This change does not
+repair that older-host native document-close problem.
+
+Unverified: every dimension geometry/type, perspective/undocked views in real
+FreeCAD and native shortcuts outside ribbon dispatch. Camera-size math includes
+portrait views and rejects invalid inputs in headless tests. 1.1's temporary
+arrow cursor around its value dialog is covered by a regression so it does not
+disable correction for the next dimension.
+
+## Automatic sketch drawing aids (2026-11-04)
+
+`sketch_assist` now enables native `Snap`, `SnapToObjects` and the edited view's
+`Autoconstraints` on sketch entry in JellyJams, including an already open sketch
+on workbench entry. It restores originals on exit, leave and quit, supports the
+quit/Cancel fallback and recovers snapping preferences at startup after a crash.
+Auto constraints are restored before saving the document and resumed afterward;
+other sketches and the global AutoConstraints preference are unchanged. Scoped
+`NoModify` protects the document's modified state during temporary view-property
+writes. No automatic external-geometry projection or grid snapping is added.
+
+Verification on Windows, using only disposable `-u` / `-s` configurations:
+
+| Check | FreeCAD 1.1.4 | FreeCAD 26.3 RC2 |
+|---|---:|---:|
+| Full headless suite, including 15 sketch-aid regressions | 602/602 | 602/602 |
+| Native sketch aids: origin/corner/edge snapping, Coincident/PointOnObject, normal and automatic-recovery serialization, status flags, close/reentry/leave/quit hooks | 35/35 | 35/35 |
+| Smoke / sketch first / Cancel / Discard | 31 / 20 / 16 / 9 | 31 / 20 / 16 / 9 |
+| Saved configuration after Discard | 7/7 | 7/7 |
+| Forced termination during sketch editing / startup recovery | 2 / 3 | 2 / 3 |
+
+The GUI result-validator suite also passes 10/10. Final native aid results are
+under `scratch/gui_jskzn1qk` (1.1.4) and `scratch/gui_a708j29s` (26.3); final
+forced-termination/recovery results are under `scratch/gui_xrzf9w63` and
+`scratch/gui_8rbdxqmi`. Other regression results are under `scratch/gui_n5nxp44x`
+and `scratch/gui_k73wzij5`.
+
+Two 26.3 forced-exit attempts saved all assertions and recovered preferences
+correctly, but Windows aborted in the C-runtime exit path (3221226505 instead
+of 86). The test now calls `TerminateProcess` on itself on Windows, bypassing
+native editor-thread cleanup; the final runs require and pass exit code 86.
+This is a test-harness change, not a production quit path.
+
+Unverified: every sketch geometry tool and every external-reference scenario;
+the native pointer checks use lines and existing sketch geometry. The automatic
+recovery check uses the default compressed recovery format. It does not add or
+claim automatic projection of solid edges into sketches.
+
+## FreeCAD 26.3 RC2 compatibility sweep (2026-11-03)
+
+The existing workbench works on both tested hosts after targeted compatibility fixes;
+it does not need a rewrite. The installed hosts were 1.1.4 R20260928 (`4fd3bf320`,
+Python 3.11 / Qt 6.8.3) and 26.3.0 RC2 R20261018 (`9fb16e7f9`, Python 3.13.15 /
+Qt 6.11.2). These results apply to these Windows builds, not a later release candidate.
+
+Fixed the following differences, with headless regression tests and native GUI checks:
+
+- Task panels now sit inside wrappers and a stack for individual documents. Add Mate
+  and Add Relations find the visible native panel, including when its dock tab is hidden.
+- Measure closes the task belonging to its original document. It also cleans up the
+  older application's global task when its document is deleted, without closing a
+  different document's sketch task on 26.3.
+- Component appearances use `ShapeAppearance` on 26.3 and `ShapeMaterial` on 1.1.
+  Overrides remain local to the selected link; its source and sibling links are preserved.
+- Assembly's native resource module is loaded before its Python commands on 26.3,
+  so the ribbon receives the native icons. That module is optional on 1.1.
+- Task-dialog discovery accepts Qt's compiled `__` names as well as `::` names.
+  Balloon, Rich Text Annotation and Line Format controls receive the intended terms
+  and the ISO thickness preset row on both hosts.
+
+The harness also now finds each bundled Qt plugin directory, targets exposed screen
+positions for pointer tests, samples sketch backgrounds away from the green axis,
+and compares orbit angles using the same complete 3D-view size even when Windows
+limits the main-window size. Assertions and tolerances were retained.
+
+Final accepted results, from complete sweeps plus targeted reruns after fixes:
+
+| Verification | 1.1.4 | 26.3 RC2 |
+|---|---:|---:|
+| Headless suite | 585/585 | 585/585 |
+| Native GUI suites | 22/22 | 22/22 |
+| Assertions within those suites | 616/616 | 616/616 |
+| Saved configuration checks, Save and Discard exits | 14/14 | 14/14 |
+| Additional assembly checks using copies of the user's profiles | 104/104 | 104/104 |
+| Opening, editing and resaving 1.1.4 fixture documents in 26.3 | source host | 22/22 |
+
+The GUI coverage includes all five ribbon tabs; sketch and feature editing;
+orientation and orbit; Measure; native appearance editing and persistence;
+assembly creation, mates and tree actions; drawing helpers and exports; reconstructed
+surface geometry; Report view behavior; light/dark themes; leave, cancelled quit,
+Save/Discard quit, autoload, forced termination and startup recovery. The supplied
+`moddoMOUISE_A1 Part 2.stp` was also exercised in Measure on both hosts (83 assertions
+instead of the default 72), including its 1.500 mm distance and 0.925 mm clearance.
+
+The migration probe checked face materials, local link overrides, surface/fillet/Boolean
+Python proxies, driving pole and radius edits, dependent recompute, drawing projections
+and external source links, PDF export, and the assembly container. Saved copies reopened
+successfully. The original 1.1.4 fixtures were unchanged. This is representative file
+compatibility evidence, not verification of every existing user document.
+
+All GUI runs used disposable `-u` / `-s` configurations. Additional assembly runs used
+copies of the two real profiles, and before/after hashes confirmed that their original
+configuration files were unchanged. The reported intermittent assembly freeze did not
+reproduce; it remains open and is not claimed fixed. Linux/macOS, installation through
+the published Addon Manager entry, and the user's complete shell reconstruction remain
+outside this verification. Earlier dated sections below retain their historical results;
+this sweep supersedes their host/coverage summaries where explicitly covered here.
+
+Evidence (local, git-ignored):
+
+- Consolidated per-suite provenance: `scratch/rc263_verification.json`.
+- Headless logs: `scratch/rc263_final_headless.log` and `scratch/rc263_final_headless114.log`.
+- Full 26.3 run: `scratch/gui_esspxcko`; final host/Measure reruns: `scratch/gui_siwn5gu1`;
+  final orbit rerun: `scratch/gui_4ge2e_1x`.
+- Full 1.1.4 run: `scratch/gui_fhk8atj_`; final host/Measure reruns: `scratch/gui_qq_a83h8`.
+- Copied-profile assembly results: `scratch/rc263_profile_checks.json` and the two folders it names.
+- Cross-version migration: `scratch/rc263_migration/migration.json` and saved copies beside it.
+
+Initial failed runs are retained. The 26.3 full run needed the orbit harness correction;
+the 1.1.4 full run exposed the legacy Measure cleanup regression and an incorrect native
+dialog test setup. Their final replacements above pass. No result file from a failed
+run was edited to claim success.
+
+### Existing FreeCAD MCP integration
+
+The installed **FreeCADMCP 0.1.28** add-on works with 26.3 RC2. Its existing RPC server
+is bound to `127.0.0.1:9875`, with remote access disabled. A `freecad` stdio MCP entry
+was registered in the local Codex configuration, using the existing `freecad-mcp.exe`
+and the 26.3 `FreeCADCmd.exe`; startup/tool timeouts are 30/180 seconds. This uses the
+separate installed add-on and bridge, not an assumption that MCP is built into FreeCAD core.
+
+Actual MCP protocol tests discovered 17 tools and verified document/object creation,
+parameter editing, valid geometry and volume, viewport image retrieval, save/reopen,
+asynchronous execution/status, RPC status, a headless Boolean operation, and reconnection
+across GUI restarts. They used disposable profiles and scratch documents. A native modal
+dialog blocks GUI dispatch as designed; the headless route was verified separately.
+Not every individual tool, such as FEM operations, was exercised.
+
+Evidence: `scratch/rc263_mcp_catalog.json`, `scratch/rc263_mcp/acceptance.json`,
+`scratch/rc263_mcp/headless_acceptance.json`, and `scratch/rc263_mcp/reconnect.json`.
+The current chat's tool catalog does not dynamically gain the new entry: **restart Codex
+once to load the registered FreeCAD tools**. No Codex restart was forced during the sweep.
+
+## Reconstructed surface geometry (2026-11-02)
+
+Added document-level analytic/NURBS geometry tools for source blends that cannot
+be reconstructed with the native fillet operator. Mathematical supports and 3D
+boundaries are stored in schema-1 JSON; B-spline poles use editable native
+vector-list properties. The original radius is explicitly read-only provenance,
+not a driving fillet parameter. No application/UI overrides or commands are added.
+
+The codec resolves periodic trim complements using reference face areas, handles
+small ellipse radii, and retains feature placement through recompute failures.
+Invalid edits clear stale geometry and expose a Report-view error; valid edits
+recover. See [surface geometry](specs/surface-geometry.md).
+
+Added a linked local fillet change tool for cases where the constant-radius
+geometry API works on an isolated region but the standard feature fails. Its
+native `Radius` property drives recomputation; input edges and the box scope are
+document links. Standard Boolean/mirror objects apply its material change. A full-result mode
+uses the complete input without a scope and returns the rounded solid.
+
+Mathematical definitions now retain shared edge identities and optionally original
+UV trimming curves, avoiding another projection for supported surface trims. Added
+linked geometry API Boolean features with explicit largest-solid selection and a
+read-only discarded-cell count; this can select the valid main solid when the kernel
+returns additional cells. The option defaults off for general creation. Unions
+that lose the main input solid are rejected instead of accepting an isolated tool cell.
+
+Validation: **575/575 headless**, zero failures/errors/skips
+(`scratch/surface_headless.log`); real FreeCAD 1.1.4 **27/27** with disposable
+profiles (`scratch/surface_geometry.json`): primitive/ellipse/periodic-trim
+round trips, pole edits and dependent updates, save/reopen/proxy restoration,
+placement, local driving-radius edits, invalid-edit recovery and staying in JellyJams. The user's complete
+shell reconstruction is still in progress and is **not yet verified**.
 
 ## MIT licensing (2026-11-01)
 
@@ -482,7 +791,7 @@ from tests of an internal helper; it does not promote helper checks into button 
 | Text | Helper creates a real multiline annotation | Sheet pick and modal editor gestures |
 | Centerline, Midpoint Line | Processing modes modify real Sketcher geometry/constraints | Full command + pointer drawing + end gesture |
 | Line/Rectangle/Circle/Arc/Polygon on sheet | Headless helpers and resources | Full edit/frame/undo workflow in FreeCAD |
-| Line Format | Headless selection helper and resources | Native decoration panel and ISO preset clicks |
+| Line Format | Headless selection helper/resources; native panel terminology and ISO preset activation on both hosts (2026-11-03) | Pointer-driven preset selection and the complete edit/undo workflow |
 | Save as PDF, Export DXF | Helpers produce real single/multi-sheet PDF and DXF; PDF independently rendered | Export button + native save dialog, DXF round trip, merge fallback collisions |
 | Diagnostics | Headless formatting/resources | Opening and copying from the live dialog |
 
@@ -591,6 +900,7 @@ code against fake documents and a fake transaction API; they check logic, not Fr
 | Window layout | [window-layout.md](specs/window-layout.md) | Toolbars, restore, autoload Implemented; panel docking Partial | Test11 | gui_smoke, gui_lifecycle |
 | Look | [look.md](specs/look.md) | Theme block and backups Implemented; rendered colors Not verified | Test10 | gui_smoke, gui_lifecycle |
 | Ribbon engine | [ribbon-engine.md](specs/ribbon-engine.md) | Partial | Test13RibbonBuild, Test13RibbonText | gui_smoke, gui_tabs |
+| Pointer tools and context memory | [quick-access.md](specs/quick-access.md), [ribbon-engine.md](specs/ribbon-engine.md) 3.4 | Implemented initial scope; undocked/split views and other task types need coverage | Test40QuickAccess | gui_quick_access |
 | Ribbon content | [ribbon-content.md](specs/ribbon-content.md) | Structure Implemented; button behavior Partial; labels open for review | Test13RibbonModel | gui_smoke (`ribbon_matches_model`, `jj_plain_buttons`), gui_tabs, gui_orientation (`evaluate_ribbon_normal_to_*`) |
 | Tree naming | [naming.md](specs/naming.md) | Partial | Test14 (rules), Test22TreeNaming (observer) | gui_smoke (Body, Sketch, Pad, origin planes) |
 | Dialog terms | [dialog-terms.md](specs/dialog-terms.md) | Partial | Test18 (synthetic forms) | none |
@@ -716,7 +1026,7 @@ Spec: [dialog-terms.md](specs/dialog-terms.md). Code: [`dialog_terms.py`](../jel
 | Combo safety rule (relabel only when the entry count matches 1.1.4) | Partial | H `Test18DialogTerms.test_combo_count_safety_rule` | AC 8 not run in FreeCAD. |
 | Service: 250 ms check, no widget lookups while no task dialog is open, start/stop idempotent | Partial | H `Test18DialogTerms`: `test_process_once_is_idle_without_dialog`, `test_format_weight_and_service` | Timing and resilience in FreeCAD (AC 6, 7, 9, 10) not verified. |
 | Scale-field fix (Section View, Aligned Section) | Partial | H `Test18DialogTerms.test_scale_field_fix` | AC 14, 16 not run in FreeCAD. |
-| ISO 128 line-thickness presets row in Line Format | Partial | H `Test18DialogTerms`: `test_weight_presets_row`, `test_weight_presets_edge_cases` | AC 21 to 23 not run in FreeCAD. |
+| ISO 128 line-thickness presets row in Line Format | Partial | H `Test18DialogTerms`: `test_weight_presets_row`, `test_weight_presets_edge_cases`; G `gui_host_compatibility.py` on both hosts | Native row and preset activation verified on 2026-11-03; the full pointer-driven AC 21 to 23 workflow remains unverified. |
 | Language independence | Not verified | none | AC 24. |
 
 ### Sketching
@@ -811,7 +1121,7 @@ Spec: [drawing-symbols-export.md](specs/drawing-symbols-export.md). Code: [`surf
 |---|---|---|---|
 | Surface Finish (`JellyJams_SurfaceFinish`) | Not verified | H `Test19DrawingHelpers`: `test_surface_finish_svg` (SVG, editable texts, rotation parsing), `test_surface_finish_tables` | AC 4 to 14. |
 | Weld Symbol (`JellyJams_WeldSymbol`) with arrow-follow watcher | Not verified | H `Test19DrawingHelpers.test_weld_symbol_data_and_svg` (`DEFAULT_DATA`, `merge_data`, `build_svg`) | AC 15 to 29. |
-| Line Format (`JellyJams_LineFormat`) | Not verified | H presets row: `Test18DialogTerms.test_weight_presets_row`, `test_weight_presets_edge_cases` | `has_view_edge` has no test. AC 30 to 35. |
+| Line Format (`JellyJams_LineFormat`) | Partial | H presets row: `Test18DialogTerms.test_weight_presets_row`, `test_weight_presets_edge_cases`; G `gui_host_compatibility.py` | Native panel terminology/preset activation verified on both hosts; complete AC 30 to 35 workflow remains unverified. |
 | PDF merge without third-party libraries | Implemented | H `Test20PdfMerge`: `test_merge_two_qt_pdfs`, `test_incremental_update_is_rejected`, `test_xref_stream_and_garbage_are_rejected` | Verified on PDFs written by Qt's `QPdfWriter`. "Opens in two PDF viewers" (AC 45) is a manual check. |
 | Save as PDF (`JellyJams_SaveAsPDF`) | Partial | H `Test19DrawingHelpers.test_export_naming` (`sanitize`, `suggested_base`, `per_sheet_paths`); merge as above | Export from real TechDraw pages (AC 36 to 42, 44) not verified. |
 | Export DXF (`JellyJams_SaveAsDXF`, "Save as DXF" on the ribbon) | Not verified | H `Test19DrawingHelpers.test_export_naming` (`per_sheet_paths`) | AC 43. |
@@ -1003,24 +1313,27 @@ marked H have a headless test.
 
 ## Missing SolidWorks features (roadmap)
 
-None of these has a specification yet. Write the spec first (see the
+The [2026-11-05 interface audit](audits/2026-11-05-interface-audit.md) is the
+current prioritized planning inventory. The older list below remains a broad
+capability reference. Proposals need a specification before implementation.
+Write the spec first (see the
 [specs index](specs/README.md)), then implement. The "Possible basis" column is a first estimate,
 not a verified design; check FreeCAD command ids and APIs against the installed version before
 relying on them.
 
 | Priority | Feature (SolidWorks term) | What users expect | Possible basis | Notes |
 |---|---|---|---|---|
-| P1 | Confirmation corner | OK / Cancel (and Exit Sketch) icons in the top-right corner of the graphics area while a PropertyManager or sketch is open | Overlay widget on the 3D view, like the Sketch context icon; presses the active task panel's OK / Cancel or runs `Sketcher_LeaveSketch` | Small, self-contained; high daily value |
+| Implemented initial version | Confirmation corner | Native OK / Cancel and Exit Sketch at the viewport corner and on D | [quick-access specification](specs/quick-access.md) | Docked native feature/sketch checks; other dialog types and undocked/split views need coverage |
 | P1 | Heads-up View toolbar | Transparent toolbar at the top of the graphics area: Zoom to Fit, Zoom to Area, Previous View, Section View, View Orientation, Display Style, Hide/Show | Overlay on the 3D view running the `Std_*` commands already on the Evaluate tab | Must respect the light theme and stay out of the navigation cube |
-| P1 | S-key shortcut bar | Press `S` for a context toolbar at the pointer (sketch tools in a sketch, features in a part, drawing tools on a sheet) | Popup that reuses ribbon entries and `ribbon.run_entry` dispatch; new key in [`shortcuts.py`](../jellyjams/shortcuts.py) with exact restore | Check the key against FreeCAD's multi-key shortcuts first |
-| P1 | Rollback bar | Drag a bar in the FeatureManager tree to roll the model back | PartDesign Body Tip ("Set Tip") | Needs model-tree widget integration; highest risk in this tier |
+| Implemented initial version | S-key shortcut bar | Context tools and searchable commands at the pointer | [quick-access specification](specs/quick-access.md); scoped transient keys, no shortcut preference writes | Searchable list implemented; customizable icon grid remains future work |
+| P3 | Rollback bar | Drag a bar in the FeatureManager tree to roll the model back | Research Body Tip and native history/dependency behavior | Body Tip alone does not establish rollback semantics; separate feasibility project |
 | P1 | Options page | One place for JellyJams switches (Sketch context icon, Qt filter, later: theme, shortcuts) like System Options | FreeCAD preference page for `Mod/JellyJams` | Today only Tools > Edit parameters |
 | P2 | Mouse gestures | Right-drag radial menu with 4 or 8 commands | Event filter on the 3D viewport, like Rotate Component | Must not break the right button in the SolidWorks navigation style |
 | P2 | Context toolbars for more selections | Mini toolbar for edges, features in the tree, sketches (Edit Sketch, Hide, Appearance) | Generalize [`context_sketch.py`](../jellyjams/context_sketch.py) | |
 | P2 | Equations / Global Variables | Equations manager with named variables driving dimensions | FreeCAD expressions with a spreadsheet or variable-set object | Verify which objects FreeCAD 1.1 offers |
 | P2 | Configurations | Several variants of a part in one file | Spreadsheet-driven configuration tables | Large UX gap; feasibility not assessed |
 | P2 | Mass Properties | Mass, volume, center of mass dialog on the Evaluate tab | Part shape properties with a density input | |
-| P2 | Appearance / DisplayManager | Colors and transparency per face, body or component | View provider properties | |
+| P2 | Advanced appearance / DisplayManager | Scenes, decals, display states and full appearance inheritance | Extend the existing native-material browser | Face/object/component colours and transparency are already implemented; see [appearances](specs/appearances.md) |
 | P2 | Selection filter | Filter toolbar (`F5`) for faces, edges, vertices | FreeCAD selection gates | |
 | P3 | Sheet Metal, Weldments, Surfaces tabs | CommandManager tabs for these features | Depends on what the installed FreeCAD offers | Ribbon content is data-driven ([`ribbon_layout.py`](../jellyjams/ribbon_layout.py)) |
 | P3 | Drawing tables and annotations | BOM table on the sheet, revision table, Auto Balloon, Model Items | Assembly BOM plus a TechDraw spreadsheet view | A General Table (`TechDraw_SpreadsheetView`) is already on the Drawing tab |
@@ -1100,7 +1413,7 @@ Verification:
   supplied-STEP assertions: 1.500 mm, visible task result, annotation at the
   centre, and 0.925 mm in clearance mode. Native scene export visually inspected
   (`supplied_pcb_measure.png`). The default synthetic suite separately passed
-  **25/25** in `scratch/gui_vogetrft/`.
+  **27/27** in `scratch/gui_vogetrft/`.
 - GUI-result validator **10/10**, compilation and `git diff --check` passed.
   No native Measure settings or document measurement objects were introduced.
   The user STEP file remains an optional local fixture and is not committed.
