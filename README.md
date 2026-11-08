@@ -9,6 +9,20 @@ toolbars, buttons and tree entries use SolidWorks vocabulary, widget and viewpor
 mouse and keyboard follow SolidWorks habits. JellyJams is a regular FreeCAD workbench, so
 moving to a different one reverts all of these changes.
 
+## User guide and tutorials
+
+Visit the [JellyJams Wiki](https://github.com/jus-kim/JellyJams/wiki) for the
+user guide, command reference and troubleshooting. Start with
+[Getting started](https://github.com/jus-kim/JellyJams/wiki/Getting-Started),
+or follow these tutorials:
+
+1. [First part: sketch to extrusion](https://github.com/jus-kim/JellyJams/wiki/Tutorial-First-Part)
+   — create and dimension a sketch, extrude it and save the part.
+2. [Two-component assembly](https://github.com/jus-kim/JellyJams/wiki/Tutorial-Two-Component-Assembly)
+   — insert two saved parts, ground one and add a mate.
+3. [Model to PDF drawing](https://github.com/jus-kim/JellyJams/wiki/Tutorial-Model-to-PDF)
+   — create a drawing, add dimensions and export a PDF.
+
 ## Features
 
 ### Interface
