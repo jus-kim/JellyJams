@@ -36,6 +36,10 @@ has no buttons for individual relations.
 
 ### 2.1 When the panel is visible
 
+The shared host follows the current document's task panel, including hosts that
+wrap and stack several document panels. An inactive document's panel is never
+used; lookup remains possible while the Tasks dock is behind another dock tab.
+
 The panel is visible if and only if ALL of the following hold:
 
 1. The JellyJams workbench is the active workbench (the feature is enabled on

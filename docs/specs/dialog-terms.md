@@ -8,6 +8,7 @@ Product: JellyJams, a FreeCAD 1.1+ workbench (key/class `JellyJamsWorkbench`,
 MenuText "JellyJams") that makes FreeCAD look, feel and operate like
 SolidWorks. English only. Reference FreeCAD version for every widget name and
 list length below: **FreeCAD 1.1.4**.
+The additional control names noted below cover FreeCAD 26.3 RC2.
 
 ---
 
@@ -78,6 +79,9 @@ skipped silently.
 Each dialog is identified by the objectName of its top-level form widget
 ("form root"), which is the root object name of FreeCAD's `.ui` file. Widgets
 are looked up by objectName among the descendants of that form root only.
+Compiled forms in newer Qt builds replace `::` with `__` in their objectName
+(for example `TechDrawGui__TaskBalloon`). Both spellings identify the same
+catalog entry; the alias does not expand matching to unrelated widgets.
 
 Notation: "objectName → text" tables list the widget objectName and the exact
 JellyJams text. Combo tables list the position, FreeCAD 1.1.4's entry (for
@@ -298,6 +302,11 @@ Form root: `TechDrawGui::TaskBalloon` (opened when editing a balloon).
 | `label_8` | Leader thickness |
 | `label_6` | Bent leader length |
 
+FreeCAD 26.3 equivalents: `lText` -> Balloon text, `lBShape` -> Style,
+`lSymbol` -> Arrow style, `lWidth` -> Leader thickness, `lKink` -> Bent leader
+length, and the checkable group `gbLeader` -> Leader. The group's checked state
+is unchanged. The older `comboLineVisible` is absent on that host.
+
 Combo `comboBubbleShape` — required count 8:
 (0) Circular -> **Circular**, (1) None -> **None**, (2) Triangle -> **Triangle**,
 (3) Inspection -> **Inspection**, (4) Hexagon -> **Hexagon**, (5) Square ->
@@ -316,6 +325,10 @@ Form root: `TechDrawGui::TaskRichAnno`.
 | `label_4` | Line color |
 | `label_5` | Line thickness |
 | `label_6` | Line style |
+
+FreeCAD 26.3 equivalents: the checkable `gbFrame` group -> Border,
+`label_colorThickness` -> Line color, `label_frameThickness` -> Line thickness,
+and `label_patternThickness` -> Line style. Checked state is unchanged.
 
 Combo `cFrameStyle` — required count 6: (0) NoLine -> **None**,
 (1) Continuous -> **Solid**, (2) Dash -> **Dashed**, (3) Dot -> **Dot**,
@@ -395,6 +408,8 @@ which is also what JellyJams' ribbon command `JellyJams_LineFormat` opens).
 | `label` | Hide/Show Edges |
 
 Combo `cb_Visible` — required count 2: (0) -> **Hide**, (1) -> **Show**.
+In FreeCAD 26.3, `cb_Visible` is a checkbox: its label becomes **Show Edges**,
+with its checked state unchanged. It is not processed as a combo box.
 
 Plus the line-weight presets row, section 2.5.
 

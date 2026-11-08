@@ -7,6 +7,7 @@ Only run through run_gui.py with crash followed by recover. No user documents ar
 """
 
 import json
+import ctypes
 import os
 import traceback
 
@@ -26,6 +27,8 @@ def snapshot():
     targets += [(constants.PARAM_SHORTCUT, name, "String") for name, _value in shortcuts.SHORTCUTS]
     targets += [(constants.PARAM_SHORTCUT, name, "String") for name in ("Std_ToggleVisibility", "Std_ViewBoxZoom")]
     targets += [(path, "SwitchToWB", "Bool") for path, _key, _name in switch_prefs.TARGETS]
+    targets += [(constants.PARAM_SKETCH_SNAP, name, "Bool") for name in
+                (constants.KEY_SKETCH_SNAP, constants.KEY_SKETCH_SNAP_OBJECTS)]
     result = []
     for path, name, suffix in targets:
         group = params.group(path)
@@ -43,6 +46,19 @@ def save():
         json.dump(RES, stream, indent=2)
 
 
+def terminate_without_cleanup():
+    """Bypass C-runtime/DLL cleanup too, including live native editor threads."""
+    if os.name == "nt":
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        terminate = kernel.TerminateProcess
+        terminate.argtypes = [ctypes.c_void_p, ctypes.c_uint]
+        terminate.restype = ctypes.c_int
+        # -1 is the documented pseudo-handle for the current process.
+        if not terminate(ctypes.c_void_p(-1), 86):
+            raise ctypes.WinError(ctypes.get_last_error())
+    os._exit(86)
+
+
 def run():
     try:
         from jellyjams import constants, params
@@ -53,17 +69,22 @@ def run():
             view.SetString("NavigationStyle", "Gui::CADNavigationStyle")
             view.SetUnsigned("BackgroundColor2", 0x123456FF)
             params.group(constants.PARAM_SHORTCUT).SetString("Std_ViewTop", "T")
+            params.group(constants.PARAM_SKETCH_SNAP).SetBool(constants.KEY_SKETCH_SNAP, False)
             before = snapshot()
             with open(os.path.join(OUT, "crash_before.json"), "w", encoding="utf-8") as stream:
                 json.dump(before, stream)
             Gui.activateWorkbench("JellyJamsWorkbench")
+            doc = App.newDocument("CrashSketch")
+            sketch = doc.addObject("Sketcher::SketchObject", "Sketch")
+            doc.recompute()
+            Gui.activeDocument().setEdit(sketch.Name)
             note("overrides_applied", snapshot() != before)
             note("all_crash_backups_present", all(params.backup_pending(key) for key in constants.BACKUP_KEYS))
             # Model a preference save during an active session followed by a crash.
             App.saveParameter()
             save()
             # Skip close events, quit guard and Python/Qt teardown deliberately.
-            os._exit(86)
+            terminate_without_cleanup()
         else:
             with open(os.path.join(OUT, "crash_before.json"), encoding="utf-8") as stream:
                 before = json.load(stream)

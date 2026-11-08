@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: MIT
+SPDX-FileCopyrightText: 2026 jus-kim <hi@jus.kim> -->
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1280" height="800" viewBox="0 0 1280 800">
+  <rect width="1280" height="800" fill="#f2f4f6"/>
+  <g font-family="Segoe UI, Arial, sans-serif" fill="#1f2328">
+    <text x="32" y="42" font-size="26" font-weight="600">JellyJams workspace proposal</text>
+    <text x="32" y="69" font-size="15" fill="#5a6572">Original schematic of the audit recommendations. Proposed controls are not yet implemented.</text>
+    <text x="32" y="110" font-size="19" font-weight="600">Current layout</text>
+    <text x="656" y="110" font-size="19" font-weight="600">Proposed layout</text>
+    <rect x="32" y="130" width="592" height="565" rx="7" fill="#ffffff" stroke="#aeb7c2"/>
+    <rect x="656" y="130" width="592" height="565" rx="7" fill="#ffffff" stroke="#aeb7c2"/>
+    <rect x="33" y="131" width="590" height="39" rx="7" fill="#e3e7ec"/>
+    <rect x="657" y="131" width="590" height="39" rx="7" fill="#e3e7ec"/>
+    <text x="46" y="156" font-size="13">File   Edit   View   Tools     [ JellyJams ]</text>
+    <text x="670" y="156" font-size="13">File   Edit   View   Tools    [ JellyJams ]</text>
+    <rect x="33" y="170" width="590" height="95" fill="#fbfcfd"/>
+    <rect x="657" y="170" width="590" height="72" fill="#fbfcfd"/>
+    <g font-size="13">
+      <text x="48" y="198">Extrude       Cut       Fillet       Pattern</text>
+      <text x="48" y="224" fill="#5a6572">Large buttons and tool stacks</text>
+      <text x="48" y="251">Features   Sketch   Evaluate   Assembly   Drawing</text>
+      <text x="672" y="194">Extrude       Cut       Fillet       Pattern        More…</text>
+      <text x="672" y="228">Features    Sketch    Evaluate</text>
+    </g>
+    <path d="M 46 261 H 112 M 670 238 H 741" stroke="#1a76c4" stroke-width="3"/>
+    <rect x="33" y="266" width="113" height="395" fill="#f2f4f6"/>
+    <rect x="494" y="266" width="129" height="395" fill="#f2f4f6"/>
+    <rect x="33" y="489" width="113" height="172" fill="#e3e7ec"/>
+    <g font-size="13">
+      <text x="45" y="289" font-weight="600">Model</text>
+      <text x="45" y="320">Part</text>
+      <text x="56" y="345">&gt; Body</text>
+      <text x="45" y="514">View | Data</text>
+      <text x="507" y="289" font-weight="600">Tasks</text>
+      <text x="507" y="324" fill="#5a6572">Empty while idle</text>
+      <text x="507" y="637" fill="#5a6572">Appearances</text>
+    </g>
+    <rect x="147" y="266" width="346" height="395" fill="#edf2f6"/>
+    <text x="250" y="305" font-size="14" fill="#5a6572">Model viewport</text>
+    <g stroke="#586473" stroke-width="1.5" stroke-linejoin="round">
+      <path d="M 206 416 L 333 363 L 439 432 L 311 489 Z" fill="#c9ced6"/>
+      <path d="M 206 416 L 311 489 L 311 527 L 206 453 Z" fill="#aeb7c2"/>
+      <path d="M 311 489 L 439 432 L 439 470 L 311 527 Z" fill="#96a2af"/>
+    </g>
+    <text x="179" y="600" font-size="12" fill="#5a6572">Commands and finishing actions</text>
+    <text x="211" y="620" font-size="12" fill="#5a6572">live at opposite edges</text>
+    <rect x="657" y="243" width="155" height="418" fill="#f2f4f6"/>
+    <rect x="813" y="243" width="406" height="418" fill="#edf2f6"/>
+    <rect x="1220" y="243" width="27" height="418" fill="#e3e7ec"/>
+    <text x="670" y="268" font-size="13" font-weight="600">Model | Active Task</text>
+    <path d="M 714 276 H 800" stroke="#1a76c4" stroke-width="2"/>
+    <text x="670" y="305" font-size="15" font-weight="600">Boss-Extrude</text>
+    <g font-size="13">
+      <text x="670" y="340">End condition</text>
+      <rect x="670" y="351" width="129" height="28" rx="3" fill="#ffffff" stroke="#c9ced6"/>
+      <text x="680" y="371">Blind</text>
+      <text x="670" y="405">Depth</text>
+      <rect x="670" y="416" width="129" height="28" rx="3" fill="#ffffff" stroke="#c9ced6"/>
+      <text x="680" y="436">10 mm</text>
+      <text x="670" y="478">Reverse direction</text>
+      <text x="670" y="518">&gt; Direction 2</text>
+      <text x="670" y="548">&gt; Advanced</text>
+      <text x="670" y="633" fill="#5a6572">Native controls kept</text>
+    </g>
+    <rect x="893" y="255" width="235" height="29" rx="5" fill="#ffffff" stroke="#c9ced6"/>
+    <text x="907" y="275" font-size="12">Fit   Orient   Display   Section</text>
+    <rect x="1152" y="255" width="55" height="29" rx="5" fill="#ffffff" stroke="#c9ced6"/>
+    <path d="M 1163 269 L 1168 274 L 1177 263" fill="none" stroke="#2a8048" stroke-width="2.5"/>
+    <path d="M 1188 264 L 1198 274 M 1198 264 L 1188 274" fill="none" stroke="#c03935" stroke-width="2.5"/>
+    <g stroke="#897b25" stroke-width="1.5" stroke-linejoin="round">
+      <path d="M 862 397 L 1024 345 L 1173 426 L 1009 483 Z" fill="#eee7a0"/>
+      <path d="M 862 397 L 1009 483 L 1009 520 L 862 434 Z" fill="#d4c96d"/>
+      <path d="M 1009 483 L 1173 426 L 1173 463 L 1009 520 Z" fill="#c6b956"/>
+    </g>
+    <rect x="1030" y="529" width="171" height="91" rx="6" fill="#ffffff" stroke="#aeb7c2"/>
+    <text x="1042" y="551" font-size="12" font-weight="600">S · Context tools</text>
+    <text x="1042" y="576" font-size="12">Sketch   Cut   Fillet</text>
+    <rect x="1040" y="588" width="151" height="22" rx="3" fill="#f2f4f6"/>
+    <text x="1046" y="603" font-size="11" fill="#5a6572">Search commands…</text>
+    <text x="844" y="591" font-size="12" fill="#5a6572">D · Finish here</text>
+    <g fill="#7c8ea2">
+      <circle cx="1233" cy="265" r="6"/>
+      <circle cx="1233" cy="292" r="6"/>
+      <circle cx="1233" cy="319" r="6"/>
+    </g>
+    <rect x="33" y="662" width="590" height="32" fill="#e3e7ec"/>
+    <rect x="657" y="662" width="590" height="32" fill="#e3e7ec"/>
+    <text x="47" y="683" font-size="12">Document tabs                                     Status</text>
+    <text x="671" y="683" font-size="12">Document tabs           Under Defined            mm</text>
+    <g font-size="14" fill="#5a6572">
+      <text x="32" y="733">Main changes: shared left manager, compact ribbon, collapsed asset pane, viewport controls and pointer tools.</text>
+      <text x="32" y="759">Light illustration shown. Preserve dark-theme readability, native command logic and exact restore.</text>
+    </g>
+  </g>
+</svg>

@@ -279,12 +279,32 @@ def restored():
     window.resize(window.width() + wanted_width - gl.width(),
                   window.height() + wanted_height - gl.height())
     QtTest.QTest.qWait(200)
-    x, _state = drag(100, 0)
-    size = (viewport().width(), viewport().height())
+    # Windows may clamp the outer window to the monitor's maximum track size
+    # after stock toolbars return. Control the whole test 3D view in that case;
+    # retain the exact dimension assertion instead of comparing different views.
+    # Resizing only QOpenGLWidget leaves Coin's native viewer viewport at the
+    # old size, so its parent View3DInventor must participate in the resize.
+    host = gl
+    while not host.inherits("Gui::View3DInventor"):
+        host = host.parentWidget()
+    minimum, maximum = host.minimumSize(), host.maximumSize()
+    fixed = (gl.width(), gl.height()) != (wanted_width, wanted_height)
+    try:
+        if fixed:
+            host.setFixedSize(host.width() + wanted_width - gl.width(),
+                              host.height() + wanted_height - gl.height())
+            QtTest.QTest.qWait(200)
+        x, _state = drag(100, 0)
+        size = (viewport().width(), viewport().height())
+    finally:
+        if fixed:
+            host.setMinimumSize(minimum)
+            host.setMaximumSize(maximum)
     note("native_response_restored", size == STATE["native_wide_size"]
          and abs(x - STATE["native_wide"]) < 0.1,
          dict(expected_size=STATE["native_wide_size"], actual_size=size,
-              expected_angle=STATE["native_wide"], actual_angle=x))
+              expected_angle=STATE["native_wide"], actual_angle=x,
+              viewport_fixed_size_fallback=fixed))
     if original is None:
         grp.RemString("NavigationStyle")
     else:

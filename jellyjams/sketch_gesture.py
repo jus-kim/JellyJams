@@ -350,6 +350,72 @@ def _maybe_start_sketch_first(cmd_id):
     return True
 
 
+def _attachment_has_plane(intent, doc):
+    candidates = [obj for obj in doc.Objects if _is_sketch(obj) and obj.Name not in intent["before"]]
+    if len(candidates) != 1:
+        return False
+    sketch = candidates[0]
+    support = list(getattr(sketch, "AttachmentSupport", ()) or ())
+    if len(support) != 1 or str(getattr(sketch, "MapMode", "Deactivated")) == "Deactivated":
+        return False
+    obj, subs = support[0]
+    subs = [sub for sub in subs if sub]
+    if len(subs) > 1:
+        return False
+    if subs:
+        # retType=1 asks for the document object, rather than its geometric
+        # Python representation (the default), along an Origin support path.
+        try:
+            obj = obj.getSubObject(subs[0], 1)
+        except Exception:
+            return False
+    return any(doc_utils.is_derived(obj, kind) for kind in PLANE_TYPES)
+
+
+def _confirm_plane_pick(intent, doc):
+    """Confirm one plane selected in this sketch-first's native picker.
+
+    Older list clicks require a second activation; 26's attachment editor also
+    waits for confirmation after selecting a plane. The existing watcher runs
+    after the click has returned to FreeCAD and presses the native OK button.
+    """
+    if (intent is not _intent or intent["state"] != PICKING
+            or _active_doc() is not doc or fcgui.sketch_in_edit() is not None):
+        return False
+    from PySide import QtCore, QtWidgets
+
+    panel = fcgui.task_panel()
+    if panel is None:
+        return False
+    # Older hosts put the native button box beside TaskPanel, rather than
+    # inside it. Only the active panel's visible task dock is searched.
+    button_scope = fcgui.task_dock() or panel
+    for form in panel.findChildren(QtWidgets.QWidget):
+        names = (form.metaObject().className().replace("__", "::"), form.objectName().replace("__", "::"))
+        if not form.isVisibleTo(panel):
+            continue
+        if constants.CLASS_FEATURE_PICK in names:
+            choices = form.findChild(QtWidgets.QListWidget, constants.OBJ_FEATURE_PICK_LIST)
+            selected = choices.selectedItems() if choices is not None else []
+            if len(selected) != 1 or selected[0].isHidden():
+                continue
+            obj = doc.getObject(str(selected[0].data(QtCore.Qt.ItemDataRole.UserRole) or ""))
+            if (not any(doc_utils.is_derived(obj, kind) for kind in PLANE_TYPES)
+                    or not selected[0].flags() & QtCore.Qt.ItemFlag.ItemIsEnabled):
+                continue
+        elif constants.CLASS_TASK_ATTACHER in names:
+            if not _attachment_has_plane(intent, doc):
+                continue
+        else:
+            continue
+        for box in button_scope.findChildren(QtWidgets.QDialogButtonBox):
+            button = box.button(QtWidgets.QDialogButtonBox.StandardButton.Ok)
+            if button is not None and button.isVisibleTo(button_scope) and button.isEnabled():
+                button.click()
+                return True
+    return False
+
+
 def _watch(expected=None):
     """Follow one sketch-first until it starts its feature or is dropped. `expected` is the
     intent this chain of checks belongs to; a chain whose intent was replaced stops."""
@@ -370,6 +436,11 @@ def _watch(expected=None):
             return
         sketch = fcgui.sketch_in_edit()
         editing = sketch.Name if sketch is not None and sketch.Document == doc else None
+        if editing is None and intent["state"] == PICKING:
+            # A picker mismatch/failure must not stop watching sketch entry,
+            # cancellation or later feature creation.
+            with console.guard("confirm the selected sketch plane", level="log"):
+                _confirm_plane_pick(intent, doc)
         created = _sketch_names(doc) - intent["before"]
         state, action = advance(intent, editing, fcgui.task_dialog_open(), created, time.monotonic())
         if _intent is not intent:

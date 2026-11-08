@@ -18,6 +18,12 @@ import xml.etree.ElementTree as ET
 
 REPO = Path(__file__).resolve().parent.parent
 SUITES = {
+    "quick_access": ("gui_quick_access.py", "quick_access.json", 44),
+    "plane_pick": ("gui_plane_pick.py", "plane_pick.json", 35),
+    "smart_dimension": ("gui_smart_dimension.py", "smart_dimension.json", 22),
+    "sketch_assist": ("gui_sketch_assist.py", "sketch_assist.json", 35),
+    "host_compatibility": ("gui_host_compatibility.py", "host_compatibility.json", 23),
+    "surface_geometry": ("gui_surface_geometry.py", "surface_geometry.json", 27),
     "measure": ("gui_measure.py", "measure.json", 72),
     "smoke": ("gui_smoke.py", "gui_smoke_results.json", 31),
     "sketch": ("gui_sketch_first.py", "sketch_first.json", 20),
@@ -131,7 +137,7 @@ def main():
                     info["nav_before"], *[str(switches[name]) for name in
                                             ("Assembly", "PartDesign", "TechDraw")],
                 ], capture_output=True, text=True, check=True)
-                (out / "saved_cfg.json").write_text(check.stdout, encoding="utf-8")
+                (out / (suite + "_saved_cfg.json")).write_text(check.stdout, encoding="utf-8")
             summary[suite] = {"ok": True, "checks": count}
             print("%s: PASS (%d checks)" % (suite, count), flush=True)
         except Exception as exc:

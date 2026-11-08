@@ -46,7 +46,7 @@ SWITCH_GROUPS = {
     "TechDraw": "User parameter:BaseApp/Preferences/Mod/TechDraw/General",
 }
 BACKUP_KEYS = ("OriginalNavigationStyle", "OriginalShortcuts", "OriginalViewColors", "OriginalSwitchToWB",
-               "OriginalPartDesignSwitchToWB", "OriginalTechDrawSwitchToWB")
+               "OriginalPartDesignSwitchToWB", "OriginalTechDrawSwitchToWB", "OriginalSketchSnapping")
 BUTTON_PREFIXES = ("JellyJamsButton-", "JellyJamsFlyout-", "JellyJamsToggle-")
 OBJECT_PREFIX = "JellyJams"
 # Pause between a workbench switch and the next look at the window. The window-layout spec
@@ -224,7 +224,9 @@ def step2_verify_active():
     note("theme_marker", mw.styleSheet().count(THEME_BEGIN) == 1, mw.styleSheet().count(THEME_BEGIN))
     note("nav_is_solidworks", nav_style() == "Gui::SolidWorksNavigationStyle", nav_style())
     note("switch_to_wb_off", all(value is False for value in switch_to_wb().values()), switch_to_wb())
-    note("backups_present", all(backups().values()), backups())
+    active_backups = backups()
+    active_backups.pop("OriginalSketchSnapping")  # no sketch is being edited yet
+    note("backups_present", all(active_backups.values()), backups())
     note("jellyjams_menu", "JellyJams" in menu_titles(), menu_titles())
     jj_toolbars = [name for name in visible_toolbars() if name.startswith(OBJECT_PREFIX)]
     note("no_jj_toolbars", not jj_toolbars, jj_toolbars)

@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Add S command search for part/sketch/assembly/drawing contexts, D and viewport
+  confirmation controls, and per-document ribbon-tab memory. Preserve typing,
+  native task ownership and shortcut settings.
+- Enable native sketch snapping and auto constraints while editing, with exact
+  restoration; align linear Smart Dimension previews with the pointer and enter
+  sketch edit after one sketch-first plane choice on both supported hosts.
+
+- Support FreeCAD 26.3 RC2's document task panels, component material lists,
+  Assembly icon resources and compiled dialog names. Retain FreeCAD 1.1.4
+  compatibility and add native drawing-dialog/task-ownership regression checks.
+- Add geometry APIs for analytic/NURBS reconstruction, editable surface control
+  grids, linked fillets and explicit Boolean cell selection, with error handling
+  and save/reopen regression coverage.
+
 - Adopt the MIT License for JellyJams code and original icons; update SPDX
   headers, package metadata, contributor guidance and documentation.
 

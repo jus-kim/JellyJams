@@ -102,6 +102,11 @@ implemented here; values follow FreeCAD's unit schema and precision.
     page also ends the session even if FreeCAD retains its last document view.
     A retired task's pending timer must not stop a newer session. Clear cached
     scene/image data even when the old native view has already been deleted.
+    On hosts with document-specific task dialogs, close the measurement owner's
+    dialog when switching documents, leaving the new document's task untouched.
+    If the owner was deleted, its native dialog is already gone. Retain the
+    no-argument close operation on older hosts that have one global task panel,
+    including after the measurement owner's document was deleted.
 
 ## Acceptance cases
 

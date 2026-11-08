@@ -36,6 +36,10 @@ All of this works only while the JellyJams workbench is active. Outside JellyJam
 
 ### 2.1 Add Mate panel
 
+On hosts with a task panel per document, insert into the current document's
+panel through any intermediate wrappers. Never choose an inactive stacked panel.
+The lookup must also work when the Tasks dock is behind the Appearances tab.
+
 **What appears.** A framed panel at the very top of FreeCAD's Tasks panel. The content area is the `Gui::TaskView::TaskPanel` widget inside the scroll area of the dock whose objectName is `Tasks`. FreeCAD's own task content stays below the panel. From top to bottom the panel contains:
 
 | Element | Content |

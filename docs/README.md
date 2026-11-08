@@ -36,6 +36,7 @@ This page lists every document in the repository and the order to read them in.
 |---|---|
 | [architecture.md](architecture.md) | Structure and contracts of the code: invariants, module map, import rules, lifecycle order, persisted state, error isolation, ribbon data model, and checklists for extending JellyJams. |
 | [decisions.md](decisions.md) | Short decision records: why the design is the way it is. |
+| [Interface audit and roadmap, 2026-11-05](audits/2026-11-05-interface-audit.md) | Live SolidWorks 2026 SP4.0 and JellyJams comparison, current 2027 documentation, 28 prioritized improvements, proposed workspace schematic and acceptance plan. Proposals are not behavior requirements. |
 | [freecad-facts.md](freecad-facts.md) | The FreeCAD 1.1 behaviors and APIs the code relies on. |
 
 ### Behavior specifications
@@ -47,11 +48,13 @@ module to its spec.
 | Spec | Covers |
 |---|---|
 | [specs/appearances.md](specs/appearances.md) | Appearances tab: official references, colour/finish presets and native face/object/component colouring. |
+| [specs/surface-geometry.md](specs/surface-geometry.md) | Reconstructed analytic/NURBS geometry, editable control grids, native linked Booleans and document compatibility. |
 | [specs/README.md](specs/README.md) | Specs index: how to read a spec, module-to-spec map, contracts shared across areas (backup keys, preferences, the document properties in the `JellyJams` group, objectNames). |
 | [specs/core.md](specs/core.md) | Entry points and `package.xml`, workbench lifecycle (Initialize, Activated, Deactivated), quit guard, autoload, startup crash recovery, command registration, Diagnostics, Qt message filter, navigation and shortcut switching (the key table). |
 | [specs/window-layout.md](specs/window-layout.md) | Which toolbars stay and which are hidden, Tasks and Report view docked right, exact restore on leave and quit, autoload deferral. |
 | [specs/look.md](specs/look.md) | Palette and WCAG contrast rules, the main-window theme block, 3D background gradient and sketch colors with backup and recovery. |
 | [specs/ribbon-engine.md](specs/ribbon-engine.md) | How the ribbon is drawn and kept alive: button kinds, labels, icons, tooltips, enabled states, context tab switching, click dispatch, remembered flyout choices. |
+| [specs/quick-access.md](specs/quick-access.md) | S command search, D confirmation popup, task-bound viewport controls, keyboard ownership and cleanup. |
 | [specs/ribbon-content.md](specs/ribbon-content.md) | What the five tabs contain: every group, button, flyout, fallback and icon source. |
 | [specs/measure.md](specs/measure.md) | Official reference measurement catalog, supported geometry readouts, centre/axis distance and clearance, white callout cards and temporary selection behavior. |
 | [specs/naming.md](specs/naming.md) | SolidWorks names in the model and drawing tree: numbering, origin planes, assembly folders, the `(f)` marker, mates, drawing objects. |

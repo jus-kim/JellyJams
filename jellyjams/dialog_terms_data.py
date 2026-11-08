@@ -162,11 +162,20 @@ FORMS = {
             "label_9": "Leader",
             "label_8": "Leader thickness",
             "label_6": "Bent leader length",
+            # FreeCAD 26.3 uses descriptive names for the same controls.
+            "lText": "Balloon text",
+            "lBShape": "Style",
+            "lSymbol": "Arrow style",
+            "lWidth": "Leader thickness",
+            "lKink": "Bent leader length",
+            "gbLeader": "Leader",
         },
         combos={"comboBubbleShape": BALLOON_STYLES, "comboLineVisible": ("No Leader", "Leader")},
     ),
     "TechDrawGui::TaskRichAnno": _form(
-        texts={"label_3": "Border", "label_4": LINE_COLOR, "label_5": LINE_THICKNESS, "label_6": LINE_STYLE},
+        texts={"label_3": "Border", "label_4": LINE_COLOR, "label_5": LINE_THICKNESS, "label_6": LINE_STYLE,
+               "gbFrame": "Border", "label_colorThickness": LINE_COLOR,
+               "label_frameThickness": LINE_THICKNESS, "label_patternThickness": LINE_STYLE},
         combos={"cFrameStyle": BORDER_LINE_STYLES},
     ),
     "TechDrawGui::TaskLeaderLine": _form(
@@ -187,13 +196,16 @@ FORMS = {
     ),
     "TechDrawGui::TaskLineDecor": _form(
         texts={"label_15": LINE_THICKNESS, "label_14": LINE_COLOR, "label_6": LINE_STYLE,
-               "label": "Hide/Show Edges"},
+               "label": "Hide/Show Edges", "cb_Visible": "Show Edges"},
         combos={"cb_Visible": ("Hide", "Show")},
         weight_presets=True,
     ),
 }
 
 FORM_NAMES = tuple(FORMS)
+# Newer Qt uic replaces namespace separators in compiled form objectNames.
+FORM_ALIASES = {name.replace("::", "__"): name for name in FORM_NAMES if "::" in name}
+FORM_OBJECT_NAMES = FORM_NAMES + tuple(FORM_ALIASES)
 
 # Widgets whose text FreeCAD itself rewrites while the dialog is open (state or selection
 # feedback). They are never written, even if a catalog entry above named them.

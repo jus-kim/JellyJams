@@ -146,7 +146,7 @@ def sketch_check():
     Gui.activeDocument().activeView().saveImage(path, 1000, 700, "Current")
     image = QtGui.QImage(path)
     corners = [image.pixelColor(x, y).name() for x, y in
-               ((5, 5), (image.width() // 2, 5), (5, image.height() - 5))]
+               ((5, 5), (image.width() // 3, 5), (5, image.height() - 5))]
     note("rendered_sketch_background_matches_mode", not image.isNull() and all(
         (palette.relative_luminance(c) < 0.2) == DARK for c in corners), corners)
     rgba = image.convertToFormat(QtGui.QImage.Format.Format_RGBA8888)

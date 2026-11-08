@@ -48,6 +48,8 @@ ACTIVATION_STEPS = [
      "jellyjams.naming", "enable"),
     ("sketch_edit", "keep JellyJams active while a sketch is edited",
      "jellyjams.sketch_edit", "install"),
+    ("sketch_assist", "enable snapping and automatic sketch constraints",
+     "jellyjams.sketch_assist", "enable"),
     ("edit_guard", "keep JellyJams active while a feature is edited",
      "jellyjams.edit_guard", "install"),
     ("context_sketch", "turn on the Sketch context icon",
@@ -97,6 +99,8 @@ DEACTIVATION_STEPS = [
      "jellyjams.edit_guard", "uninstall"),
     ("sketch_edit", "let sketch editing switch workbenches again",
      "jellyjams.sketch_edit", "uninstall"),
+    ("sketch_assist", "restore sketch snapping and automatic constraints",
+     "jellyjams.sketch_assist", "disable"),
     ("naming", "pause FeatureManager-style tree names",
      "jellyjams.naming", "disable"),
     ("orientation", "close the Orientation panel and stop watching the Space key",
@@ -117,6 +121,8 @@ DEACTIVATION_STEPS = [
 
 # Used on accepted close before persistence (early Close only on fallback hosts).
 QUIT_REVERT_STEPS = [
+    ("sketch_assist", "restore sketch drawing aids on quit",
+     "jellyjams.sketch_assist", "disable"),
     ("appearances", "remove the Appearances tab on quit",
      "jellyjams.appearances", "suspend_for_quit"),
     ("switch_prefs", "put back the workbench-switch preferences on quit",
@@ -153,6 +159,8 @@ QUIT_REAPPLY_STEPS = [
      "jellyjams.appearances", "resume_after_cancel"),
     ("switch_prefs", "override the workbench-switch preferences again after the quit was cancelled",
      "jellyjams.switch_prefs", "apply"),
+    ("sketch_assist", "resume sketch drawing aids after the quit was cancelled",
+     "jellyjams.sketch_assist", "enable"),
 ]
 
 _active = False

@@ -10,7 +10,7 @@ MenuText `JellyJams`) that makes FreeCAD look, feel and operate like SolidWorks.
 All user-visible text is English. Report-view messages written by JellyJams start
 with the prefix `JellyJams: `.
 
-This area covers seven behaviors:
+This area covers eight behaviors:
 
 1. **Sketch editing stays in JellyJams.** Opening a sketch does not jump to FreeCAD's
    Sketcher workbench while JellyJams is active. FreeCAD's normal behavior is unchanged
@@ -35,6 +35,9 @@ This area covers seven behaviors:
 7. **Feature editing stays in JellyJams.** Opening a Part Design feature for editing (a
    new feature's dialog, or double-clicking a Pad) does not switch to the Part Design
    workbench. Choosing another workbench in the workbench selector still works.
+
+8. **Automatic drawing aids.** Sketch entry enables native object snapping and
+   automatic constraints. Previous values return on edit exit or leaving JellyJams.
 
 The words MUST, MUST NOT, SHOULD and MAY are used in their usual normative sense.
 
@@ -501,8 +504,10 @@ refusal at all (rule 4).
    feature starts, the watcher drops it, a stale sketch-first is dropped by the next press,
    a press inside a sketch replaces it (§2.2), a check fails, JellyJams is left or the
    document is closed.
-3. The new sketch opens in JellyJams (§2.1). The user draws the profile and exits the
-   sketch.
+3. One click on a valid origin/datum plane confirms the native picker and opens
+   the new sketch in JellyJams (§2.1). Double-clicking is not required. This applies
+   to native 3D plane picks and the older picker's plane-list rows. The user draws
+   the profile and exits the sketch.
 4. After the sketch has left edit mode and its task dialog has closed, and if it holds at
    least one geometry, the selection is cleared, the new sketch becomes the only selected
    object, and the feature command runs once, as in §2.2 steps 2 and 3. The feature's
@@ -526,6 +531,22 @@ next state and an action (none, `start` or `drop`):
 | editing | nothing in edit and no dialog | start the feature (only if the sketch has geometry) |
 
 More rules:
+
+- While this sketch-first is picking in its own active document, the watcher may
+  press the current native task's enabled OK button after a valid single plane
+  choice. For the older `PartDesignGui::TaskFeaturePick`, require exactly one
+  selected, visible, enabled plane row. For the 26.3 `PartGui::TaskAttacher`,
+  require exactly one newly created sketch, a non-deactivated attachment mode
+  and exactly one plane support. Resolve Origin subpaths as document objects
+  (`getSubObject(path, 1)`), not their geometric Python representation.
+- Match only those native forms (Qt class or normalized form objectName); do not
+  confirm unrelated task dialogs, existing-sketch attachment edits, multiple
+  references, disabled choices or an inactive document's task. With no valid
+  plane choice, keep waiting. Leave non-plane attachment choices to native OK.
+- This confirmation runs in the existing watcher after native selection handling.
+  It changes no selection/click preference, attachment property, placement or
+  document data itself; FreeCAD's OK handler owns sketch creation/entry. Keep
+  watching until edit actually starts, and preserve Cancel and feature retargeting.
 
 - A press of a profile feature while a sketch-first is still picking (no sketch in edit yet):
   - **plane picker open** (a task dialog is open) and the feature is a sketch-first
@@ -616,13 +637,80 @@ Required behavior:
 
 ---
 
+### 2.8 Automatic snapping and constraints
+
+Implemented by [`sketch_assist.py`](../../jellyjams/sketch_assist.py).
+
+- On every sketch edit entry while JellyJams is active, enable native `Snap` and
+  `SnapToObjects` in `Preferences/Mod/Sketcher/Snap`, and the edited sketch view's
+  `Autoconstraints`. This also applies when entering JellyJams with a sketch open.
+- Use FreeCAD's native drawing tools and preselection for the sketch origin,
+  endpoints, edges and midpoints. Do not implement a second geometry picker.
+  Geometry outside the sketch still needs native projection/Convert Entities;
+  no automatic external references are added.
+- Leave grid snapping, grid visibility, snap angle, selection tolerance and other
+  sketches' `Autoconstraints` unchanged. Users may disable aids during the edit;
+  they are enabled again on the next edit entry, not forced on every timer tick.
+- Back up both snapping Bool values before writing, preserving absence, as JSON
+  `{"Snap": [existed, value], "SnapToObjects": [existed, value]}` in
+  `Mod/JellyJams/OriginalSketchSnapping`. Absent values are represented by
+  `[false, null]`. Never replace a pending valid backup. Damaged backups produce
+  one warning and are removed without guessing originals.
+- Restore the sketch's original `Autoconstraints` and both preferences on edit
+  exit, document close, workbench leave and accepted quit. Remove finished backups.
+  Startup recovery restores snapping preferences after an abnormal exit. The quit
+  compatibility fallback must resume the aids if quit is cancelled.
+- `Autoconstraints` is a saved view property. Keep its original only in memory,
+  restore it synchronously at `slotStartSaveDocument`, and resume the current
+  edit's setting at `slotFinishSaveDocument`. The file must contain the original
+  value, including when saved during editing. No document property is added.
+- Edit and save observers are registered only while enabled and removed on
+  leave/quit. A 150 ms edit poll covers hosts lacking GUI observers and edits
+  already open at activation. It must not reapply while a save is in progress.
+- Native automatic recovery bypasses normal save callbacks. Install a filter
+  only on the application's `Gui::AutoSaver` QObject (never on the application).
+  Before its timer event, temporarily restore `Autoconstraints`; resume after
+  that event returns, with a callback that cannot affect a retired edit. Recovery
+  copies must contain the original setting too. Remove the filter on leave/quit.
+- Temporary `Autoconstraints` writes scope the native `NoModify` status so the
+  override alone does not mark a model modified. Restore pre-existing status flags.
+
+### 2.9 Smart Dimension preview placement
+
+Implemented by [`sketch_dimension.py`](../../jellyjams/sketch_dimension.py),
+started by the ribbon's existing `Sketcher_Dimension` slot.
+
+- Smart Dimension from the JellyJams ribbon runs FreeCAD's command once. Its
+  linear dimension preview must follow the pointer without FreeCAD's deliberate
+  screen-space gap. The pointer itself is never warped or remapped.
+- Native picking, dimension-type inference and M cycling, values, solving,
+  confirmation dialogs, cancellation and transactions remain FreeCAD's. Only
+  the new preview's native label distance changes. Existing and confirmed
+  labels must not move, including during continuous creation and after Cancel.
+- On each native viewport mouse move, deliver the original event once, then
+  undo the linear preview offset `(view height + view width) * 0.01`, matching
+  native camera dimensions for orthographic/perspective and portrait/landscape.
+  Apply only to newly created Distance, DistanceX and DistanceY constraints;
+  circular arc-length, radial and angular labels keep native placement.
+- FreeCAD clears its selection on confirm/cancel. That boundary advances the
+  floor of completed constraints before later previews are adjusted. Every
+  native mouse move recomputes its own label distance, so the correction must
+  not accumulate across events. Do not add undo steps or persistent preferences.
+- Watch only the edited viewport, never the application. Remove the filter on
+  the next ribbon command, viewport hiding, edit/view changes, a different tool's
+  bitmap cursor on a subsequent move, and ribbon hide (leave and quit). A native
+  arrow cursor around the value dialog must not end continuous dimensioning. A failed
+  correction must not deliver an already handled native move twice.
+- This is a ribbon-dispatch behavior. Direct invocation of FreeCAD's native
+  command outside that dispatch retains native placement.
+
 ## 3. Triggers and timing
 
 | Event | Effect |
 |---|---|
 | JellyJams `Activated()` | Install the sketch-edit interception, then the feature-edit guard (both idempotent). Install the context-icon selection listener (idempotent). |
 | JellyJams `Deactivated()` | Remove the context-icon listener and hide the icon. End any running Centerline / Midpoint Line mode (with final pass). Remove the feature-edit guard, then the sketch-edit interception (restore the original functions). A pending sketch-first ends at its next check. |
-| FreeCAD quits | Nothing is needed. FreeCAD does not call `Deactivated()` on quit. All state of this area is in memory, and the floating icon is a child of the main window. |
+| FreeCAD quits | `sketch_assist.disable` restores drawing aids through quit-revert. Other sketch hooks are in memory; FreeCAD does not call `Deactivated()` on quit. |
 | Sketch enters edit while JellyJams is active | TempoVis workbench switch ignored. The workbench stays JellyJams. |
 | Sketch enters edit in another workbench | FreeCAD default (switch to `SketcherWorkbench`, switch back on close). |
 | Ribbon click on a profile feature with a sketch in edit | `Sketcher_LeaveSketch` immediately. After the sketch has closed (about 50 ms): clear the selection, select the sketch, run the feature. |
@@ -655,7 +743,9 @@ Required behavior:
 
 - Read: `User parameter:BaseApp/Preferences/Mod/JellyJams` → bool `ShowSketchButtonOnFace`
   (default true when absent).
-- Written: none. This area never creates, changes or removes any parameter.
+- Written during sketch edit: Bool `Snap` and `SnapToObjects` in
+  `Preferences/Mod/Sketcher/Snap`, with JSON backup `OriginalSketchSnapping` in
+  `Mod/JellyJams`, all restored exactly as defined in 2.8.
 
 **Python/API state changed at runtime (in memory only)**
 
@@ -738,8 +828,9 @@ later through FreeCAD's original `FreeCADGui.activateWorkbench(name)`.
 
 ## 5. Persistence and restore rules
 
-- **No persistent state.** This area writes no parameters and adds no document
-  properties. The sketch-edit interception, the feature-edit guard, the sketch-first
+- **Drawing aids:** 2.8 defines the persisted snapping backup and temporary
+  `Autoconstraints` override. No document properties are added.
+  The sketch-edit interception, the feature-edit guard, the sketch-first
   state, the selection listener, the floating icon and the line-tool modes all live in
   memory only. (The Part Design `SwitchToWB` override is persisted with a backup by the
   assembly area, [assembly.md](assembly.md) 5.)
@@ -753,8 +844,11 @@ later through FreeCAD's original `FreeCADGui.activateWorkbench(name)`.
   - the icon is hidden;
   - no Centerline / Midpoint Line mode is running;
   - no JellyJams event filter remains on `QApplication`.
-- **Crash recovery:** none needed. A crash loses only in-memory state, and a fresh
-  FreeCAD start begins with FreeCAD's original TempoVis behavior. User files are never
+  - original snapping preferences and per-sketch auto constraints are restored;
+    the recovery-save filter, edit poll and save observers are removed.
+- **Crash recovery:** restore `OriginalSketchSnapping` as defined in 2.8. Other
+  hooks lose their in-memory state, and a fresh FreeCAD start begins with FreeCAD's
+  original TempoVis behavior. User files are never
   altered in a way that depends on JellyJams. Sketches keep `EditingWorkbench =
   SketcherWorkbench` (or whatever the user had), and centerlines and midpoint lines are
   ordinary construction flags, geometry and constraints.
@@ -1065,6 +1159,46 @@ document)
     with two empty bodies.
 
 ---
+
+**Automatic snapping and constraints** (`tests/gui_sketch_assist.py`, `Test23SketchAssist`)
+
+62. With snapping off and `Autoconstraints` false, enter a sketch: both snap
+    switches and auto constraints are true, the native line tool connects to the
+    origin and an existing endpoint with Coincident constraints, and another
+    sketch's setting and grid snap remain unchanged.
+63. Save during the edit: `GuiDocument.xml` contains the original false value;
+    the live sketch resumes auto constraints. Exit and reenter: originals return,
+    then aids are enabled again. Originally absent snap keys are removed on exit.
+64. Leave JellyJams with a sketch open, or revert for quit: originals return and
+    the backup disappears. Enter with the same sketch open, or resume after Cancel:
+    aids work again. Abrupt termination during editing followed by startup restores
+    preferences with the same absent/false/true distinction.
+65. Deliver the native AutoSaver's registered timer during editing: its recovery
+    file contains the original false `Autoconstraints`, and the live sketch resumes
+    auto constraints after the event returns. The filter is gone on workbench leave.
+
+**Smart Dimension preview placement** (`gui_smart_dimension.py`, `Test23SmartDimension`)
+
+66. Draw horizontal and vertical lines, start Smart Dimension from the ribbon,
+    and place their linear dimensions: the preview lines follow the pointer
+    within one logical screen pixel. Repeated moves do not accumulate an offset.
+67. Confirm a dimension, then create another in the same tool session; the first
+    label stays fixed. Escape cancels the second preview without moving the first;
+    the next preview still follows the pointer. Native values remain unchanged
+    when the dialog is accepted without editing them.
+68. Starting another ribbon tool or leaving JellyJams removes the preview filter.
+    Existing label positions survive. Normal native Dimension invocation outside
+    the ribbon is unaffected; radius, angle and arc-length previews remain native.
+
+**Single-click sketch-first plane choice** (`gui_plane_pick.py`)
+
+69. In a fresh document, press Extruded Boss/Base and click XY, XZ or YZ once:
+    exactly one sketch enters edit on that plane, still inside JellyJams.
+    With no plane chosen, the picker stays open. Native double-click selection
+    preferences remain unchanged, including an explicit false
+    `Selection/singleClickFeatureSelect`. Cancel ends the intent without entering
+    edit or starting an extrusion. Older native plane-list choices also need only
+    one click during this sketch-first flow.
 
 ## 8. Boundaries with other areas
 

@@ -126,17 +126,20 @@ def task_dock():
 
 
 def task_panel():
-    """The Gui::TaskView::TaskPanel inside a QScrollArea of the task dock, or None."""
+    """The current document's task panel, ignoring inactive stacked panels."""
     try:
         _QtCore, _QtGui, QtWidgets = qt()
         dock = task_dock()
         if dock is None or QtWidgets is None:
             return None
-        for area in dock.findChildren(QtWidgets.QScrollArea):
-            content = area.widget()
+        # 26.3 wraps each document's TaskPanel in an extra widget and keeps
+        # inactive documents in a stack. Visibility relative to the dock also
+        # works when Appearances is the raised tab and the dock itself is hidden.
+        for content in dock.findChildren(QtWidgets.QWidget):
             if (
                 is_alive(content)
                 and content.metaObject().className() == constants.CLASS_TASK_PANEL
+                and content.isVisibleTo(dock)
             ):
                 return content
     except Exception:
@@ -351,6 +354,16 @@ def preload_command_modules():
     global _preloaded
     if _preloaded is None:
         gui_failures = []
+        # 26.3 moved Assembly icons into this native module. Older hosts keep
+        # them in Python resources and do not provide the module at all.
+        for name in constants.OPTIONAL_GUI_COMMAND_MODULES:
+            try:
+                importlib.import_module(name)
+            except ModuleNotFoundError as exc:
+                if exc.name != name:
+                    gui_failures.append((name, str(exc)))
+            except Exception as exc:
+                gui_failures.append((name, str(exc) or type(exc).__name__))
         for name in constants.GUI_COMMAND_MODULES:
             try:
                 importlib.import_module(name)

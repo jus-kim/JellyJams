@@ -183,6 +183,7 @@ SKETCH_FIRST_FEATURES = (
 )
 
 CONSTANT_VALUES = {
+    "SKETCH_DIMENSION_COMMAND": "Sketcher_Dimension",
     "ADDON_NAME": "JellyJams", "WORKBENCH_KEY": WB, "MENU_TEXT": "JellyJams", "MENU_NAME": "JellyJams",
     "WORKBENCH_TOOLTIP": "FreeCAD with a SolidWorks-style interface", "LOG_PREFIX": PREFIX,
     "PARAM_ROOT": P_OWN, "PARAM_RIBBON": P_RIBBON, "PARAM_VIEW": P_VIEW, "PARAM_SHORTCUT": P_SHORTCUT,
@@ -191,13 +192,20 @@ CONSTANT_VALUES = {
     "PARAM_TECHDRAW_FILES": "User parameter:BaseApp/Preferences/Mod/TechDraw/Files",
     "PARAM_DOCUMENT": "User parameter:BaseApp/Preferences/Document",
     "PARAM_GENERAL": "User parameter:BaseApp/Preferences/General",
+    "PARAM_SKETCH_SNAP": "User parameter:BaseApp/Preferences/Mod/Sketcher/Snap",
+    "KEY_SKETCH_SNAP": "Snap", "KEY_SKETCH_SNAP_OBJECTS": "SnapToObjects",
+    "PROP_AUTO_CONSTRAINTS": "Autoconstraints",
+    "CLASS_AUTO_SAVER": "Gui::AutoSaver",
+    "CLASS_FEATURE_PICK": "PartDesignGui::TaskFeaturePick", "OBJ_FEATURE_PICK_LIST": "listWidget",
+    "CLASS_TASK_ATTACHER": "PartGui::TaskAttacher",
     "KEY_QT_FILTER": "SilenceGlyphWarnings", "KEY_CONTEXT_SKETCH": "ShowSketchButtonOnFace",
     "KEY_VIEW_BACKUP": "OriginalViewColors", "KEY_NAV_BACKUP": "OriginalNavigationStyle",
     "KEY_SHORTCUT_BACKUP": "OriginalShortcuts", "KEY_ASSEMBLY_BACKUP": "OriginalSwitchToWB",
     "KEY_PARTDESIGN_BACKUP": "OriginalPartDesignSwitchToWB", "KEY_TECHDRAW_BACKUP": "OriginalTechDrawSwitchToWB",
+    "KEY_SKETCH_ASSIST_BACKUP": "OriginalSketchSnapping",
     "KEY_NOTE_HEIGHT": "LastNoteHeight", "KEY_NOTE_UNIT": "LastNoteUnit",
     "BACKUP_KEYS": ("OriginalViewColors", "OriginalNavigationStyle", "OriginalShortcuts", "OriginalSwitchToWB",
-                    "OriginalPartDesignSwitchToWB", "OriginalTechDrawSwitchToWB"),
+                    "OriginalPartDesignSwitchToWB", "OriginalTechDrawSwitchToWB", "OriginalSketchSnapping"),
     "THEME_BEGIN": THEME_BEGIN, "THEME_END": THEME_END,
     "OBJ_PREFIX": "JellyJams", "OBJ_RIBBON": "JellyJamsCommandManager",
     "OBJ_RIBBON_TABS": "JellyJamsCommandManagerTabs", "OBJ_RIBBON_STACK": "JellyJamsToolStack",
@@ -244,6 +252,7 @@ CONSTANT_VALUES = {
     "PROFILE_FEATURES": PROFILE_FEATURES, "SKETCH_FIRST_FEATURES": SKETCH_FIRST_FEATURES,
     "NEW_SKETCH_COMMAND": "PartDesign_NewSketch", "ACTIVE_BODY_KEY": "pdbody",
     "GUI_COMMAND_MODULES": ("PartGui", "SketcherGui", "PartDesignGui", "TechDrawGui"),
+    "OPTIONAL_GUI_COMMAND_MODULES": ("AssemblyGui",),
     "ASSEMBLY_COMMAND_MODULES": ("CommandCreateAssembly", "CommandInsertLink", "CommandInsertNewPart",
                                  "CommandCreateJoint", "CommandSolveAssembly", "CommandCreateView",
                                  "CommandCreateSimulation", "CommandCreateBom"),
@@ -261,13 +270,16 @@ CONSTANT_VALUES = {
 }
 
 EXPECTED_MODULES = [
+    "surface_boolean",
+    "local_fillet",
+    "surface_geometry", "surface_feature", "surface_rules",
     "measure",
     "appearances", "appearance_rules",
     "constants", "console", "params", "paths", "fcgui", "doc_utils", "commands", "recovery",
     "navigation", "orbit", "orbit_rules", "shortcuts", "lifecycle", "quit_guard", "qt_filter", "diagnostics", "palette",
     "theme", "viewport", "layout", "ribbon", "ribbon_layout", "ribbon_model", "ribbon_text",
     "ribbon_widgets", "icons", "naming", "naming_rules", "dialog_terms", "dialog_terms_data",
-    "sketch_edit", "edit_guard", "sketch_gesture", "sketch_tools", "context_sketch", "panel_host",
+    "sketch_edit", "sketch_assist", "sketch_dimension", "edit_guard", "sketch_gesture", "sketch_tools", "context_sketch", "panel_host",
     "relations_rules", "relations_panel", "mate_rules", "mate_panel", "switch_prefs",
     "assembly_drop", "assembly_commands", "drawing_common", "sheet_pick", "templates",
     "make_drawing", "sheet_properties", "sheet_sketch", "sheet_text", "insert_picture",
@@ -275,11 +287,16 @@ EXPECTED_MODULES = [
     "weld_symbol", "line_format", "drawing_export", "pdf_merge", "orientation",
 ]
 
-PURE_MODULES = ["__init__", "constants", "palette", "appearance_rules", "ribbon_layout", "ribbon_model", "ribbon_text",
-                "naming_rules", "relations_rules", "mate_rules", "dialog_terms_data", "pdf_merge", "orbit_rules"]
+PURE_MODULES = ["__init__", "constants", "palette", "appearance_rules", "surface_rules", "ribbon_layout", "ribbon_model", "ribbon_text",
+                "naming_rules", "relations_rules", "mate_rules", "dialog_terms_data", "pdf_merge", "orbit_rules", "access_rules"]
 NOT_IN_PURE = {"FreeCAD", "FreeCADGui", "PySide", "PySide2", "PySide6", "shiboken2", "shiboken6"}
 
 API_NAMES = {
+    "jellyjams.surface_boolean": ["create", "build", "BooleanFeature", "CUT", "FUSE"],
+    "jellyjams.local_fillet": ["create", "build", "LocalFilletTool", "ADD", "REMOVE", "FULL"],
+    "jellyjams.surface_geometry": ["encode", "decode", "encode_surface", "decode_surface", "face_from_data"],
+    "jellyjams.surface_feature": ["create", "definition_for", "GeometryFeature"],
+    "jellyjams.surface_rules": ["pole_grid", "surfaces"],
     "jellyjams.measure": ["start", "stop", "toggle", "is_active", "MeasureTask", "selected_items",
                            "measurement", "single_measurement", "shortest_distance", "callout_image"],
     "jellyjams.appearances": ["get_commands", "targets", "apply_appearance", "enable", "disable",
@@ -349,6 +366,8 @@ API_NAMES = {
                                "format_weight"],
     "jellyjams.dialog_terms_data": ["FORMS", "WEIGHT_PRESETS_MM", "WEIGHT_LABEL", "PLACEHOLDER"],
     "jellyjams.sketch_edit": ["install", "uninstall", "is_installed"],
+    "jellyjams.sketch_assist": ["enable", "disable", "recover", "SNAP_KEYS"],
+    "jellyjams.sketch_dimension": ["run", "stop", "preview_gap"],
     "jellyjams.edit_guard": ["COMMAND_STRING_FILE", "FRAME_SEARCH_DEPTH", "install", "uninstall", "is_installed"],
     "jellyjams.sketch_gesture": ["is_profile_feature", "try_run", "needs_new_sketch", "advance", "PICKING",
                                  "EDITING", "PICK_GRACE_S", "WATCH_MS", "SUBTRACTIVE_FEATURES",
@@ -423,6 +442,7 @@ ACTIVATION_STEPS = [
     ("appearances", "display the Appearances tab", "jellyjams.appearances", "enable"),
     ("naming", "turn on FeatureManager-style tree names", "jellyjams.naming", "enable"),
     ("sketch_edit", "keep JellyJams active while a sketch is edited", "jellyjams.sketch_edit", "install"),
+    ("sketch_assist", "enable snapping and automatic sketch constraints", "jellyjams.sketch_assist", "enable"),
     ("edit_guard", "keep JellyJams active while a feature is edited", "jellyjams.edit_guard", "install"),
     ("context_sketch", "turn on the Sketch context icon", "jellyjams.context_sketch", "enable"),
     ("relations_panel", "turn on the Add Relations panel", "jellyjams.relations_panel", "enable"),
@@ -450,6 +470,7 @@ DEACTIVATION_STEPS = [
      "stop_running"),
     ("edit_guard", "let feature editing switch workbenches again", "jellyjams.edit_guard", "uninstall"),
     ("sketch_edit", "let sketch editing switch workbenches again", "jellyjams.sketch_edit", "uninstall"),
+    ("sketch_assist", "restore sketch snapping and automatic constraints", "jellyjams.sketch_assist", "disable"),
     ("naming", "pause FeatureManager-style tree names", "jellyjams.naming", "disable"),
     ("orientation", "close the Orientation panel and stop watching the Space key", "jellyjams.orientation",
      "uninstall"),
@@ -461,6 +482,7 @@ DEACTIVATION_STEPS = [
     ("layout", "put back the window layout", "jellyjams.layout", "revert"),
 ]
 QUIT_REVERT_STEPS = [
+    ("sketch_assist", "jellyjams.sketch_assist", "disable"),
     ("appearances", "jellyjams.appearances", "suspend_for_quit"),
     ("switch_prefs", "jellyjams.switch_prefs", "restore"), ("ribbon", "jellyjams.ribbon", "hide"),
     ("shortcuts", "jellyjams.shortcuts", "uninstall"), ("navigation", "jellyjams.navigation", "uninstall"),
@@ -473,6 +495,7 @@ QUIT_REAPPLY_STEPS = [
     ("shortcuts", "jellyjams.shortcuts", "install"), ("ribbon", "jellyjams.ribbon", "show"),
     ("appearances", "jellyjams.appearances", "resume_after_cancel"),
     ("switch_prefs", "jellyjams.switch_prefs", "apply"),
+    ("sketch_assist", "jellyjams.sketch_assist", "enable"),
 ]
 
 # ribbon-content: the CommandManager arrangement, every list in ribbon order
@@ -4279,11 +4302,52 @@ class Test26Measure(HarnessCase):
     def test_stop_is_idempotent_and_disposes_before_closing_task(self):
         calls = []
         self.patch(self.measure, "_session", types.SimpleNamespace(
+            doc=types.SimpleNamespace(Name="Owner"),
             dispose=lambda: calls.append("dispose")))
+        self.patch(STUBS.gui, "getDocument", lambda name: object())
         self.patch(STUBS.gui.Control, "closeDialog", lambda: calls.append("close"))
         self.measure.stop()
         self.measure.stop()
         self.assertEqual(calls, ["dispose", "close"])
+
+    def test_stop_closes_owner_dialog_after_switch_without_closing_active_dialog(self):
+        owner, active, calls = object(), object(), []
+        self.patch(STUBS.gui, "ActiveDocument", active)
+        self.patch(STUBS.gui, "getDocument", lambda name: owner if name == "Owner" else active)
+        self.patch(STUBS.gui.Control, "closeDialog", lambda doc: calls.append(doc))
+        self.patch(self.measure, "_session", types.SimpleNamespace(
+            doc=types.SimpleNamespace(Name="Owner"), dispose=lambda: None))
+        self.measure.stop()
+        self.assertEqual(calls, [owner])
+        self.assertIs(STUBS.gui.ActiveDocument, active)
+
+    def test_stop_with_deleted_owner_leaves_other_dialog_untouched(self):
+        calls = []
+        self.patch(STUBS.gui, "activeDocument", lambda: object())
+        self.patch(STUBS.gui.Control, "activeDialog", lambda doc: True)
+        self.patch(STUBS.gui.Control, "closeDialog", lambda *args: calls.append(args))
+        self.patch(self.measure, "_session", types.SimpleNamespace(doc=None, dispose=lambda: None))
+        self.measure.stop()
+        self.assertEqual(calls, [])
+
+    def test_stop_with_deleted_owner_closes_legacy_global_dialog(self):
+        calls = []
+        self.patch(STUBS.gui, "activeDocument", lambda: object())
+        self.patch(STUBS.gui.Control, "activeDialog", lambda: True)
+        self.patch(STUBS.gui.Control, "closeDialog", lambda: calls.append("close"))
+        self.patch(self.measure, "_session", types.SimpleNamespace(doc=None, dispose=lambda: None))
+        self.measure.stop()
+        self.assertEqual(calls, ["close"])
+        self.assertNoJellyJamsProblems()
+
+    def test_stop_with_deleted_owner_and_no_active_document_closes_global_task(self):
+        calls = []
+        self.patch(STUBS.gui, "activeDocument", lambda: None)
+        self.patch(STUBS.gui.Control, "closeDialog", lambda: calls.append("close"))
+        self.patch(self.measure, "_session", types.SimpleNamespace(doc=None, dispose=lambda: None))
+        self.measure.stop()
+        self.assertEqual(calls, ["close"])
+        self.assertNoJellyJamsProblems()
 
     def test_dispose_detaches_once_and_cancels_pending_refresh(self):
         task, selected = self.task()
@@ -5190,6 +5254,46 @@ class Test18DialogTerms(HarnessCase):
         partial = form(PAD_FORM, [named(QtWidgets.QLabel(), "side2Label", "Side 2")])
         self.assertEqual(self.terms.process_form(partial), 1)
         self.assertEqual(self.jj("warning") + self.jj("error"), [])
+
+    def test_new_host_drawing_labels_preserve_checkbox_and_group_state(self):
+        balloon = form("TechDrawGui::TaskBalloon", [
+            named(QtWidgets.QLabel(), "lText", "Text"),
+            named(QtWidgets.QLabel(), "lBShape", "Bubble shape"),
+            named(QtWidgets.QLabel(), "lSymbol", "Symbol"),
+            named(QtWidgets.QLabel(), "lWidth", "Width"),
+            named(QtWidgets.QLabel(), "lKink", "Kink length")])
+        self.terms.process_form(balloon)
+        self.assertEqual([w.text() for w in balloon.findChildren(QtWidgets.QLabel)],
+                         ["Balloon text", "Style", "Arrow style", "Leader thickness", "Bent leader length"])
+        border = named(QtWidgets.QGroupBox(), "gbFrame")
+        border.setTitle("Frame")
+        border.setCheckable(True)
+        border.setChecked(False)
+        annotation = form("TechDrawGui::TaskRichAnno", [border,
+            named(QtWidgets.QLabel(), "label_frameThickness", "Thickness"),
+            named(QtWidgets.QLabel(), "label_patternThickness", "Style"),
+            named(QtWidgets.QLabel(), "label_colorThickness", "Color")])
+        self.terms.process_form(annotation)
+        self.assertEqual(border.title(), "Border")
+        self.assertFalse(border.isChecked())
+        self.assertEqual([w.text() for w in annotation.findChildren(QtWidgets.QLabel)],
+                         ["Line thickness", "Line style", "Line color"])
+        visible = named(QtWidgets.QCheckBox(), "cb_Visible", "Visible")
+        visible.setChecked(True)
+        decor = form("TechDrawGui::TaskLineDecor", [visible])
+        self.terms.process_form(decor)
+        self.assertEqual(visible.text(), "Show Edges")
+        self.assertTrue(visible.isChecked())
+
+    def test_compiled_form_names_from_new_qt_are_discovered_and_relabelled(self):
+        root = QtWidgets.QWidget()
+        pad = pad_form(parent=root)
+        pad.setObjectName(PAD_FORM.replace("::", "__"))
+        self.assertEqual(self.terms._find_forms(root), [pad])
+        self.assertGreater(self.terms.process_form(pad), 0)
+        self.assertEqual(items(pad.findChild(QtWidgets.QComboBox, "changeMode")),
+                         ["Blind", "Through All", "Up To Next", "Up To Surface", "Up To Body"])
+        self.assertEqual(self.terms.process_form(pad), 0)
 
     def test_scale_field_fix(self):
         def section(index, combo_enabled=True, spin_enabled=False):
@@ -6833,6 +6937,372 @@ class Test22InsertPicture(DocumentCase):
 # ==========================================================================
 
 
+class Test23SmartDimension(HarnessCase):
+    def setUp(self):
+        super().setUp()
+        self.dimension = self.module("jellyjams.sketch_dimension", fresh=True)
+        self.fcgui = self.module("jellyjams.fcgui")
+        self.addCleanup(self.dimension.stop)
+
+    def preview(self):
+        state = {"selected": True, "native_calls": 0, "distance": 6.0, "writes": []}
+        sketch = types.SimpleNamespace(
+            Constraints=[types.SimpleNamespace(Type="DistanceX")], Geometry=[],
+            getLabelDistance=lambda i: state["distance"],
+            setLabelDistance=lambda i, value: (state["writes"].append((i, value)),
+                                              state.update(distance=value)))
+        self.patch(self.fcgui, "jellyjams_active", lambda: True)
+        self.patch(self.fcgui, "sketch_in_edit", lambda: sketch)
+        self.patch(self.fcgui, "selection", lambda: [sketch] if state["selected"] else [])
+        self.patch(self.dimension, "_gap", lambda view, widget: 1.0)
+
+        class Viewport(QtWidgets.QWidget):
+            def mouseMoveEvent(self, event):
+                state["native_calls"] += 1
+                state["distance"] = 6.0
+                super().mouseMoveEvent(event)
+
+        viewport = Viewport()
+        viewport.setMouseTracking(True)
+        self.addCleanup(viewport.deleteLater)
+        session = self.dimension._PreviewFilter(sketch, object(), viewport, 0)
+        self.dimension._session = session
+        return session, viewport, sketch, state
+
+    def move(self, widget):
+        event = QtGui.QMouseEvent(QtCore.QEvent.Type.MouseMove, QtCore.QPointF(12, 18),
+                                  QtCore.QPointF(12, 18), QtCore.Qt.MouseButton.NoButton,
+                                  QtCore.Qt.MouseButton.NoButton, QtCore.Qt.KeyboardModifier.NoModifier)
+        QtWidgets.QApplication.sendEvent(widget, event)
+
+    def test_native_gap_landscape_portrait_and_invalid_camera(self):
+        gap = self.dimension.preview_gap
+        self.assertAlmostEqual(gap(40, 2), 1.2)
+        self.assertAlmostEqual(gap(40, .5), 1.2)
+        self.assertAlmostEqual(gap(40, 1), .8)
+        for height, aspect in ((0, 1), (40, 0), (-1, 1), (float("nan"), 1)):
+            with self.assertRaises(ValueError):
+                gap(height, aspect)
+
+    def test_native_delivery_once_and_repeated_moves_do_not_accumulate(self):
+        session, widget, sketch, state = self.preview()
+        self.move(widget)
+        self.move(widget)
+        self.assertEqual(state["native_calls"], 2)
+        self.assertEqual(state["writes"], [(0, 7.0), (0, 7.0)])
+
+    def test_confirmed_and_preexisting_labels_are_never_shifted(self):
+        session, widget, sketch, state = self.preview()
+        state["selected"] = False  # native tool cleared its selection on confirm
+        session.correct()
+        state["selected"] = True
+        session.correct()
+        self.assertEqual(session.floor, 1)
+        self.assertEqual(state["writes"], [])
+
+    def test_only_linear_dimensions_and_not_arc_length(self):
+        sketch = types.SimpleNamespace(Geometry=[types.SimpleNamespace(TypeId="Part::GeomArcOfCircle")])
+        for kind, expected in (("Radius", False), ("Angle", False), ("DistanceX", True),
+                               ("DistanceY", True), ("Distance", False)):
+            c = types.SimpleNamespace(Type=kind, First=0, FirstPos=0, SecondPos=0)
+            self.assertEqual(self.dimension._linear(sketch, c), expected)
+        sketch.Geometry[0].TypeId = "Part::GeomLineSegment"
+        self.assertTrue(self.dimension._linear(sketch, c))
+
+    def test_failed_correction_does_not_deliver_native_event_twice(self):
+        session, widget, sketch, state = self.preview()
+
+        def broken():
+            raise RuntimeError("failed label lookup")
+
+        self.patch(session, "correct", broken)
+        self.move(widget)
+        self.assertEqual(state["native_calls"], 1)
+        self.assertIsNone(self.dimension._session)
+        self.assertEqual(len(self.jj("warning")), 1)
+
+    def test_leaving_edit_and_stop_remove_filter_idempotently(self):
+        session, widget, sketch, state = self.preview()
+        self.patch(self.fcgui, "sketch_in_edit", lambda: None)
+        self.move(widget)
+        self.assertIsNone(self.dimension._session)
+        self.assertEqual(state["writes"], [])
+        self.dimension.stop()
+        self.dimension.stop()
+
+    def test_modal_arrow_does_not_stop_continuous_dimension_but_other_tool_does(self):
+        session, widget, sketch, state = self.preview()
+        session.cursor = QtGui.QImage(32, 32, QtGui.QImage.Format.Format_ARGB32)
+        session.cursor.fill(QtGui.QColor("red"))
+        widget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
+        self.assertTrue(session.same_cursor())
+        pixmap = QtGui.QPixmap(32, 32)
+        pixmap.fill(QtGui.QColor("green"))
+        widget.setCursor(QtGui.QCursor(pixmap))
+        self.move(widget)
+        self.assertIsNone(self.dimension._session)
+        self.assertEqual(state["writes"], [])
+
+    def test_ribbon_routes_dimension_once_and_other_commands_stop_correction(self):
+        calls = []
+        self.patch(self.dimension, "run", lambda: calls.append("dimension"))
+        self.patch(self.dimension, "stop", lambda: calls.append("stop"))
+        ribbon = self.module("jellyjams.ribbon")
+        ribbon.run_entry("Sketcher_Dimension")
+        self.assertEqual(calls, ["stop", "dimension"])
+        self.assertEqual(STUBS.run_calls, [])
+        ribbon.run_entry("Sketcher_CreateLine")
+        self.assertEqual(calls[-1], "stop")
+        self.assertEqual(STUBS.run_calls[-1][0], "Sketcher_CreateLine")
+
+
+class Test23SketchAssist(HarnessCase):
+    def setUp(self):
+        super().setUp()
+        STUBS.active_workbench = WB
+        self.assist = self.module("jellyjams.sketch_assist", fresh=True)
+        self.constants = self.module("jellyjams.constants")
+        self.fcgui = self.module("jellyjams.fcgui")
+        self.current = None
+        self.patch(self.fcgui, "sketch_in_edit", lambda: self.current)
+        self.gui_observers = []
+        self.patch(STUBS.gui, "addDocumentObserver", self.gui_observers.append)
+        self.patch(STUBS.gui, "removeDocumentObserver", self.gui_observers.remove)
+        self.addCleanup(self.assist.disable)
+        self.group = param(self.constants.PARAM_SKETCH_SNAP)
+        self.key = self.constants.KEY_SKETCH_ASSIST_BACKUP
+
+    def sketch(self, auto=False, name="Sketch"):
+        doc = types.SimpleNamespace(Name="Doc")
+        obj = types.SimpleNamespace(Name=name, Document=doc, TypeId="Sketcher::SketchObject",
+                                    isDerivedFrom=lambda kind: kind == "Sketcher::SketchObject")
+        obj.ViewObject = types.SimpleNamespace(Object=obj, Autoconstraints=auto)
+        return obj
+
+    def enter(self, auto=False):
+        self.current = self.sketch(auto)
+        self.assist.enable()
+        return self.current.ViewObject
+
+    def test_only_sketch_edit_enables_aids_and_does_not_touch_grid(self):
+        self.group.SetBool("SnapToGrid", False)
+        self.group.SetBool("Snap", False)
+        self.assist.enable()
+        self.assertFalse(self.group.GetBool("Snap"))
+        self.assertNotIn(self.key, param(P_OWN).GetStrings())
+        view = self.enter()
+        self.assertTrue(view.Autoconstraints)
+        self.assertTrue(all(self.group.GetBool(key) for key in self.assist.SNAP_KEYS))
+        self.assertFalse(self.group.GetBool("SnapToGrid"))
+        self.assertEqual(len(self.gui_observers), 1)
+        self.assertEqual(len(STUBS.doc_observers), 1)
+
+    def test_round_trip_absent_false_true_and_repeat(self):
+        for value in (None, False, True):
+            with self.subTest(value=value):
+                for key in self.assist.SNAP_KEYS:
+                    self.group.RemBool(key)
+                    if value is not None:
+                        self.group.SetBool(key, value)
+                view = self.enter(auto=bool(value))
+                backup = param(P_OWN).GetString(self.key)
+                self.assist.enable()
+                self.assist._poll()
+                self.assertEqual(param(P_OWN).GetString(self.key), backup)
+                self.current = None
+                self.assist._poll()
+                self.assertEqual(view.Autoconstraints, bool(value))
+                for key in self.assist.SNAP_KEYS:
+                    self.assertEqual(key in self.group.GetBools(), value is not None)
+                    if value is not None:
+                        self.assertEqual(self.group.GetBool(key), value)
+                self.assertNotIn(self.key, param(P_OWN).GetStrings())
+
+    def test_observer_entry_exit_and_non_sketch(self):
+        self.assist.enable()
+        observer = self.gui_observers[0]
+        observer.slotInEdit(types.SimpleNamespace(Object=None))
+        self.assertNotIn(self.key, param(P_OWN).GetStrings())
+        view = self.sketch().ViewObject
+        observer.slotInEdit(view)
+        self.assertTrue(view.Autoconstraints)
+        observer.slotResetEdit(types.SimpleNamespace(Object=None))
+        self.assertTrue(view.Autoconstraints)
+        observer.slotResetEdit(view)
+        self.assertFalse(view.Autoconstraints)
+        self.assertNotIn(self.key, param(P_OWN).GetStrings())
+
+    def test_leave_quit_and_cancel_with_open_sketch(self):
+        view = self.enter()
+        self.assist.disable()
+        self.assist.disable()
+        self.assertFalse(view.Autoconstraints)
+        self.assertFalse(self.gui_observers)
+        self.assertFalse(STUBS.doc_observers)
+        self.assist.enable()  # early-close fallback Cancel
+        self.assertTrue(view.Autoconstraints)
+        self.assist.disable()
+        self.assertFalse(view.Autoconstraints)
+        self.assertNotIn(self.key, param(P_OWN).GetStrings())
+
+    def test_save_restores_file_value_and_resumes_only_same_session(self):
+        view = self.enter()
+        observer = self.assist._observer
+        other = types.SimpleNamespace(Name="Other")
+        observer.slotStartSaveDocument(other, "other.FCStd")
+        self.assertTrue(view.Autoconstraints)
+        observer.slotStartSaveDocument(view.Object.Document, "model.FCStd")
+        self.assertFalse(view.Autoconstraints)
+        self.assist._poll()
+        self.assertFalse(view.Autoconstraints)
+        observer.slotFinishSaveDocument(view.Object.Document, "model.FCStd")
+        self.assertTrue(view.Autoconstraints)
+        observer.slotStartSaveDocument(view.Object.Document, "model.FCStd")
+        self.assist.disable()
+        observer.slotFinishSaveDocument(view.Object.Document, "model.FCStd")
+        self.assertFalse(view.Autoconstraints)
+
+    def test_user_can_turn_aids_off_until_next_edit(self):
+        view = self.enter()
+        view.Autoconstraints = False
+        self.group.SetBool("Snap", False)
+        self.assist._poll()
+        self.assertFalse(view.Autoconstraints)
+        self.assertFalse(self.group.GetBool("Snap"))
+        self.assist._observer.slotResetEdit(view)
+        self.assist._observer.slotInEdit(view)
+        self.assertTrue(view.Autoconstraints)
+        self.assertTrue(self.group.GetBool("Snap"))
+
+    def test_saving_preserves_user_disabled_auto_constraints(self):
+        view = self.enter(auto=True)
+        view.Autoconstraints = False
+        observer = self.assist._observer
+        observer.slotStartSaveDocument(view.Object.Document, "model.FCStd")
+        self.assertTrue(view.Autoconstraints)  # original file value
+        observer.slotFinishSaveDocument(view.Object.Document, "model.FCStd")
+        self.assertFalse(view.Autoconstraints)  # current edit's choice
+
+    def test_recovery_save_filter_restores_then_resumes_and_uninstalls(self):
+        class FakeAutoSaver(QtCore.QObject):
+            pass
+
+        saver = FakeAutoSaver(STUBS.qapp)
+        self.addCleanup(saver.deleteLater)
+        self.patch(self.constants, "CLASS_AUTO_SAVER", "FakeAutoSaver")
+        callbacks = []
+        self.patch(self.fcgui, "defer", lambda fn, *args: callbacks.append(fn))
+        view = self.enter()
+        self.assertIs(self.assist._autosaver, saver)
+        event = QtCore.QTimerEvent(12345)
+        self.assertFalse(self.assist._save_filter.eventFilter(saver, event))
+        self.assertFalse(view.Autoconstraints)
+        self.assist._poll()
+        self.assertFalse(view.Autoconstraints)
+        callbacks.pop()()
+        self.assertTrue(view.Autoconstraints)
+        self.assist._save_filter.eventFilter(saver, event)
+        self.assist.disable()
+        callbacks.pop()()
+        self.assertFalse(view.Autoconstraints)
+        self.assertIsNone(self.assist._autosaver)
+
+    def test_temporary_property_writes_preserve_status_flags(self):
+        self.current = self.sketch()
+        view = self.current.ViewObject
+        status = {"ReadOnly"}
+        calls = []
+        view.getPropertyStatus = lambda name: list(status)
+
+        def set_status(name, value):
+            calls.append((name, value))
+            if value.startswith("-"):
+                status.discard(value[1:])
+            else:
+                status.add(value)
+
+        view.setPropertyStatus = set_status
+        self.assist.enable()
+        self.assist.disable()
+        self.assertEqual(status, {"ReadOnly"})
+        self.assertEqual([value for name, value in calls],
+                         ["NoModify", "-NoModify", "NoModify", "-NoModify"])
+
+    def test_property_restore_failure_does_not_block_preference_restore(self):
+        self.group.SetBool("Snap", False)
+        view = self.enter()
+        original = self.assist._set_auto
+
+        def broken(value):
+            raise RuntimeError("cannot write view property")
+
+        self.patch(self.assist, "_set_auto", broken)
+        self.assist.disable()
+        self.assertFalse(self.group.GetBool("Snap"))
+        self.assertIs(self.assist._view, view)  # keep original for retry
+        self.patch(self.assist, "_set_auto", original)
+        self.assist.disable()
+        self.assertFalse(view.Autoconstraints)
+
+    def test_recovery_restores_pending_backup_without_overwriting_it(self):
+        raw = json.dumps({"Snap": [True, False], "SnapToObjects": [False, None]})
+        param(P_OWN).SetString(self.key, raw)
+        for key in self.assist.SNAP_KEYS:
+            self.group.SetBool(key, True)
+        self.assist._apply_snapping()
+        self.assertEqual(param(P_OWN).GetString(self.key), raw)
+        self.module("jellyjams.recovery").run_startup_recovery()
+        self.assertFalse(self.group.GetBool("Snap"))
+        self.assertNotIn("SnapToObjects", self.group.GetBools())
+        self.assertNotIn(self.key, param(P_OWN).GetStrings())
+
+    def test_corrupt_backups_warn_once_without_changing_preferences(self):
+        self.group.SetBool("Snap", False)
+        for raw in ("{bad", "[]", '{"Snap": [true, false]}',
+                    '{"Snap": [true, 1], "SnapToObjects": [false, null]}'):
+            with self.subTest(raw=raw):
+                STUBS.records.clear()
+                param(P_OWN).SetString(self.key, raw)
+                self.assist.recover()
+                self.assist.recover()
+                self.assertEqual(len(self.jj("warning")), 1)
+                self.assertFalse(self.group.GetBool("Snap"))
+                self.assertNotIn(self.key, param(P_OWN).GetStrings())
+
+    def test_failed_restore_keeps_backup_for_retry(self):
+        self.group.SetBool("Snap", False)
+        self.enter()
+        original = self.group.SetBool
+
+        def broken(*args):
+            raise RuntimeError("cannot write preference")
+
+        self.patch(self.group, "SetBool", broken)
+        self.assist.recover()
+        self.assertTrue(param(P_OWN).GetString(self.key))
+        self.patch(self.group, "SetBool", original)
+        self.assist.recover()
+        self.assertFalse(self.group.GetBool("Snap"))
+
+    def test_failed_backup_prevents_preference_writes(self):
+        params = self.module("jellyjams.params")
+
+        def broken(*args):
+            raise RuntimeError("cannot save backup")
+
+        self.patch(params, "save_backup", broken)
+        self.group.SetBool("Snap", False)
+        view = self.enter()
+        self.assertFalse(view.Autoconstraints)
+        self.assertFalse(self.group.GetBool("Snap"))
+
+    def test_inactive_workbench_leaves_sketch_unchanged(self):
+        STUBS.active_workbench = "PartDesignWorkbench"
+        view = self.enter()
+        self.assertFalse(view.Autoconstraints)
+        self.assertNotIn(self.key, param(P_OWN).GetStrings())
+
+
 class Test23SketchFirstRules(HarnessCase):
     """The pure decisions of sketch_gesture: when to start a new sketch and the
     state machine that follows the plane pick and the sketch edit."""
@@ -7017,6 +7487,117 @@ class Test23SketchFirstFlow(DocumentCase):
         return STUBS.main_window.statusBar().currentMessage()
 
     # starting -----------------------------------------------------------------------
+    def plane_picker(self):
+        self.gesture.try_run("PartDesign_Pad")
+        panel = QtWidgets.QWidget()
+        self.addCleanup(panel.deleteLater)
+        form = QtWidgets.QWidget(panel)
+        self.patch(form, "metaObject", lambda: types.SimpleNamespace(className=lambda: "PartDesignGui__TaskFeaturePick"))
+        choices = QtWidgets.QListWidget(form)
+        choices.setObjectName("listWidget")
+        choices.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
+        plane = FakeObject(self.doc, "XY_Plane", "App::Plane")
+        row = QtWidgets.QListWidgetItem("Top Plane", choices)
+        row.setData(QtCore.Qt.ItemDataRole.UserRole, plane.Name)
+        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok, panel)
+        button = buttons.button(QtWidgets.QDialogButtonBox.StandardButton.Ok)
+        clicks = []
+        button.clicked.connect(lambda: clicks.append("accepted"))
+        self.patch(self.module("jellyjams.fcgui"), "task_panel", lambda: panel)
+        self.patch(self.module("jellyjams.fcgui"), "task_dock", lambda: panel)
+        return panel, form, choices, row, button, clicks
+
+    def test_plane_picker_confirms_one_selected_plane_once(self):
+        panel, form, choices, row, button, clicks = self.plane_picker()
+        row.setSelected(True)
+        self.assertTrue(self.gesture._confirm_plane_pick(self.gesture._intent, self.doc))
+        self.assertEqual(clicks, ["accepted"])
+        self.editing = self.sketch("Sketch")
+        self.assertFalse(self.gesture._confirm_plane_pick(self.gesture._intent, self.doc))
+        self.assertEqual(clicks, ["accepted"])
+
+    def test_plane_picker_finds_older_hosts_sibling_button_box(self):
+        panel, form, choices, row, button, clicks = self.plane_picker()
+        dock = QtWidgets.QWidget()
+        self.addCleanup(dock.deleteLater)
+        panel.setParent(dock)
+        button.parentWidget().setParent(dock)
+        self.patch(self.module("jellyjams.fcgui"), "task_dock", lambda: dock)
+        row.setSelected(True)
+        self.assertTrue(self.gesture._confirm_plane_pick(self.gesture._intent, self.doc))
+        self.assertEqual(clicks, ["accepted"])
+
+    def test_plane_picker_waits_without_a_single_valid_plane(self):
+        panel, form, choices, row, button, clicks = self.plane_picker()
+        intent = self.gesture._intent
+        self.assertFalse(self.gesture._confirm_plane_pick(intent, self.doc))
+        row.setSelected(True)
+        row.setData(QtCore.Qt.ItemDataRole.UserRole, self.body.Name)
+        self.assertFalse(self.gesture._confirm_plane_pick(intent, self.doc))
+        row.setData(QtCore.Qt.ItemDataRole.UserRole, "XY_Plane")
+        row.setHidden(True)
+        self.assertFalse(self.gesture._confirm_plane_pick(intent, self.doc))
+        row.setHidden(False)
+        second = QtWidgets.QListWidgetItem("Other", choices)
+        second.setSelected(True)
+        self.assertFalse(self.gesture._confirm_plane_pick(intent, self.doc))
+        self.assertEqual(clicks, [])
+
+    def test_plane_picker_rejects_stale_intent_inactive_doc_and_other_dialog(self):
+        panel, form, choices, row, button, clicks = self.plane_picker()
+        row.setSelected(True)
+        intent = self.gesture._intent
+        self.assertFalse(self.gesture._confirm_plane_pick(dict(intent), self.doc))
+        self.patch(self.gesture, "_active_doc", lambda: None)
+        self.assertFalse(self.gesture._confirm_plane_pick(intent, self.doc))
+        self.patch(self.gesture, "_active_doc", lambda: self.doc)
+        self.patch(form, "metaObject", lambda: types.SimpleNamespace(className=lambda: "OtherTask"))
+        self.assertFalse(self.gesture._confirm_plane_pick(intent, self.doc))
+        self.assertEqual(clicks, [])
+
+    def test_plane_picker_does_not_press_disabled_ok_or_disabled_plane(self):
+        panel, form, choices, row, button, clicks = self.plane_picker()
+        row.setSelected(True)
+        button.setEnabled(False)
+        self.assertFalse(self.gesture._confirm_plane_pick(self.gesture._intent, self.doc))
+        button.setEnabled(True)
+        row.setFlags(row.flags() & ~QtCore.Qt.ItemFlag.ItemIsEnabled)
+        self.assertFalse(self.gesture._confirm_plane_pick(self.gesture._intent, self.doc))
+        self.assertEqual(clicks, [])
+
+    def test_attachment_picker_confirms_only_new_sketch_with_one_valid_plane(self):
+        panel, form, choices, row, button, clicks = self.plane_picker()
+        self.patch(form, "metaObject", lambda: types.SimpleNamespace(className=lambda: "PartGui::TaskAttacher"))
+        sketch = self.sketch("Sketch")
+        sketch.MapMode = "Deactivated"
+        sketch.AttachmentSupport = []
+        intent = self.gesture._intent
+        self.assertFalse(self.gesture._confirm_plane_pick(intent, self.doc))
+        plane = self.doc.getObject("XY_Plane")
+        sketch.AttachmentSupport = [(plane, [""])]
+        self.assertFalse(self.gesture._confirm_plane_pick(intent, self.doc))
+        sketch.MapMode = "FlatFace"
+        self.assertTrue(self.gesture._confirm_plane_pick(intent, self.doc))
+        self.assertEqual(clicks, ["accepted"])
+        intent["before"].add(sketch.Name)
+        self.assertFalse(self.gesture._confirm_plane_pick(intent, self.doc))
+
+    def test_attachment_picker_resolves_origin_paths_and_rejects_multiple_references(self):
+        panel, form, choices, row, button, clicks = self.plane_picker()
+        sketch = self.sketch("Sketch")
+        sketch.MapMode = "FlatFace"
+        plane = self.doc.getObject("XY_Plane")
+        origin = types.SimpleNamespace(getSubObject=lambda path, ret: plane if path == "XY_Plane." and ret == 1 else None)
+        intent = self.gesture._intent
+        sketch.AttachmentSupport = [(origin, ["XY_Plane."])]
+        self.assertTrue(self.gesture._attachment_has_plane(intent, self.doc))
+        sketch.AttachmentSupport = [(origin, ["XY_Plane.", "XZ_Plane."])]
+        self.assertFalse(self.gesture._attachment_has_plane(intent, self.doc))
+        sketch.AttachmentSupport = [(plane, [""]), (plane, [""])]
+        self.assertFalse(self.gesture._attachment_has_plane(intent, self.doc))
+        sketch.AttachmentSupport = [(origin, ["Missing."])]
+        self.assertFalse(self.gesture._attachment_has_plane(intent, self.doc))
+
     def test_nothing_selected_and_no_free_sketch_opens_a_new_sketch(self):
         self.fast()
         self.assertIs(self.gesture.try_run("PartDesign_Pad"), True)
@@ -9875,6 +10456,21 @@ class Test25Appearances(DocumentCase):
         self.assertFalse(links[1].ViewObject.OverrideMaterial)
         self.assertEqual(self.doc.call_names(), ["openTransaction", "commitTransaction"])
 
+    def test_component_material_list_on_new_hosts_preserves_source_and_sibling(self):
+        source = self.solid("Source")
+        links = [FakeObject(self.doc, name, "App::Link", LinkedObject=source,
+                            Shape=source.Shape, ViewObject=types.SimpleNamespace(
+                                ShapeAppearance=["original"], OverrideMaterial=False, Visibility=True))
+                 for name in ("Selected", "Sibling")]
+        STUBS.selection_ex = [self.pick(links[0])]
+        self.patch(STUBS.app, "Material", types.SimpleNamespace)
+        self.assertEqual(self.appearances.apply_appearance(self.rules.Appearance("Red", "#ff0000")), 1)
+        self.assertTrue(links[0].ViewObject.OverrideMaterial)
+        self.assertEqual(links[0].ViewObject.ShapeAppearance[0].DiffuseColor, (1, 0, 0))
+        self.assertEqual(source.ViewObject.ShapeAppearance, ["original"])
+        self.assertEqual(links[1].ViewObject.ShapeAppearance, ["original"])
+        self.assertFalse(links[1].ViewObject.OverrideMaterial)
+
     def test_empty_selection_targets_only_visible_models(self):
         visible = self.solid("Visible")
         self.solid("Hidden", False)
@@ -10039,6 +10635,355 @@ class Test25Appearances(DocumentCase):
 # --------------------------------------------------------------------------
 # Runner
 # --------------------------------------------------------------------------
+
+
+
+class Test39SurfaceRules(HarnessCase):
+    def test_union_rejects_lost_input_and_non_finite_volume(self):
+        rules = self.module("jellyjams.surface_rules")
+        self.assertFalse(rules.fusion_retains_input(10717, .00000006))
+        self.assertFalse(rules.fusion_retains_input(10717, float("nan")))
+        self.assertTrue(rules.fusion_retains_input(10717, 10717.49))
+        self.assertTrue(rules.fusion_retains_input(10717, 10716.99999))
+
+    def test_local_edge_matching_is_orientation_independent(self):
+        rules = self.module("jellyjams.surface_rules")
+        self.assertEqual(rules.edge_match_score((0, 0, 0), (0, 0, 2), 2,
+                                               (0, 0, 2), (0, 0, 0), 2), 0)
+        self.assertGreater(rules.edge_match_score((1, 0, 0), (1, 0, 2), 2,
+                                                  (0, 0, 0), (0, 0, 2), 2), .9)
+
+    def test_control_grid_preserves_u_major_order_and_copies_input(self):
+        rules = self.module("jellyjams.surface_rules")
+        points = [[i, i + 1, i + 2] for i in range(6)]
+        grid = rules.pole_grid(points, 2, 3)
+        self.assertEqual(grid, [points[:3], points[3:]])
+        grid[0][0][0] = 100
+        self.assertEqual(points[0][0], 0)
+
+    def test_control_grid_rejects_invalid_edits(self):
+        rules = self.module("jellyjams.surface_rules")
+        for points, rows, columns in [([], 0, 1), ([[1, 2, 3]], 2, 1),
+                                       ([[1, 2]], 1, 1), ([[0, float("nan"), 2]], 1, 1),
+                                       ([[0, float("inf"), 2]], 1, 1)]:
+            with self.subTest(points=points, rows=rows, columns=columns):
+                with self.assertRaises(ValueError):
+                    rules.pole_grid(points, rows, columns)
+
+    def test_surface_numbering_survives_multiple_solids(self):
+        rules = self.module("jellyjams.surface_rules")
+        data = {"version": 1, "solids": [{"faces": [{"surface": "a"}, {"surface": "b"}]},
+                                          {"faces": [{"surface": "c"}]}]}
+        self.assertEqual(list(rules.surfaces(data)), [(1, "a"), (2, "b"), (3, "c")])
+        with self.assertRaises(ValueError):
+            list(rules.surfaces({"version": 2, "solids": []}))
+
+    def test_surface_feature_applies_control_points_without_mutating_schema(self):
+        feature = self.module("jellyjams.surface_feature")
+        original = {"version": 1, "solids": [{"faces": [{"surface": {
+            "kind": "BSplineSurface", "poles": [[[0, 0, 0], [0, 1, 0]]], "weights": [[1, 1]]}}]}]}
+        stored = json.dumps(original)
+        obj = types.SimpleNamespace(GeometryDefinition=stored, Surface01Poles=[(0, 0, 1), (0, 1, 2)])
+        modified = feature.definition_for(obj)
+        self.assertEqual(modified["solids"][0]["faces"][0]["surface"]["poles"], [[[0., 0., 1.], [0., 1., 2.]]])
+        self.assertEqual(obj.GeometryDefinition, stored)
+        self.assertEqual(original["solids"][0]["faces"][0]["surface"]["weights"], [[1, 1]])
+
+
+class Test40HostCompatibility(HarnessCase):
+    def test_task_panel_follows_active_document_through_wrapper_even_with_hidden_dock(self):
+        fcgui = self.module("jellyjams.fcgui")
+        constants = self.module("jellyjams.constants")
+        dock = QtWidgets.QDockWidget(STUBS.main_window)
+        stack = QtWidgets.QStackedWidget()
+        dock.setWidget(stack)
+        panels = []
+        for _ in range(2):
+            wrapper = QtWidgets.QWidget()
+            layout = QtWidgets.QVBoxLayout(wrapper)
+            panel = QtWidgets.QFrame()
+            layout.addWidget(panel)
+            stack.addWidget(wrapper)
+            panels.append(panel)
+        self.patch(fcgui, "task_dock", lambda: dock)
+        self.patch(constants, "CLASS_TASK_PANEL", "QFrame")
+        stack.setCurrentIndex(1)
+        self.assertIs(fcgui.task_panel(), panels[1])
+        stack.setCurrentIndex(0)
+        self.assertIs(fcgui.task_panel(), panels[0])
+        dock.deleteLater()
+
+    def test_optional_native_resources_are_loaded_once_before_command_modules(self):
+        fcgui = self.module("jellyjams.fcgui")
+        constants = self.module("jellyjams.constants")
+        calls = []
+        self.patch(fcgui, "_preloaded", None)
+        self.patch(fcgui.importlib, "import_module", lambda name: calls.append(name))
+        self.assertEqual(fcgui.preload_command_modules(), ([], []))
+        self.assertEqual(fcgui.preload_command_modules(), ([], []))
+        self.assertEqual(calls, list(constants.OPTIONAL_GUI_COMMAND_MODULES
+                                    + constants.GUI_COMMAND_MODULES + constants.ASSEMBLY_COMMAND_MODULES))
+
+    def test_missing_optional_resource_is_normal_but_broken_dependency_is_reported(self):
+        fcgui = self.module("jellyjams.fcgui")
+        def load(name):
+            if name == "AssemblyGui":
+                raise ModuleNotFoundError("not installed", name=missing[0])
+        self.patch(fcgui.importlib, "import_module", load)
+        for dependency, errors in (("AssemblyGui", 0), ("internal_dependency", 1)):
+            missing = [dependency]
+            self.patch(fcgui, "_preloaded", None)
+            self.assertEqual(len(fcgui.preload_command_modules()[0]), errors)
+
+
+class Test40QuickAccess(HarnessCase):
+    def setUp(self):
+        super().setUp()
+        self.quick = self.module("jellyjams.quick_access")
+        self.quick.disable()
+        self.addCleanup(self.quick.disable)
+        STUBS.set_active_workbench(WB)
+        STUBS.set_commands(sorted(ribbon_command_ids()))
+        STUBS.app.ActiveDocument = types.SimpleNamespace(Name="A", Uid="first")
+        self.fcgui = self.module("jellyjams.fcgui")
+        self.rules = self.module("jellyjams.access_rules")
+
+    def test_context_memory_restores_manual_tabs_per_document_and_mode(self):
+        memory = self.rules.ContextMemory()
+        self.assertEqual(memory.choose("A", "Features", "Drawing"), "Features")
+        self.assertIsNone(memory.choose("A", "Features", "Evaluate"))
+        self.assertEqual(memory.choose("A", "Sketch", "Evaluate"), "Sketch")
+        self.assertEqual(memory.choose("B", "Features", "Sketch"), "Features")
+        self.assertEqual(memory.choose("A", "Features", "Features"), "Evaluate")
+        self.assertEqual(memory.choose("A", "Sketch", "Evaluate"), "Sketch")
+
+    def test_search_matches_unordered_words_and_native_names(self):
+        for query in ("boss extrude", "BASE boss", "pad", ""):
+            self.assertTrue(self.rules.matches(query, "Extruded Boss/Base", "PartDesign_Pad"))
+        self.assertFalse(self.rules.matches("cut", "Extruded Boss/Base", "PartDesign_Pad"))
+
+    def test_new_sketch_entry_always_selects_sketch_after_manual_feature_tab(self):
+        memory = self.rules.ContextMemory()
+        memory.choose("A", "Features", "Drawing")
+        memory.choose("A", "Sketch", "Evaluate")
+        self.assertEqual(memory.choose("A", "Features", "Features"), "Evaluate")
+        self.assertEqual(memory.choose("A", "Sketch", "Evaluate"), "Sketch")
+
+    def test_typing_focus_protects_editors_and_list_search(self):
+        for kind in (QtWidgets.QLineEdit, QtWidgets.QTextEdit, QtWidgets.QPlainTextEdit,
+                     QtWidgets.QSpinBox, QtWidgets.QComboBox, QtWidgets.QListWidget):
+            widget = kind()
+            self.addCleanup(widget.deleteLater)
+            self.assertTrue(self.quick.typing_focus(widget), kind)
+        self.assertFalse(self.quick.typing_focus(QtWidgets.QPushButton()))
+        self.assertFalse(self.quick.typing_focus(None))
+
+    def test_drawing_sketch_restores_drawing_after_native_view_mode_changes(self):
+        memory = self.rules.ContextMemory()
+        memory.choose("A", "Drawing", "Features")
+        self.assertEqual(memory.choose("A", "Sketch", "Drawing"), "Sketch")
+        self.assertEqual(memory.choose("A", "Features", "Features"), "Drawing")
+        memory.choose("A", "Sketch", "Evaluate")
+        memory.choose("B", "Features", "Features")
+        self.assertEqual(memory.choose("A", "Features", "Assembly"), "Evaluate")
+
+    def resolved(self):
+        return self.module("jellyjams.ribbon_model").resolve(
+            self.module("jellyjams.ribbon_layout").TABS, ribbon_command_ids())
+
+    def test_catalog_contains_variants_unique_ids_and_correct_toggle(self):
+        catalog = self.quick.catalog(self.resolved(), "Sketch", True)
+        ids = [entry.entry_id for _title, entry in catalog]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual(catalog[0][0], "Sketch")
+        self.assertIn("Sketcher_LeaveSketch", ids)
+        self.assertNotIn("PartDesign_NewSketch", ids)
+        self.assertIn("Sketcher_CreateBSpline", ids)
+
+    def popup(self):
+        popup = self.quick.SearchPopup(STUBS.main_window, self.resolved())
+        self.addCleanup(popup.deleteLater)
+        return popup
+
+    def test_search_popup_finds_native_pad_and_dispatches_through_ribbon(self):
+        popup = self.popup()
+        popup.search.setText("pad")
+        entries = [popup.results.item(i).data(QtCore.Qt.ItemDataRole.UserRole).cmd
+                   for i in range(popup.results.count())]
+        self.assertIn("PartDesign_Pad", entries)
+        calls = []
+        self.patch(self.module("jellyjams.ribbon"), "run_entry", lambda *args: calls.append(args))
+        popup.choose()
+        STUBS.pump(20)
+        self.assertEqual(calls, [("PartDesign_Pad", None)])
+
+    def test_search_popup_rejects_changed_document(self):
+        popup = self.popup()
+        popup.search.setText("pad")
+        calls = []
+        self.patch(self.module("jellyjams.ribbon"), "run_entry", lambda *args: calls.append(args))
+        STUBS.app.ActiveDocument = types.SimpleNamespace(Name="B", Uid="second")
+        popup.choose()
+        STUBS.pump(20)
+        self.assertEqual(calls, [])
+
+    def test_popup_activation_dispatches_only_once(self):
+        popup = self.popup()
+        popup.search.setText("pad")
+        calls = []
+        self.patch(self.module("jellyjams.ribbon"), "run_entry", lambda *args: calls.append(args))
+        popup.choose()
+        popup.choose()
+        STUBS.pump(20)
+        self.assertEqual(calls, [("PartDesign_Pad", None)])
+
+    def test_queued_dispatch_rechecks_mode_and_command_availability(self):
+        popup = self.popup()
+        popup.search.setText("pad")
+        calls = []
+        self.patch(self.module("jellyjams.ribbon"), "run_entry", lambda *args: calls.append(args))
+        popup.choose()
+        self.patch(self.module("jellyjams.ribbon_widgets"), "command_is_active", lambda _cmd: False)
+        STUBS.pump(20)
+        self.assertEqual(calls, [])
+
+    def test_search_popup_rechecks_availability(self):
+        popup = self.popup()
+        popup.search.setText("pad")
+        self.patch(self.module("jellyjams.ribbon_widgets"), "command_is_active", lambda _cmd: False)
+        calls = []
+        self.patch(self.module("jellyjams.ribbon"), "run_entry", lambda *args: calls.append(args))
+        popup.choose()
+        STUBS.pump(20)
+        self.assertEqual(calls, [])
+
+    def test_queued_dispatch_rechecks_workbench_and_document(self):
+        popup = self.popup()
+        popup.search.setText("pad")
+        calls = []
+        self.patch(self.module("jellyjams.ribbon"), "run_entry", lambda *args: calls.append(args))
+        popup.choose()
+        STUBS.set_active_workbench("PartDesignWorkbench")
+        STUBS.pump(20)
+        self.assertEqual(calls, [])
+
+    def native_task(self):
+        dock = QtWidgets.QDockWidget(STUBS.main_window)
+        panel = QtWidgets.QWidget(dock)
+        panel.setObjectName("NativeTask")
+        dock.setWidget(panel)
+        form = QtWidgets.QWidget(panel)
+        form.setObjectName("NativeForm")
+        box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok |
+                                        QtWidgets.QDialogButtonBox.StandardButton.Cancel, panel)
+        self.addCleanup(dock.deleteLater)
+        self.patch(self.fcgui, "task_dialog_open", lambda: True)
+        self.patch(self.fcgui, "task_panel", lambda: panel)
+        self.patch(self.fcgui, "task_dock", lambda: dock)
+        self.patch(self.fcgui, "sketch_in_edit", lambda: None)
+        return dock, panel, form, box
+
+    def test_confirmation_calls_native_button_and_checks_disabled_state(self):
+        dock, panel, form, box = self.native_task()
+        button = box.button(QtWidgets.QDialogButtonBox.StandardButton.Ok)
+        calls = []
+        button.clicked.connect(lambda: calls.append(True))
+        token, actions = self.quick.task_state()
+        self.assertEqual([name for name, _ in actions], ["OK", "Cancel"])
+        self.assertTrue(self.quick.confirm(token, "OK"))
+        self.assertEqual(calls, [True])
+        button.setEnabled(False)
+        self.assertFalse(self.quick.confirm(token, "OK"))
+        self.assertEqual(calls, [True])
+
+    def test_confirmation_rejects_replaced_form_document_and_closed_task(self):
+        dock, panel, form, box = self.native_task()
+        token, _actions = self.quick.task_state()
+        other = QtWidgets.QWidget(panel)
+        other.setObjectName("ReplacementForm")
+        self.assertFalse(self.quick.confirm(token, "OK"))
+        other.setParent(None)
+        other.deleteLater()
+        STUBS.app.ActiveDocument = types.SimpleNamespace(Name="B", Uid="second")
+        self.assertFalse(self.quick.confirm(token, "OK"))
+        self.patch(self.fcgui, "task_dialog_open", lambda: False)
+        self.assertFalse(self.quick.confirm(token, "OK"))
+
+    def test_sketch_confirmation_offers_exit_without_fake_cancel(self):
+        self.native_task()
+        self.patch(self.fcgui, "sketch_in_edit", lambda: types.SimpleNamespace(Name="Sketch"))
+        token, actions = self.quick.task_state()
+        self.assertEqual(actions, [("Exit Sketch", None)])
+        calls = []
+        self.patch(STUBS.gui, "runCommand", lambda cmd: calls.append(cmd))
+        self.assertFalse(self.quick.confirm(token, "Cancel"))
+        self.assertTrue(self.quick.confirm(token, "Exit Sketch"))
+        self.assertEqual(calls, ["Sketcher_LeaveSketch"])
+
+    def test_foreign_document_native_task_never_offers_confirmation(self):
+        self.native_task()
+        owner = [STUBS.app.ActiveDocument.Name]
+        dialog = types.SimpleNamespace(getDocumentName=lambda: owner[0])
+        self.patch(STUBS.gui.Control, "activeTaskDialog", lambda: dialog)
+        self.assertIsNotNone(self.quick.task_state()[0])
+        owner[0] = "AnotherDocument"
+        self.assertEqual(self.quick.task_state(), (None, []))
+        self.patch(STUBS.gui.Control, "activeTaskDialog", lambda: None)
+        self.assertEqual(self.quick.task_state(), (None, []))
+
+    def test_service_idempotency_cleanup_and_no_shortcut_parameter_writes(self):
+        before = STUBS.app.ParamGet(P_SHORTCUT).GetContents()
+        self.quick.enable()
+        service = self.quick._service
+        self.quick.enable()
+        self.assertIs(service, self.quick._service)
+        self.quick.disable()
+        self.quick.disable()
+        self.assertIsNone(self.quick._service)
+        self.assertFalse(service.timer.isActive())
+        self.assertEqual(service.targets, [])
+        self.assertEqual(STUBS.app.ParamGet(P_SHORTCUT).GetContents(), before)
+
+    def test_key_filter_claims_plain_letters_but_preserves_text_modifiers_and_repeat(self):
+        service = self.quick.AccessService(STUBS.main_window)
+        service.timer.stop()
+        self.addCleanup(service.stop)
+        calls = []
+        self.patch(service, "show_search", lambda: calls.append("S"))
+        self.patch(service, "show_confirmation", lambda: calls.append("D"))
+        button = QtWidgets.QPushButton()
+        self.addCleanup(button.deleteLater)
+        self.patch(QtWidgets.QApplication, "focusWidget", staticmethod(lambda: button))
+        for letter in (QtCore.Qt.Key.Key_S, QtCore.Qt.Key.Key_D):
+            override = QtGui.QKeyEvent(QtCore.QEvent.Type.ShortcutOverride, letter,
+                                      QtCore.Qt.KeyboardModifier.NoModifier)
+            self.assertTrue(service.eventFilter(STUBS.main_window, override))
+            press = QtGui.QKeyEvent(QtCore.QEvent.Type.KeyPress, letter,
+                                   QtCore.Qt.KeyboardModifier.NoModifier)
+            self.assertTrue(service.eventFilter(STUBS.main_window, press))
+        self.assertEqual(calls, ["S", "D"])
+        modified = QtGui.QKeyEvent(QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_S,
+                                  QtCore.Qt.KeyboardModifier.ControlModifier)
+        self.assertFalse(service.eventFilter(STUBS.main_window, modified))
+        repeated = QtGui.QKeyEvent(QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_S,
+                                  QtCore.Qt.KeyboardModifier.NoModifier, "s", True)
+        self.assertTrue(service.eventFilter(STUBS.main_window, repeated))
+        self.assertEqual(calls, ["S", "D"])
+        edit = QtWidgets.QLineEdit()
+        self.addCleanup(edit.deleteLater)
+        self.patch(QtWidgets.QApplication, "focusWidget", staticmethod(lambda: edit))
+        self.assertFalse(service.eventFilter(STUBS.main_window, press))
+
+    def test_confirmation_leaves_modal_input_and_other_workbenches_alone(self):
+        self.native_task()
+        token, _actions = self.quick.task_state()
+        dialog = QtWidgets.QDialog()
+        self.addCleanup(dialog.deleteLater)
+        self.patch(QtWidgets.QApplication, "activeModalWidget", staticmethod(lambda: dialog))
+        self.assertFalse(self.quick.confirm(token, "OK"))
+        self.patch(QtWidgets.QApplication, "activeModalWidget", staticmethod(lambda: None))
+        STUBS.set_active_workbench("PartDesignWorkbench")
+        self.assertFalse(self.quick.confirm(token, "OK"))
 
 
 def main():
