@@ -409,6 +409,11 @@ All look-area messages go to the FreeCAD Report view (`FreeCAD.Console`) and sta
 
 **Apply:**
 
+If a pending record lacks any managed key, contains an invalid entry for one, or
+records the wrong type, leave all current colors unchanged and warn. Keep the
+record intact for recovery. Parameter read failures also preserve the record and
+settings; they are not evidence that a key is absent or the JSON is corrupt.
+
 1. If `OriginalViewColors` is already non-empty, it MUST NOT be overwritten. That happens when an earlier session crashed and recovery could not run or failed; the stored record holds the user's true originals. Otherwise, record the prior state of each of the 14 managed keys (present with its value, or absent) and **persist** the record in `OriginalViewColors` **before** changing any managed key.
 2. Write the 14 values from 4.2.
 3. A second apply while already applied does nothing.

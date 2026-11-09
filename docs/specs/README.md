@@ -28,6 +28,7 @@ Conventions used in all specs:
 
 | Spec | Area | What it specifies | Main modules | Acceptance criteria |
 |---|---|---|---|---|
+| [cad-baseline.md](cad-baseline.md) | Regression gate | Pinned dimensioned STEP fixtures, constrained rebuilds, feature edits, native assemblies and required pre-feature checks | `tests/cad_fixtures`, `cad_models`, `gui_cad_baseline`, `run_baseline` | 5 |
 | [surface-geometry.md](surface-geometry.md) | Reconstructed surfaces | Mathematical geometry tools, editable B-spline control points, save/reopen, error reporting and reference-radius semantics | `surface_geometry`, `surface_feature`, `surface_rules`, `local_fillet`, `surface_boolean` | 6 |
 | [appearances.md](appearances.md) | Appearances | Official-reference browser, native colour/finish presets, face/object/component edits, undo and cleanup | `appearance_rules`, `appearances` | 9 |
 | [core.md](core.md) | Core | Entry points, `package.xml`, workbench identity, Initialize / Activated / Deactivated step order, quit guard, autoload, startup crash recovery and backup formats, command registration, Diagnostics, Qt message filter, navigation and orbit response | `lifecycle`, `quit_guard`, `recovery`, `commands`, `diagnostics`, `qt_filter`, `params`, `constants`, `console`, `fcgui`, `paths`, `doc_utils`, `navigation`, `orbit`, `orbit_rules`, `shortcuts`; `InitGui.py`, `Init.py` | 41 |

@@ -300,6 +300,10 @@ The tooltip is updated only when the text changes. When the ribbon is rebuilt, t
   - each mouse move of (dx, dy) pixels in screen space (x to the right, y up) rotates the component by |d| × 0.4 degrees (a full turn takes about 900 px of drag). The axis is the screen-plane unit vector perpendicular to the drag direction, (−dy, dx, 0)/|d| in camera coordinates (x right, y up, z towards the viewer), with a positive right-hand rotation. It is converted to world space with the current camera orientation. In other words, dragging horizontally spins about the vertical screen axis and dragging vertically spins about the horizontal screen axis. A diagonal drag does both;
   - the pivot is the component's own placement origin: `Placement.Base` stays unchanged and only `Placement.Rotation` is pre-multiplied by the drag rotation. Rotation over a full 360° is possible, because nothing needs re-solving;
   - each press-drag-release is exactly one undo step named `Rotate Component`, and the document is recomputed when the button is released. A press and release without movement changes nothing.
+  - if a placement write fails before changing the document, finishing the drag
+    must also release the empty application transaction it opened. It must not
+    leave the next command joined to `Rotate Component` or close a transaction
+    owned by another caller.
 - **Middle button, wheel and other navigation** are not consumed, so view navigation keeps working during the tool.
 - **The tool ends** on any of:
   - Esc key press;

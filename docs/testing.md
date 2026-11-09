@@ -3,7 +3,7 @@
 JellyJams has two test layers:
 
 1. **Headless suite**: [`tests/test_headless.py`](../tests/test_headless.py) with
-   [`tests/headless_stubs.py`](../tests/headless_stubs.py). 640 tests against stubbed
+   [`tests/headless_stubs.py`](../tests/headless_stubs.py). 582 tests against stubbed
    `FreeCAD` / `FreeCADGui` modules and an offscreen Qt. No FreeCAD window, no profile touched.
    Run it before every commit.
 2. **GUI acceptance scripts**: [`tests/gui_smoke.py`](../tests/gui_smoke.py),
@@ -14,6 +14,72 @@ JellyJams has two test layers:
 
 Current results and what is still unverified: [status.md](status.md). Behavior the tests check
 against: [specs/README.md](specs/README.md).
+
+## Required baseline before feature work
+
+Run `python tests/run_baseline.py` before adding features and again before
+submission. It verifies/downloads 20 pinned STEP cases into `scratch/cad_fixtures`,
+runs the fixture and result-validator unit suites plus the full headless suite,
+then runs `cad_baseline` and `smoke` in real FreeCAD with
+fresh throwaway configs. `--offline` requires a complete verified cache and makes
+no downloads. `--freecad <exe>` chooses another host; `--python <exe>` overrides
+the bundled Python used for the fast suites. Missing dependencies or partial
+runs fail the gate. Results are under `scratch/baseline_*/summary.json`; its
+native stage log identifies the separate `scratch/gui_*` results directory.
+
+Add the affected area's checks to that same invocation using `--extra-suites`.
+The core always runs, duplicates are removed, and order is preserved. For example,
+`python tests/run_baseline.py --offline --extra-suites sketch features` runs the
+original four-suite gate once. `--plan` shows the selection without downloads or
+launches. `--full` runs all 27 native suites once, including the core. Use it for
+release/full regression on both supported hosts, instead of running a baseline
+and then separately repeating it within the full sweep.
+
+| Changed behavior | Add with `--extra-suites` |
+|---|---|
+| Geometry reconstruction, surfaces and Booleans | `surface_geometry` |
+| Sketch entry, editing, relations, dimensions or sketch tools | `sketch plane_pick sketch_assist smart_dimension features` |
+| Assembly, mate panels or component naming | `assembly_tree features` |
+| Drawings and drawing exports | `features host_compatibility` |
+| Lifecycle, persistence, layout or quit/recovery | `cancel discard after save autoload crash recover report_view report_startup` |
+| Theme and viewport colors | `theme_dark theme_light orientation appearances tabs` |
+| Navigation, orientation or shortcuts | `orientation orbit quick_access` |
+| Ribbon building, command dispatch or context tabs | `tabs features quick_access` |
+| Measurement | `measure` |
+| Appearances | `appearances` |
+| Report dock | `report_view report_startup` |
+
+Combine rows for changes spanning areas; each suite still runs once. Shared-profile
+pairs must stay in the listed order. During iteration use focused suites; before
+submission run the core plus relevant areas. Do not rerun a separate headless
+command after a passing gate on the same code/interpreter. There is no cached-pass
+mechanism: changes require fresh relevant checks.
+
+The reduction is deliberate. CAD owns exact geometry/rebuild/assembly checks;
+smoke owns live UI activation and exact restoration. Sketch-first owns plane
+selection/cancellation and feature-edit transitions; Features owns interactive
+relations/mates and drawing/export commands. They are not interchangeable.
+All 20 STEP cases and 333 CAD checks remain. The headless suite drops only 70
+import-only duplicates whose API tests already perform the same import; every
+module, public-name contract, behavioral case and failure path remains covered.
+Similar cylinder fixtures intentionally exercise different STEP unit encodings,
+seams, placements, repeated instances and scales; they are distinct input cases.
+
+The [fixture catalog](cad-fixtures.md) lists dimensions, sources, licenses,
+formulas, all automated scenarios and future tests. The
+[baseline spec](specs/cad-baseline.md) defines tolerances and coverage:
+20 import cases, 14 strict STEP round trips, seven constrained sketch rebuilds,
+two native solved assemblies, editable/saveable feature trees and a ribbon
+Pad/Pocket workflow. NIST import snapshots are distinct from analytic reference
+values; NIST full reconstruction/assembly and complex-surface round trips are
+not yet certified. Source files and drawings are downloaded data, not bundled
+assets. The gate never regenerates references from its own output.
+
+For focused runs: `python tests/cad_fixtures.py fetch`, then
+`python tests/run_gui.py --suites cad_baseline --timeout 600`. The default GUI
+runner defaults to CAD/smoke and requires the cache to have been prepared.
+`python tests/test_cad_fixtures.py` runs 24 network-free unit tests; CI is configured
+to run them on both operating systems. Native geometry remains a local requirement.
 
 `python tests/run_gui.py --suites quick_access` checks S/D against live native
 shortcut conflicts, sketch/part/assembly/drawing contexts, searchable flyout
@@ -57,7 +123,8 @@ is deliberately native and is not certified by these pointer checks.
 
 ## Automated runner and CI (2026-10-29)
 
-The default runner now includes 26 suites. `host_compatibility` checks 23 native
+The runner offers 27 suites; its default selects CAD/smoke and `--full` selects
+all of them. `host_compatibility` checks 23 native
 drawing-dialog and document-task behaviors on both FreeCAD 1.1.4 and 26.3 RC2:
 Balloon/annotation terminology, line visibility and ISO presets, and closing
 Measure without closing a different document's sketch task. `surface_geometry`
@@ -66,7 +133,8 @@ adds 27 checks for the reconstructed geometry and linked feature modules.
 Run the complete newer-host sweep with:
 
 ```powershell
-python tests/run_gui.py --freecad "C:/Program Files/FreeCAD 26.3/bin/FreeCAD.exe" --timeout 300
+python tests/cad_fixtures.py fetch
+python tests/run_gui.py --full --freecad "C:/Program Files/FreeCAD 26.3/bin/FreeCAD.exe" --timeout 300
 & "C:/Program Files/FreeCAD 26.3/bin/python.exe" tests/test_headless.py
 ```
 
@@ -128,7 +196,7 @@ harness adjustment changes production Space routing or navigation.
 To run all real FreeCAD suites locally, with JellyJams already installed:
 
 ```powershell
-& "C:/Program Files/FreeCAD 1.1/bin/python.exe" tests/run_gui.py
+& "C:/Program Files/FreeCAD 1.1/bin/python.exe" tests/run_gui.py --full
 ```
 
 The standard-library runner creates a unique `scratch/gui_*` directory, starts
@@ -153,7 +221,8 @@ dock-title colors, Add Relations (Horizontal and Delete button clicks), Centerli
 and Midpoint Line processing against real Sketcher geometry, Make Drawing with
 scratch file/format pickers, Drawing context, projections, scale, text, sheet
 properties, symbol panels, picture insertion, PDF/DXF, New Assembly, Rotate
-Component, Add Mate and component insertion. Some checks call the same helpers the
+Component (including empty undo-step cleanup after a failed placement write),
+Add Mate and component insertion. Some checks call the same helpers the
 buttons use; they do not simulate every pointer gesture or native file dialog.
 
 `gui_assembly_tree.py` creates a separate new assembly with an empty document
@@ -327,42 +396,52 @@ JellyJams headless harness: 489 tests, 0 failures, 0 errors, 0 skipped in 28.3 s
 | Class | Tests | Covers | Spec |
 |---|---|---|---|
 | `Test01ReleaseMetadata` | 10 | `package.xml`, version and date, repository URL and branch, licenses, icons, tags, trademark note in `README.md` and `package.xml`, CHANGELOG heading, `InitGui.py` class (AST) | [core](specs/core.md) 3.4, 3.5 |
-| `Test02Hygiene` | 129 | Three-line headers, no "solidworks" in file names and identifiers, constant values, `Init.py` imports nothing from the GUI, pure modules, every `module.name` and `from jellyjams.module import name` between JellyJams modules (in `jellyjams/` and `InitGui.py`, also inside functions) naming something the module defines at its top level, plus a generated `test_import_<module>` and `test_api_<module>` per module | [core](specs/core.md) 2 |
+| `Test02Hygiene` | 83 | Three-line headers, no "solidworks" in file names and identifiers, constant values, `Init.py` imports nothing from the GUI, pure modules, every `module.name` and `from jellyjams.module import name` between JellyJams modules (in `jellyjams/` and `InitGui.py`, also inside functions) naming something the module defines at its top level, plus one API/import check per module; import-only checks remain for modules without an API contract | [core](specs/core.md) 2 |
 | `Test03InitGui` | 4 | `InitGui.py` executed the way FreeCAD does it (no `__file__`, separate globals and locals): registration, duplicate copy, failing `addWorkbench`, delegation to `lifecycle` | [core](specs/core.md) 3.3 |
+| `Test04BackupFailurePaths` | 6 | Read failures preserve originals, malformed navigation flags, incomplete and complete pending records, recovery after retry | [core](specs/core.md) 7, [look](specs/look.md) 5.2 |
 | `Test04Recovery` | 10 | Startup crash recovery, documented backup formats, corrupt backups, one failing step; each of the three `SwitchToWB` records, only some records pending, one damaged record among good ones | [core](specs/core.md) 7, [assembly](specs/assembly.md) 5.2 |
 | `Test05Commands` | 9 | Registration once per process, providers, resources, icons, `CmdType` only where a command declares it (the two orientation commands, `Alter3DView`) with every other command's resources unchanged, `IsActive` never raises | [core](specs/core.md) 8 |
-| `Test06Lifecycle` | 10 | Step tables, fault isolation, Initialize (the JellyJams menu holds View Orientation, Normal To, then Diagnostics), a full activation cycle of the real modules under the stubs (including the three `SwitchToWB` with their backups, `FreeCADGui.activateWorkbench` wrapped while active and identical to FreeCAD's afterwards, `Space` / `Ctrl+8` set on the JellyJams commands with Hide/Show unbound and all restored, the Space filter installed once and removed, and the Orientation panel closed on leave) | [core](specs/core.md) 4 |
+| `Test06Lifecycle` | 10 | Step tables, fault isolation, Initialize (the JellyJams menu holds View Orientation, Normal To, Appearances, then Diagnostics), a full activation cycle of the real modules under the stubs (including the three `SwitchToWB` with their backups, `FreeCADGui.activateWorkbench` wrapped while active and identical to FreeCAD's afterwards, `Space` / `Ctrl+8` set on the JellyJams commands with Hide/Show unbound and all restored, the Space filter installed once and removed, and the Orientation panel closed on leave) | [core](specs/core.md) 4 |
+| `Test07AcceptedQuitGuard` | 4 | Accepted-close signal, cancelled close, exact restore before parameter persistence | [core](specs/core.md) 6 |
 | `Test07QuitGuard` | 6 | Close-event filter with a real modal `QDialog`: Cancel, Discard, inactive workbench, double close, failing revert | [core](specs/core.md) 6.6 |
 | `Test08QtFilter` | 8 | Dropping, forwarding, chaining, opt-out parameter, a real `qInstallMessageHandler` install | [core](specs/core.md) 10 |
 | `Test09Diagnostics` | 4 | Rows, version parsing, text block, command | [core](specs/core.md) 9 |
-| `Test10Look` | 15 | Palette, W3C contrast, theme block on an offscreen main window, the 14 View keys and their backup | [look](specs/look.md) |
-| `Test11Layout` | 12 | Toolbars and docks on an offscreen main window, restore, autoload deferral | [window-layout](specs/window-layout.md) |
-| `Test12NavigationShortcuts` | 19 | The pinned shortcut table (13 keys, `Ctrl+8` on `JellyJams_NormalTo`), navigation style and shortcuts round trips, leftover and unreadable backups, clashing and missing commands (Box Zoom on `Ctrl+B`, Hide/Show on `Space`, also written `space`, a user's `Ctrl+8` on `Std_AlignToSelection`), a user who moved Hide/Show, Space and `Ctrl+8` left alone without the JellyJams commands, crash recovery of Space and `Ctrl+8`, partial restore, backups removed after restore, the shortcut list of `check_saved_cfg.py` run on generated `user.cfg` files | [core](specs/core.md) A5, 4.8, [orientation](specs/orientation.md) 2.4 |
+| `Test10Look` | 20 | Palette, W3C contrast, theme block on an offscreen main window, the 14 View keys and their backup | [look](specs/look.md) |
+| `Test11Layout` | 19 | Toolbars and docks on an offscreen main window, restore, autoload deferral | [window-layout](specs/window-layout.md) |
+| `Test12NavigationShortcuts` | 25 | The pinned shortcut table (13 keys, `Ctrl+8` on `JellyJams_NormalTo`), navigation style and shortcuts round trips, leftover and unreadable backups, clashing and missing commands (Box Zoom on `Ctrl+B`, Hide/Show on `Space`, also written `space`, a user's `Ctrl+8` on `Std_AlignToSelection`), a user who moved Hide/Show, Space and `Ctrl+8` left alone without the JellyJams commands, crash recovery of Space and `Ctrl+8`, partial restore, backups removed after restore, the shortcut list of `check_saved_cfg.py` run on generated `user.cfg` files | [core](specs/core.md) A5, 4.8, [orientation](specs/orientation.md) 2.4 |
+| `Test13RibbonBuild` | 17 | The real ribbon built offscreen with stub commands: dock, buttons, flyouts (titled ones included), context tabs, dispatch, guard, rebuild, the Evaluate tab's Normal To running `JellyJams_NormalTo` (no `Std_AlignToSelection` button) | [ribbon-engine](specs/ribbon-engine.md), [ribbon-content](specs/ribbon-content.md) |
 | `Test13RibbonModel` | 12 | Ribbon content resolved against command lists: counts, stacks, labels, fallbacks (one by one and all at once), missing commands, layout validation | [ribbon-content](specs/ribbon-content.md) |
 | `Test13RibbonText` | 5 | One-line names and tooltip text | [ribbon-engine](specs/ribbon-engine.md) 2.5, 2.8 |
-| `Test13RibbonBuild` | 17 | The real ribbon built offscreen with stub commands: dock, buttons, flyouts (titled ones included), context tabs, dispatch, guard, rebuild, the Evaluate tab's Normal To running `JellyJams_NormalTo` (no `Std_AlignToSelection` button) | [ribbon-engine](specs/ribbon-engine.md), [ribbon-content](specs/ribbon-content.md) |
 | `Test14NamingRules` | 10 | Pure naming and numbering rules, worked examples | [naming](specs/naming.md) |
 | `Test15RelationsRules` | 8 | Every row of the worked reference table, also in every selection order; catalogue order and capability-table coverage of the 14 relations; offers agree with `accepts`; entity labels, existing relations, deletion order | [relations](specs/relations.md) 4.3, AC 3, 27 |
 | `Test16MateRules` | 3 | Entity kinds, mate capability matrix, hints | [assembly](specs/assembly.md) 2.1 |
-| `Test17SwitchPrefs` | 13 | `switch_prefs`: the `TARGETS` table; round trips of every absent / true / false combination of the three modules; pending, blank and damaged records; restore and recovery with only some records; quit revert and re-apply; one failing preference group | [assembly](specs/assembly.md) 5 |
 | `Test17Assembly` | 1 | Assembly pure helpers (next assembly name, drag rotation, `.FCStd` filter, portal paths) | [assembly](specs/assembly.md) 2 |
-| `Test18DialogTerms` | 9 | Relabeling on synthetic forms with FreeCAD's objectNames, projection tool tips, combo safety rule, scale fix, presets row, idle cost | [dialog-terms](specs/dialog-terms.md) |
-| `Test19DrawingHelpers` | 13 | Drawing and sketching helper functions, templates and third-angle derivation on FreeCAD's installed template | [drawing-sheet](specs/drawing-sheet.md), [drawing-views](specs/drawing-views.md), [drawing-symbols-export](specs/drawing-symbols-export.md), [sketching](specs/sketching.md) |
+| `Test17SwitchPrefs` | 13 | `switch_prefs`: the `TARGETS` table; round trips of every absent / true / false combination of the three modules; pending, blank and damaged records; restore and recovery with only some records; quit revert and re-apply; one failing preference group | [assembly](specs/assembly.md) 5 |
+| `Test18DialogTerms` | 11 | Relabeling on synthetic forms with FreeCAD's objectNames, projection tool tips, combo safety rule, scale fix, presets row, idle cost | [dialog-terms](specs/dialog-terms.md) |
+| `Test19DrawingHelpers` | 14 | Drawing and sketching helper functions, templates and third-angle derivation on FreeCAD's installed template | [drawing-sheet](specs/drawing-sheet.md), [drawing-views](specs/drawing-views.md), [drawing-symbols-export](specs/drawing-symbols-export.md), [sketching](specs/sketching.md) |
+| `Test20FilePublication` | 5 | Failed/empty exports preserve destinations, unique PDF/template staging, failed replacements and cleanup | [drawing symbols/export](specs/drawing-symbols-export.md) 2.6–2.9, [drawing sheet](specs/drawing-sheet.md) 6.3 |
 | `Test20PdfMerge` | 3 | Merging PDFs written by `QPdfWriter`, rejecting unsupported PDFs | [drawing-symbols-export](specs/drawing-symbols-export.md) 2.9 |
-| `Test21Icons` | 2 (one subtest per icon) | Every icon exists, renders, carries both SPDX lines in the comment after the XML declaration, uses no forbidden SVG elements, has the 64 × 64 viewBox; the icon folder holds exactly the command, relation and Orientation fallback icons plus the workbench icon | [core](specs/core.md) 2 |
+| `Test21Icons` | 2 | Every icon exists, renders, carries both SPDX lines in the comment after the XML declaration, uses no forbidden SVG elements, has the 64 × 64 viewBox; the icon folder holds exactly the command, relation and Orientation fallback icons plus the workbench icon | [core](specs/core.md) 2 |
+| `Test22AssemblySelection` | 3 | Add Mate panel and Rotate Component ignore other documents/dead selections; a failed rotation releases its empty application undo transaction | [assembly](specs/assembly.md) 2.1, 2.5 |
 | `Test22DocumentHelpers` | 8 | `doc_utils.transaction` against a fake transaction API, `primary_model_objects`, the sheet-sketch undo observer | [core](specs/core.md), [drawing-sheet](specs/drawing-sheet.md) 4.1, 7.4 |
-| `Test22TreeNaming` | 3 | The naming observer with fake documents: New Part links named when their target arrives, pending links and undo, joint type changes | [naming](specs/naming.md) 3.4 |
-| `Test22AssemblySelection` | 2 | Add Mate panel and Rotate Component ignore other documents and dead selection entries | [assembly](specs/assembly.md) 2.1, 2.5 |
-| `Test22MakeDrawing` | 2 | Nothing to draw in a sketch-only document; a file of an open document is refused | [drawing-sheet](specs/drawing-sheet.md) 4 |
-| `Test22ViewLabels` | 3 | Section/detail labeling in one closed `View Label` undo step, also on failure; waiting for a view drag | [drawing-views](specs/drawing-views.md) 4 |
-| `Test22SheetFormat` | 3 | Sheet Properties position snapshot and rescale, format switch as one undo step | [drawing-sheet](specs/drawing-sheet.md) 5.5 |
-| `Test22ViewDrag` | 2 | A view drag is one closed `Move View` undo step; no step without movement | [drawing-views](specs/drawing-views.md) 6 |
 | `Test22InsertPicture` | 1 | Unusable files are rejected before an undo step opens | [drawing-sheet](specs/drawing-sheet.md) 9.1 |
-| `Test23SketchFirstRules` | 4 | `SKETCH_FIRST_FEATURES`; truth tables of `needs_new_sketch` and `advance` (every transition: picking waits, grace, drop on cancel, move to editing, retargeted command kept, drop on another sketch, start on exit) | [sketching](specs/sketching.md) 2.6 |
-| `Test23SketchFirstFlow` | 41 | `try_run` and the watcher with a fake Part Design document: new sketch instead of the feature, free-sketch rules, selection kinds, container-only selections cleared, subtractive features only with a solid in the target body (FreeCAD's `isSolid` rule: a Part Design feature in the body's `Group`, also with a null shape; planes, sketches and a solid shape alone do not count), without one Pocket and Groove left to FreeCAD and Hole refused by JellyJams (status text for 6 s, warning, nothing run; on a fresh press and while picking, the waiting sketch-first and its picker kept), `_nothing_to_cut` true only for a known target body, Pocket, Groove and Hole with several bodies and none active left to FreeCAD (False, no text, nothing run, with or without solids) and retargeted while picking, target body (active, lone inactive, none), insert point after the Tip, dialogs and missing documents, failing `PartDesign_NewSketch`, start on exit, retarget while picking (sketch-first features only, cutting features only with a solid, hint rewritten), stale plane picks dropped and the press handled fresh, the replaced sketch-first's checks stopping (checks run by hand, one per turn), status hint cleared on every drop and on a failing check, drop on cancel after the grace, on another sketch, on an empty sketch, on leaving JellyJams or closing the document, a press inside the new sketch | [sketching](specs/sketching.md) 2.6 |
+| `Test22MakeDrawing` | 2 | Nothing to draw in a sketch-only document; a file of an open document is refused | [drawing-sheet](specs/drawing-sheet.md) 4 |
+| `Test22SheetFormat` | 3 | Sheet Properties position snapshot and rescale, format switch as one undo step | [drawing-sheet](specs/drawing-sheet.md) 5.5 |
+| `Test22TreeNaming` | 3 | The naming observer with fake documents: New Part links named when their target arrives, pending links and undo, joint type changes | [naming](specs/naming.md) 3.4 |
+| `Test22ViewDrag` | 2 | A view drag is one closed `Move View` undo step; no step without movement | [drawing-views](specs/drawing-views.md) 6 |
+| `Test22ViewLabels` | 3 | Section/detail labeling in one closed `View Label` undo step, also on failure; waiting for a view drag | [drawing-views](specs/drawing-views.md) 4 |
 | `Test23EditGuard` | 18 | `edit_guard` with command strings simulated by code compiled as `<string>`: install and identity restore, Python callers pass through, deferral, staying when an edit starts, switching otherwise, requests never held, workbench changed meanwhile, disarmed wrapper, failing switch, missing `activateWorkbench`; chain tracking under another add-on's wrapper (re-install only re-arms, the switch happens once one turn later with no recursion, the other wrapper is left in place, a wrapper back on top is unwrapped); the command string found through one and two other wrappers, Python callers through wrappers passing straight through, and the `FRAME_SEARCH_DEPTH` limit (found at the last frame searched, not one frame beyond) | [sketching](specs/sketching.md) 2.7 |
+| `Test23SketchAssist` | 15 | Snapping backup/restore, automatic constraints, save and autosave isolation | [sketching](specs/sketching.md) |
+| `Test23SketchFirstFlow` | 48 | `try_run` and the watcher with a fake Part Design document: new sketch instead of the feature, free-sketch rules, selection kinds, container-only selections cleared, subtractive features only with a solid in the target body (FreeCAD's `isSolid` rule: a Part Design feature in the body's `Group`, also with a null shape; planes, sketches and a solid shape alone do not count), without one Pocket and Groove left to FreeCAD and Hole refused by JellyJams (status text for 6 s, warning, nothing run; on a fresh press and while picking, the waiting sketch-first and its picker kept), `_nothing_to_cut` true only for a known target body, Pocket, Groove and Hole with several bodies and none active left to FreeCAD (False, no text, nothing run, with or without solids) and retargeted while picking, target body (active, lone inactive, none), insert point after the Tip, dialogs and missing documents, failing `PartDesign_NewSketch`, start on exit, retarget while picking (sketch-first features only, cutting features only with a solid, hint rewritten), stale plane picks dropped and the press handled fresh, the replaced sketch-first's checks stopping (checks run by hand, one per turn), status hint cleared on every drop and on a failing check, drop on cancel after the grace, on another sketch, on an empty sketch, on leaving JellyJams or closing the document, a press inside the new sketch | [sketching](specs/sketching.md) 2.6 |
+| `Test23SketchFirstRules` | 4 | `SKETCH_FIRST_FEATURES`; truth tables of `needs_new_sketch` and `advance` (every transition: picking waits, grace, drop on cancel, move to editing, retargeted command kept, drop on another sketch, start on exit) | [sketching](specs/sketching.md) 2.6 |
+| `Test23SmartDimension` | 8 | Selection classification, native dispatch and guarded dimension choices | [sketching](specs/sketching.md) |
 | `Test24Orientation` | 70 | The Orientation panel and Normal To offscreen: both commands' resources and `CmdType`, active while the stub main window's `getActiveWindow()` is a 3D view (`getCameraNode`; not for None, a sheet or a Start-page-like object even while `activeView()` returns a 3D view, not when it raises, not from the MDI area's window class; also with a sketch and task dialog open and another window active), `activeView()` used only when the main window has no `getActiveWindow`, `_active_view()` None on errors, toggling, Normal To's target with fake selections and shapes (any single sub-element, flat or curved faces, straight, circular or B-spline edges and vertices included, never read; two picks, also the same sketch picked through two links; whole sketches and 2D objects as `("sketch", obj)`; origin planes and axes, datum planes, lines and points; single-face and single-edge objects; solids, shells, wires, null and unreadable shapes, bodies and features; every sketch-edit case), the sketch look through a fake 3D view (the main window's active window, not `activeView()`; `setCameraOrientation` with the rotation from a stub `GeoFeature.getGlobalPlacementOf` along the unresolved selection's one item and path, a link included; the sketch's own global placement with several items or paths or when that call raises, with a log line; a warning and False when turning fails), the hint in the status bar, as a tool tip at the pointer (a failing tool tip changes nothing else) and its timeout, the Normal To button closing the panel unless pinned before Normal To runs (FreeCAD's `runCommand` simulated), a frameless tool window `JellyJamsOrientation`, the pinned tables, 13 buttons in their grid places, tooltips with keys, missing and inactive commands disabled, buttons refreshed on open, the panel built again after its widget was deleted, click runs and closes, pin, Esc / Space / close button, held keys ignored, key repeat switched off on the stub's `QAction`, click outside under a fake clock (unpinned closes, pinned stays, within `OPEN_SETTLE_S` the panel re-activated instead (not when pinned) or closed when no FreeCAD window is active, a late check of an earlier opening never closes a newer one, a panel that never had the keyboard stays, an active or closed panel is left alone), the keyboard given back only when the panel had it, to the window that had it at opening (an undocked view) when alive and visible, else to the main window, never to the panel itself, and for a pinned panel to the FreeCAD window clicked into last, `keeps_space` for every widget kind, the pointer rule (3D view, 3D viewer, split view `Gui::AbstractSplitView`, model tree and widgets inside them), toolbars, the status bar and the ribbon dock, item views (checkable current item, `AnyKeyPressed`, plain lists, the model tree), the Space filter accepting only a plain Space for controls and asking Qt which widget is under the real (moved) pointer, the filter on the main window and every dock (a floating dock's check box gets Space only through its own filter), docks made after activation added once when a widget in them takes the focus (not other widgets, not after `uninstall()`, the focus watch disconnected), removed from all and a deleted dock skipped, real key clicks (`QTest`) on a check box with a Space `QAction`, Space on a focused panel button, also with the pointer over a 3D view beside the panel, one filter however often installed and none after `uninstall()`, the stylesheet's colors for every button state and the text color resolved under a white-on-dark application stylesheet, `close()` before any open, the real activation and deactivation steps, fallback icons and FreeCAD's icon winning, placement on screen | [orientation](specs/orientation.md) |
-| **Total** | **489** | | |
+| `Test25Appearances` | 16 | Material presets, face/object/link targeting, native assignments and browser cleanup | [appearances](specs/appearances.md) |
+| `Test26Measure` | 28 | Selection and measurement rules, values, units, labels and task cleanup | [measure](specs/measure.md) |
+| `Test39SurfaceRules` | 6 | Schema, finite control grids, edge matching and Boolean input retention | [surface geometry](specs/surface-geometry.md) |
+| `Test40HostCompatibility` | 3 | Active document task panels and optional native command/resource module loading | [core](specs/core.md) |
+| `Test40QuickAccess` | 19 | Command search, viewport tool placement, shortcuts, task ownership and cleanup | [quick access](specs/quick-access.md) |
+| **Total** | **582** | | |
 
 ## GUI acceptance scripts
 

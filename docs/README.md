@@ -29,6 +29,7 @@ This page lists every document in the repository and the order to read them in.
 |---|---|
 | [status.md](status.md) | What is implemented, what is verified (headless and on real FreeCAD), what is open. The authoritative record of verification results. |
 | [testing.md](testing.md) | How to run the headless suite and the GUI acceptance scripts, how to prepare throwaway configs, and how to read the results. |
+| [cad-fixtures.md](cad-fixtures.md) | Dimensioned STEP sources, pinned downloads, analytic formulas, sketch/feature and assembly test catalog, required pre-feature gate and unverified extensions. |
 
 ### Design and internals
 
@@ -47,6 +48,7 @@ module to its spec.
 
 | Spec | Covers |
 |---|---|
+| [specs/cad-baseline.md](specs/cad-baseline.md) | Required CAD regression gate: reference integrity, native rebuilds/assemblies, tolerances and honest coverage limits. |
 | [specs/appearances.md](specs/appearances.md) | Appearances tab: official references, colour/finish presets and native face/object/component colouring. |
 | [specs/surface-geometry.md](specs/surface-geometry.md) | Reconstructed analytic/NURBS geometry, editable control grids, native linked Booleans and document compatibility. |
 | [specs/README.md](specs/README.md) | Specs index: how to read a spec, module-to-spec map, contracts shared across areas (backup keys, preferences, the document properties in the `JellyJams` group, objectNames). |
@@ -80,7 +82,7 @@ module to its spec.
 2. [../AGENTS.md](../AGENTS.md): the rules every change must follow, the repo map and the test commands.
 3. [status.md](status.md): current state, known gaps, open work.
 4. [architecture.md](architecture.md): how the code is organized; [decisions.md](decisions.md) for the reasons.
-5. [testing.md](testing.md): run the headless suite once before changing anything.
+5. [testing.md](testing.md): run the baseline once, adding relevant area checks; it includes the headless suite.
 6. [specs/README.md](specs/README.md), then the spec of the area you work on.
 7. [freecad-facts.md](freecad-facts.md) when a change depends on FreeCAD's own behavior.
 8. [../CHANGELOG.md](../CHANGELOG.md) when preparing a release.
@@ -94,7 +96,7 @@ module to its spec.
 5. The area spec in [specs/](specs/), including its acceptance criteria.
 6. [freecad-facts.md](freecad-facts.md) before relying on any FreeCAD behavior; [decisions.md](decisions.md) before reversing a design choice.
 7. The module code under [../jellyjams/](../jellyjams/) and its tests in [../tests/test_headless.py](../tests/test_headless.py).
-8. [testing.md](testing.md): run the headless suite; run the GUI scripts when the change affects lifecycle, layout, theme, viewport, navigation, shortcuts, ribbon building or the quit guard.
+8. [testing.md](testing.md): run the baseline with the affected area's GUI suites in one invocation; it already includes the full headless suite.
 9. Before committing: update the area spec and [status.md](status.md) in the same change (and [architecture.md](architecture.md) if structure or contracts changed), and report anything not run on real FreeCAD as "not verified".
 
 ## Where things are recorded

@@ -670,6 +670,12 @@ def check_escape():
 
 @guarded
 def tab_focus_open():
+    # A tool window can be active while its main window is behind another app.
+    # Expose the view before opening the panel; keep the native hit-test assertion.
+    main = Gui.getMainWindow()
+    main.raise_()
+    main.activateWindow()
+    qtest().qWait(150)
     press_in_view(QtCore.Qt.Key.Key_Space)
     later(600, tab_focus_press)
 

@@ -100,6 +100,8 @@ def _backup_problem(data):
     """None when `data` is a usable backup record, else a short reason."""
     if not isinstance(data, dict) or "existed" not in data:
         return "expected an object with an 'existed' member"
+    if not isinstance(data["existed"], bool):
+        return "the existed flag must be true or false"
     value = data.get("value")
     if value is not None and not isinstance(value, str):
         return "the saved value is not text"

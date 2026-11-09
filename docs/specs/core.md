@@ -373,6 +373,7 @@ For each managed setting below, independently (one failure never blocks the othe
 | `OriginalSwitchToWB` | `User parameter:BaseApp/Preferences/Mod/Assembly` → `SwitchToWB` (Bool) | assembly (`switch_prefs`) |
 | `OriginalPartDesignSwitchToWB` | `User parameter:BaseApp/Preferences/Mod/PartDesign` → `SwitchToWB` (Bool) | assembly (`switch_prefs`) |
 | `OriginalTechDrawSwitchToWB` | `User parameter:BaseApp/Preferences/Mod/TechDraw/General` → `SwitchToWB` (Bool) | assembly (`switch_prefs`) |
+| `OriginalSketchSnapping` | `User parameter:BaseApp/Preferences/Mod/Sketcher/Snap` → `Snap`, `SnapToObjects` (Bool) | sketch drawing aids (`sketch_assist`) |
 
 Rules:
 
@@ -380,8 +381,8 @@ Rules:
 - After each successful recovery, print a console **message** that names what was restored and says it was left over from the previous session or an unclean exit. The message must mention "3D background" (viewport colors), "navigation style" and "shortcuts" respectively. Each `SwitchToWB` setting gets a similar message naming its module ("Assembly", "Part Design" or "TechDraw"), one per restored module.
 - An **empty or missing** backup means nothing to do: no output at all. A clean startup must not print any message mentioning leftovers, recovery or an unclean exit.
 - A recovery failure prints a console **warning** with details. Startup continues.
-- An **unreadable or corrupt** backup (for example, invalid JSON) produces one warning and is then discarded (cleared). It must not block later sessions or stop a later apply from taking a fresh backup. A corrupt backup is never kept.
-- When an area applies its setting and finds a non-empty backup already there (a leftover that was not recovered), it must **not overwrite** it, because it holds the true original. It just applies its values. The next restore then brings back the true original.
+- A backup whose **contents are corrupt** (for example, invalid JSON or a non-boolean navigation `existed` flag) produces one warning and is then discarded. A parameter access failure is different: keep the unread backup and current settings, report the failure, and retry at the next restore. An unreadable preference must never be recorded as an absent key.
+- When an area applies its setting and finds a non-empty backup already there, it must **not overwrite** it, because it holds the true original. Apply only when that record covers every intended write with valid entries. Incomplete shortcut or viewport records defer the entire area's new overrides until recovery succeeds; memory-only originals are insufficient for crash recovery. Existing partial records remain recoverable, and the on-disk formats stay unchanged.
 
 **Backup value formats.** These are persisted in users' `user.cfg` and are a compatibility contract: every JellyJams release must read these formats, so it can recover after a crash of an earlier release, and should keep writing them:
 
@@ -389,6 +390,7 @@ Rules:
 - `OriginalShortcuts`: a JSON object mapping each command id to a two-element array: [existed (boolean), previous key-sequence string or null].
 - `OriginalViewColors`: a JSON object mapping each `Preferences/View` key name to a three-element array: [parameter type name such as `Bool` / `Unsigned`, existed (boolean), previous value or null].
 - `OriginalSwitchToWB`, `OriginalPartDesignSwitchToWB`, `OriginalTechDrawSwitchToWB`: a plain string each. `1` or `0` is the previous explicit value; `absent` means the key was not set before.
+- `OriginalSketchSnapping`: a JSON object with exactly `Snap` and `SnapToObjects`, each `[existed (boolean), previous boolean or null]`; absent entries use null. It exists only during sketch editing.
 
 ---
 

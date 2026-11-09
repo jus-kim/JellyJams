@@ -9,6 +9,7 @@ copy of a template is generated on demand in the JellyJams cache folder.
 
 import os
 import re
+import tempfile
 
 import FreeCAD
 
@@ -213,10 +214,20 @@ def derive_third_angle(base_path):
         folder = paths.user_cache_dir(CACHE_FOLDER)
         target = os.path.join(folder, _variant_name(os.path.basename(base_path)))
         if _file_text(target) != derived:
-            temporary = target + ".tmp"
-            with open(temporary, "w", encoding="utf-8", newline="") as handle:
-                handle.write(derived)
-            os.replace(temporary, target)
+            temporary = None
+            try:
+                with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="",
+                                                 dir=folder, prefix=".jellyjams_template_",
+                                                 suffix=".tmp", delete=False) as handle:
+                    temporary = handle.name
+                    handle.write(derived)
+                os.replace(temporary, target)
+            finally:
+                if temporary is not None and os.path.exists(temporary):
+                    try:
+                        os.remove(temporary)
+                    except OSError:
+                        pass
         return target
     except Exception as exc:
         console.warning(

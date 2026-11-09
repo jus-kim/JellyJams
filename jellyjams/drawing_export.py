@@ -210,12 +210,32 @@ def _remove_stale_work_folders():
                     shutil.rmtree(entry.path, ignore_errors=True)
 
 
+def _write_output(path, writer):
+    """Publish a nonempty completed file, preserving an existing output on failure."""
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=os.path.dirname(os.path.abspath(path)),
+                                         prefix=".jellyjams_export_", suffix=os.path.splitext(path)[1],
+                                         delete=False) as handle:
+            temporary = handle.name
+        writer(temporary)
+        if not os.path.getsize(temporary):
+            raise OSError("the exporter produced an empty file for %s" % path)
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None and os.path.exists(temporary):
+            try:
+                os.remove(temporary)
+            except OSError:
+                pass
+
+
 def write_pdf(pages, path):
     """Write `pages` into the PDF `path`, or one PDF per sheet when merging fails."""
     import TechDrawGui
 
     if len(pages) == 1:
-        TechDrawGui.exportPageAsPdf(pages[0], path)
+        _write_output(path, lambda temporary: TechDrawGui.exportPageAsPdf(pages[0], temporary))
         _report("PDF written (1 sheet): %s" % path)
         return
     _remove_stale_work_folders()
@@ -224,7 +244,7 @@ def write_pdf(pages, path):
         parts = []
         for index, page in enumerate(pages, 1):
             part = os.path.join(work, "sheet%03d.pdf" % index)
-            TechDrawGui.exportPageAsPdf(page, part)
+            _write_output(part, lambda temporary: TechDrawGui.exportPageAsPdf(page, temporary))
             parts.append(part)
         try:
             pdf_merge.merge(parts, path)
@@ -233,7 +253,7 @@ def write_pdf(pages, path):
                             "gets its own PDF file" % exc)
             targets = per_sheet_paths(path, [page.Label for page in pages])
             for part, target in zip(parts, targets):
-                shutil.copyfile(part, target)
+                _write_output(target, lambda temporary: shutil.copyfile(part, temporary))
             _report("PDF written as one file per sheet: %s" % _file_list(targets))
             return
         _report("PDF written (%d sheets): %s" % (len(pages), path))
@@ -247,7 +267,7 @@ def write_dxf(pages, path):
 
     targets = per_sheet_paths(path, [page.Label for page in pages])
     for page, target in zip(pages, targets):
-        TechDraw.writeDXFPage(page, target)
+        _write_output(target, lambda temporary: TechDraw.writeDXFPage(page, temporary))
     _report("DXF written: %s" % _file_list(targets))
 
 

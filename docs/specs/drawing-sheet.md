@@ -394,7 +394,10 @@ JellyJams' default is third angle, so the sheet MUST show the correct symbol.
   2. Otherwise, if the base template lies under `<Templates>` and contains
      the five `first_angle_` elements, JellyJams derives the variant at
      runtime into `<FreeCAD.getUserAppDataDir()>/JellyJams/templates/<stem>_third_angle.svg`.
-     The variant is created or refreshed whenever it is needed. Derived
+     The variant is created or refreshed whenever it is needed. Writes use a
+     unique temporary file in the cache folder and replace the destination only
+     after completion. Failed writes preserve an existing variant, remove their
+     own temporary file, and leave unrelated `.tmp` files untouched. Derived
      content:
      - identical to the original except for the symbol;
      - the end view (both circles and the vertical centre line) moves to the

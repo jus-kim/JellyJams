@@ -14,10 +14,12 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import xml.etree.ElementTree as ET
 
 REPO = Path(__file__).resolve().parent.parent
 SUITES = {
+    "cad_baseline": ("gui_cad_baseline.py", "cad_baseline.json", 333),
     "quick_access": ("gui_quick_access.py", "quick_access.json", 44),
     "plane_pick": ("gui_plane_pick.py", "plane_pick.json", 35),
     "smart_dimension": ("gui_smart_dimension.py", "smart_dimension.json", 22),
@@ -29,7 +31,7 @@ SUITES = {
     "sketch": ("gui_sketch_first.py", "sketch_first.json", 20),
     "orientation": ("gui_orientation.py", "orientation.json", 84),
     "orbit": ("gui_orbit.py", "orbit.json", 49),
-    "features": ("gui_features.py", "features.json", 51),
+    "features": ("gui_features.py", "features.json", 52),
     "assembly_tree": ("gui_assembly_tree.py", "assembly_tree.json", 104),
     "appearances": ("gui_appearances.py", "appearances.json", 38),
     "report_view": ("gui_report_view.py", "report_view.json", 9),
@@ -45,6 +47,20 @@ SUITES = {
     "theme_dark": ("gui_theme.py", "theme_dark.json", 22),
     "theme_light": ("gui_theme.py", "theme_light.json", 22),
 }
+CORE_SUITES = ("cad_baseline", "smoke")
+SUITE_PREREQUISITES = {"after": "discard", "recover": "crash", "report_startup": "report_view"}
+
+
+def select_suites(requested):
+    """Run each suite once, preserving order and validating shared-profile pairs."""
+    selected = list(dict.fromkeys(requested))
+    if not selected or any(name not in SUITES for name in selected):
+        raise ValueError("Select at least one known GUI suite")
+    for suite, prerequisite in SUITE_PREREQUISITES.items():
+        if suite in selected and (prerequisite not in selected or
+                                  selected.index(prerequisite) > selected.index(suite)):
+            raise ValueError("%s must follow %s in the same run" % (suite, prerequisite))
+    return selected
 
 
 def validate_result(result, minimum=1):
@@ -90,22 +106,23 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--freecad", default="C:/Program Files/FreeCAD 1.1/bin/FreeCAD.exe")
     parser.add_argument("--timeout", type=int, default=240, help="seconds per FreeCAD process")
-    parser.add_argument("--suites", nargs="+", choices=SUITES, default=list(SUITES))
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--suites", nargs="+", choices=SUITES, help="focused suites; default: CAD and smoke")
+    selection.add_argument("--full", action="store_true", help="run all registered native suites once")
     args = parser.parse_args()
-    if "after" in args.suites and ("discard" not in args.suites or
-                                     args.suites.index("after") < args.suites.index("discard")):
-        parser.error("after must follow discard in the same run")
-    if "recover" in args.suites and ("crash" not in args.suites or
-                                       args.suites.index("recover") < args.suites.index("crash")):
-        parser.error("recover must follow crash in the same run")
-    if "report_startup" in args.suites and ("report_view" not in args.suites or
-            args.suites.index("report_startup") < args.suites.index("report_view")):
-        parser.error("report_startup must follow report_view in the same run")
+    try:
+        args.suites = select_suites(SUITES if args.full else (args.suites or CORE_SUITES))
+    except ValueError as exc:
+        parser.error(str(exc))
+    if "cad_baseline" in args.suites:
+        from cad_fixtures import verify_cache
+        verify_cache()
     (REPO / "scratch").mkdir(exist_ok=True)
     out = Path(tempfile.mkdtemp(prefix="gui_", dir=REPO / "scratch"))
     print("Results: %s" % out, flush=True)
     summary = {}
     for suite in args.suites:
+        started = time.perf_counter()
         script, filename, minimum = SUITES[suite]
         profile = "discard" if suite == "after" else suite
         if suite == "recover":
@@ -143,6 +160,7 @@ def main():
         except Exception as exc:
             summary[suite] = {"ok": False, "error": str(exc)}
             print("%s: FAIL: %s" % (suite, exc), flush=True)
+        summary[suite]["elapsed_seconds"] = round(time.perf_counter() - started, 3)
         (out / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     return 0 if all(item["ok"] for item in summary.values()) else 1
 

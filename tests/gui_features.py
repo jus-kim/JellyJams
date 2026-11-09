@@ -331,6 +331,33 @@ def assembly_verify():
     note("rotate_component_starts", assembly_commands.is_rotating())
     assembly_commands.stop_rotate_component()
     note("rotate_component_stops", not assembly_commands.is_rotating())
+    # A failed native placement write must not leave an application undo step open.
+    class UnwritableComponent:
+        Document = doc
+
+        @property
+        def Placement(self):
+            return App.Placement()
+
+        @Placement.setter
+        def Placement(self, value):
+            raise RuntimeError("injected placement failure")
+
+    probe = assembly_commands._RotateTool(None, Gui.ActiveDocument.ActiveView, assembly, links[0])
+    probe.component = lambda: UnwritableComponent()
+    before = App.getActiveTransaction()
+    failed = False
+    try:
+        probe.rotate((0, 1, 0), 12)
+    except RuntimeError as error:
+        failed = str(error) == "injected placement failure"
+    finally:
+        pending = App.getActiveTransaction()
+        probe.finish_drag()
+    after = App.getActiveTransaction()
+    note("failed_rotation_releases_undo_transaction",
+         failed and before is None and bool(pending) and after is None,
+         {"before": before, "pending": pending, "after": after, "injected_failure": failed})
     Gui.Selection.clearSelection()
     for link in links:
         Gui.Selection.addSelection(assembly, link.Name + ".Face1")

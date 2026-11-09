@@ -15,6 +15,7 @@ are copied unchanged.
 
 import os
 import re
+import tempfile
 
 __all__ = ["UnsupportedPdf", "merge"]
 
@@ -506,13 +507,16 @@ def merge(inputs, output):
     files = [_PdfFile(os.fspath(path)) for path in inputs]
     data, page_count = _build(files)
     output = os.fspath(output)
-    partial = output + ".part"
+    partial = None
     try:
-        with open(partial, "wb") as handle:
+        with tempfile.NamedTemporaryFile(mode="wb", prefix=".jellyjams_pdf_", suffix=".part",
+                                         dir=os.path.dirname(os.path.abspath(output)),
+                                         delete=False) as handle:
+            partial = handle.name
             handle.write(data)
         os.replace(partial, output)
     finally:
-        if os.path.exists(partial):
+        if partial is not None and os.path.exists(partial):
             try:
                 os.remove(partial)
             except OSError:

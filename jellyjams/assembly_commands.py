@@ -410,6 +410,7 @@ class _RotateTool:
         self.left_down = False
         self.last_position = None
         self.in_transaction = False
+        self._transaction_id = 0
         self.ending = False
 
     # objects ---------------------------------------------------------------
@@ -512,7 +513,10 @@ class _RotateTool:
         world_axis = camera.multVec(FreeCAD.Vector(*axis))
         local_axis = self.parent_rotation_inverse.multVec(world_axis)
         if not self.in_transaction:
+            before = doc_utils._active_transaction_id()
             component.Document.openTransaction(ROTATE_TRANSACTION)
+            opened = doc_utils._active_transaction_id()
+            self._transaction_id = opened if opened != before else 0
             self.in_transaction = True
         placement = component.Placement
         turn = FreeCAD.Rotation(local_axis, angle)
@@ -525,13 +529,16 @@ class _RotateTool:
         if not self.in_transaction:
             return
         self.in_transaction = False
+        opened, self._transaction_id = self._transaction_id, 0
         doc = self.document()
         if doc is None:
             return
         try:
             doc.recompute()
         finally:
-            doc.commitTransaction()
+            # A failed placement write can leave an empty document step. FreeCAD
+            # does not close its application transaction on commit in that case.
+            doc_utils._close(doc, False, opened)
 
     # assembly drag movement ----------------------------------------------------------
 

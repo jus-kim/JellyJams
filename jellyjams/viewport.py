@@ -86,8 +86,14 @@ def apply():
         return
     try:
         view = _view_group()
-        if _usable_record() is None:
+        record = _usable_record()
+        if record is None:
             params.save_backup(constants.KEY_VIEW_BACKUP, _snapshot(view))
+        elif any(_entry_problem(record.get(name)) or record[name][0] != suffix
+                 for name, suffix, _value in MANAGED_KEYS):
+            console.warning("kept the current 3D view colors: the pending backup does not "
+                            "cover every managed key; it must be restored first")
+            return
         dark = False
         with console.guard("read the viewport theme", level="log"):
             from jellyjams import theme

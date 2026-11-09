@@ -235,6 +235,18 @@ the folder in `JELLYJAMS_RESULTS_DIR`). Read the JSON; console output is not rel
 
 ## 6. Workflow expectations
 
+- **Before new feature work, and again before submission:** run
+  `python tests/run_baseline.py` (or `--offline` after fixtures have been fetched).
+  This requires the unit/headless suites plus CAD and smoke in disposable profiles.
+  Add the affected area's GUI suites with `--extra-suites` (see the selection table
+  in [docs/testing.md](docs/testing.md)); use `--full` for release/full regression.
+  Each selected suite runs once. A successful baseline already includes the full
+  headless suite; do not repeat it separately for the same code and interpreter.
+  Missing FreeCAD/data and partial runs are failures, not skipped passes. See
+  [docs/cad-fixtures.md](docs/cad-fixtures.md) and
+  [docs/specs/cad-baseline.md](docs/specs/cad-baseline.md). External fixtures stay
+  under `scratch/`; never regenerate reference hashes or expected geometry during
+  a normal test run. Area-specific GUI checks remain required for affected behavior.
 - **Same change, same commit:** code, tests, the relevant `docs/specs/<area>.md`, and
   [docs/status.md](docs/status.md). A behavior change without a spec update is incomplete.
 - **Add tests.** Logic goes into a pure module or a stub-testable function with a headless test.

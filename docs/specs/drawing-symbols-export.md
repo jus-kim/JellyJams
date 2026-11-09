@@ -345,7 +345,7 @@ Clicking **Save as PDF** with a drawing document active:
    - All on-screen line-width reductions made by the zoom-line feature are reverted, so the output uses the standard line widths.
    - The document is recomputed.
    - Every sheet that has never had a page window open in this session gets one opened, because TechDraw renders a sheet only after its window has existed. Afterwards the MDI window that was active before is re-activated, and pending GUI events are processed.
-4. With **one sheet**, it is written directly to the chosen file using FreeCAD's `TechDrawGui.exportPageAsPdf(page, path)`.
+4. With **one sheet**, FreeCAD's `TechDrawGui.exportPageAsPdf(page, path)` writes to a unique temporary file beside the chosen output. Only a completed, nonempty file replaces the chosen output.
 5. With **several sheets**:
    - Each sheet is written with `TechDrawGui.exportPageAsPdf` into a private temporary folder in the system temp directory, whose name starts with `jellyjams_pdf_`.
    - The per-sheet PDFs are then merged, in sheet order, into the single chosen file (2.9).
@@ -363,6 +363,12 @@ Clicking **Save as PDF** with a drawing document active:
 - Dialog title "Export DXF", filter "DXF (*.dxf)", `.dxf` appended when missing (case-insensitive).
 - DXF has no sheets. One sheet is written to the chosen file. With several sheets, ONE FILE PER SHEET is written using the per-sheet names of 2.8, and the chosen file name itself is not written.
 - Each file is written with FreeCAD's `TechDraw.writeDXFPage(page, path)`.
+- PDF and DXF publication uses unique temporary files in the destination folder,
+  retaining the export extension. Empty output, export exceptions and replacement
+  failures preserve the previous destination. This also applies to separate-sheet
+  PDF fallback files. Temporary files owned by the operation are cleaned up; an
+  unrelated `<output>.part` or `<output>.tmp` is never used or removed. Publication
+  is atomic per file, not a transaction across several separate output files.
 - Success message (Report view + status bar for about 8 s): DXF saved, listing the written file names.
 - Failures go to the Report view as errors, with no popup.
 
@@ -569,7 +575,7 @@ Properties are added only if missing, so reopening a saved file never duplicates
 16. **Sheet labels collide in a multi-sheet export** (for example "My Sheet" as sheet 1 and "Sheet1" as sheet 2): the second gets the next free `Sheet<k>` name, so no file overwrites another.
 17. **The chosen file name already ends in `.PDF`/`.DXF`** (any case): no extension is added.
 18. **PDF merge not possible** (unsupported structure, for example a future Qt version writing xref streams): separate per-sheet PDFs next to the chosen file, a warning in the Report view, and a status-bar result naming the separate files.
-19. **Export call raises** (for example a sheet that cannot render, or a write-protected folder): an error with details in the Report view and no popup. Files already written stay; the temporary folder is still removed.
+19. **Export call raises or creates an empty file** (for example a sheet that cannot render, or a write-protected folder): an error with details in the Report view and no popup. The failing destination keeps its previous contents. Earlier successfully published files stay; owned temporary files and the work folder are removed.
 20. **Sheets never opened in this session**: their page windows are opened before export so they render. The user's previously active window is brought back afterwards.
 21. **Zoomed-in sheet with thinned lines on screen**: export always uses the standard line widths (2.6, step 3).
 22. **Line Format with only vertices selected, or with edges of a non-view object**: status-bar hint only; FreeCAD's dialog is not opened.

@@ -1,12 +1,193 @@
 # Implementation and test status
 
-Status of JellyJams **0.1.0** as of **2026-11-08**, measured on **FreeCAD 1.1.4 and 26.3 RC2 (Windows)**.
+Status of JellyJams **0.1.0** as of **2026-11-09**, measured on **FreeCAD 1.1.4 and 26.3 RC2 (Windows)**.
 This page is the record of what is built, what is verified, and what is open. The behavior
 it is measured against is defined in the [specifications](specs/README.md). How to run every
 test mentioned here: [testing.md](testing.md).
 
 After any code change, re-run the suites and update this page (see
 [Updating this page](#updating-this-page)).
+
+## Full two-host sweep and repository audit (2026-11-09)
+
+This is the latest verification checkpoint. The sections below retain historical
+results and the limitations that applied when each earlier checkpoint was run.
+
+Both requested full sweeps ran before production changes. Every selected native
+suite ran once, in sequence, with disposable user/system configs:
+
+| Initial full sweep | FreeCAD 1.1.4 | FreeCAD 26.3 RC2 |
+|---|---:|---:|
+| Fixture/gate + runner + headless tests | 24 + 13 + 570, all pass | 24 + 13 + 570, all pass |
+| Native suites | 27/27 pass | 26/27 pass initially |
+| Native assertions | 1,074/1,074 pass | 1,073/1,074 pass initially |
+| Native stage duration | 734.2 seconds | 692.5 seconds |
+| Gate / native result folders under `scratch/` | `baseline_kr0ypfvo` / `gui_an2_y2l8` | `baseline_o3s8b8hk` / `gui_0r7ulmgv` |
+
+The 26.3 failure was `panel_tab_focus_space_applies_view`: the camera moved to
+Top, the focused button worked, and the unpinned panel closed, but native
+`widgetAt` found no FreeCAD widget under the pointer. An unchanged standalone
+rerun passed all **84** checks (`gui_vzv2hvd5`), indicating an intermittent test
+setup problem rather than a reproduced orientation defect. The scenario now
+raises/activates the main window before opening the tool panel. It retains the
+native pointer assertion; no assertion or tolerance was weakened. The original
+failed sweep is retained and is not represented as a clean full pass.
+
+The audit covered all **75 runtime Python modules**, entry points, test runners,
+fixture provenance/download handling, CI configuration, all **30 SVG assets**,
+metadata and **32 Markdown documents**. Methods were repository-wide parsing,
+name/reference and callback-boundary scans, the full native/headless runs, local
+link validation, and manual review focused on persistence, document transactions,
+geometry validation, GUI ownership and file I/O. All five ribbon screenshots on
+both hosts were also inspected. No undefined Python names or broken local document links
+were found. Existing unused-import/local warnings were reviewed without cosmetic
+code churn. The CI action references were checked against the official
+[checkout](https://github.com/actions/checkout/releases) and
+[setup-python](https://github.com/actions/setup-python/releases) releases; hosted
+CI itself was not run.
+
+Confirmed failure paths were reproduced before fixes:
+
+- Parameter read failures were interpreted as missing preferences or corrupt
+  backups, allowing real originals to be removed or overwritten. Such failures
+  now reach the existing guarded caller and leave the pending record intact for
+  a later retry. Actual malformed JSON still follows the documented cleanup rule.
+- Incomplete pending shortcut and viewport records allowed overrides without
+  complete persisted originals. Those areas now defer new writes until the old
+  record is restored. Complete records still permit reapplication. Memory-only
+  shortcut originals were removed; on-disk formats are unchanged.
+- Navigation accepted non-boolean `existed` flags. Startup and direct recovery
+  now share the same validator and leave the setting unchanged for malformed flags.
+- Native PDF/DXF errors and empty output could replace a good drawing. Exports
+  now publish only completed, nonempty staged files, including per-sheet fallback.
+  PDF merge and template generation use unique temporary names, preserving
+  unrelated `.part`/`.tmp` files and cleaning owned temporaries after failure.
+  Separate multi-file outputs are atomic per file, not one transaction for the set.
+- A native fault-injection probe found that Rotate Component left its application
+  undo transaction open after a placement setter failed before making a change.
+  It now tracks the transaction it opened and uses the shared ownership-aware
+  close helper, including empty steps. A unit regression and a native Features
+  assertion check the failure and the released transaction.
+- Architecture/specification precedence, missing recovery-format entries, the
+  off-ribbon command list, icon inventory and the detailed test inventory were
+  corrected. Specifications now describe the failure handling above.
+
+The **12 new regression tests** pass, including retry recovery, complete and
+partial records, invalid flags, native partial/empty output, failed replacement
+and neighboring temporary files. An existing viewport test now seeds a complete
+pending record for its reapplication scenario; the new partial-record test checks
+that no unprotected writes occur. The full headless suite is **582 tests**, so the
+complete fast gate is **619** (24 fixture/gate + 13 runner + 582 headless).
+
+Post-fix validation passed:
+
+| Gate | Fast tests | Native suites / checks | Result folders under `scratch/` |
+|---|---:|---:|---|
+| 1.1.4 persistence/export fixes | 618/618 | 21 suites, 794/794 | `baseline_vyeyl2ik` / `gui_1r6ahddn` |
+| 1.1.4 final rotation fix: core, Features, Assembly Tree | 619/619 | 4 suites, 520/520 | `baseline_vq4967sf` / `gui_iva4o6iy` |
+| 26.3 RC2 all audit fixes together | 619/619 | 22 suites, 899/899 | `baseline_c1p57y94` / `gui_mfke41bh` |
+
+The 1.1.4 follow-up was necessary because the additional native rotation failure
+was discovered after its first post-fix gate. The corresponding native regression
+passed on both hosts, showing no transaction before the attempt, a pending
+`Rotate Component` transaction after the injected failure, and none after cleanup.
+The adjusted orientation scenario also passed all 84 assertions on both hosts.
+Saved-config validation passed after Save and Discard. Five unaffected native
+suites retain their initial full-sweep results; selected suites were deduplicated
+within each gate and no separate headless rerun followed a successful unchanged
+gate. Final local link/inventory checks and `git diff --check` passed. Changes are
+local; no commit, push or hosted CI run was performed for this audit.
+
+## Test selection and duplication (2026-11-09)
+
+The default gate now runs all fast checks plus **CAD and smoke**. Sketch-first,
+feature integration and other specialized suites remain available and required
+for their affected areas through `--extra-suites`. `--full` runs all 27 native
+suites in one invocation, including the core once. The GUI-only runner has the
+same core default and an explicit `--full` option. The
+[selection table](testing.md#required-baseline-before-feature-work) identifies
+coverage ownership and required area checks. No production behavior changed.
+
+Removed **70 duplicate import-only tests**: their API tests already import the
+same modules before checking names. Modules without an API contract, newly added
+files, and every existing behavioral/failure-path test retain coverage. Headless
+count is now **570**. The fixture/gate and runner suites have **24 and 13** tests,
+including de-duplication, full selection, dependency order and preview behavior.
+No CAD fixtures, 333 CAD assertions, tolerances, native acceptance scenarios or
+quit/crash recovery paths were removed. Specialized native checks moved out of
+the default rather than being presented as redundant coverage.
+
+The 1.1.4 default gate passed **607 unit/headless tests and 364 native checks**
+under `scratch/baseline_e5elr6fa` / `scratch/gui_hcmt4bb7`. Measured wall time was
+**109.7 seconds**, compared with **179.7 seconds** for the preceding four-suite
+gate on the same host (`scratch/baseline_vbim9bmv`): about **39% less time** for
+the narrower default. This is a local observation, not a cross-machine benchmark.
+The headless suite took 33.6 seconds; its import-only duplicates were cheap in
+isolation (0.13 seconds total in the prior profile). Most of the saving comes
+from avoiding unrelated GUI workflows and their process startup.
+
+The 26.3 RC2 combined area-selection run passed **607 unit/headless tests and
+435 native checks** under `scratch/baseline_jya21n03` / `scratch/gui_my5nl6so`.
+It requested `sketch smoke features sketch` as extras; the real runner executed
+only CAD, smoke, sketch and features once each. Headless took 35.3 seconds.
+Unit tests also validate all-suite selection and shared-profile prerequisites.
+The full 27-suite native sweep and hosted CI have not been rerun for this
+optimization. Per-stage and per-suite
+timings and the selected native suite list are now saved with each result.
+Historical initial-gate results below remain evidence for that earlier selection.
+
+## Dimensioned CAD baseline: initial four-suite gate (2026-11-09)
+
+Added a required local gate, `python tests/run_baseline.py`, before feature work
+and before submission. It combines the existing headless and runner suites with
+21 new network-free fixture/gate tests, the new native CAD suite and the existing
+Smoke, Sketch First and Feature Edit suites. Production workbench code is unchanged.
+The [catalog](cad-fixtures.md) records the online research, licenses, dimensions,
+formulas and follow-on test list; the [spec](specs/cad-baseline.md) defines the gate.
+
+The cache contains **20 pinned STEP cases**: 14 CC0 analytic/conformance cases
+and six NIST public-domain parts with drawings. Third-party files stay under
+ignored `scratch/`; the repository contains the manifest, checksums and original
+FreeCAD test recipes. The native suite has **333 checks** covering imports,
+14 STEP round trips, seven constrained sketch/feature rebuilds, dimensional edits,
+Undo/Redo, save/reopen/recompute, four JellyJams geometry-codec cases, two native
+solved assemblies, wrong-pose rejection, mate suggestions and ribbon Pad/Pocket.
+Generated `.FCStd` files, a spool assembly STEP and a preview accompany the JSON.
+
+| Complete required gate | FreeCAD 1.1.4 | FreeCAD 26.3 RC2 |
+|---|---:|---:|
+| Fixture/gate unit tests | 21/21 | 21/21 |
+| GUI result-validator unit tests | 10/10 | 10/10 |
+| Full headless suite | 640/640, 36.9 seconds | 640/640, 35.8 seconds |
+| Native CAD / Smoke / Sketch / Features | 333 + 31 + 20 + 51, all pass | 333 + 31 + 20 + 51, all pass |
+
+The complete gates passed under `scratch/baseline_vbim9bmv` (1.1.4) and
+`scratch/baseline_4nxozbfv` (26.3 RC2), with native results under
+`scratch/gui_f6eea2vh` and `scratch/gui_p37sjogj`, respectively. Each host passed
+**671 unit/headless tests and 435 native checks**. All GUI runs use disposable
+profiles; the gate verifies the selected add-on is this checkout. Missing data,
+checksum mismatches, partial reports and native failures fail the gate. The CI
+workflow now includes the network-free tests on Windows and Linux; those hosted
+jobs have not been run for this change. The full 27-suite GUI sweep was not rerun.
+The final safeguard also leaves an unowned FreeCAD session open when rejecting
+its config paths, so error cleanup cannot save the real profile. Both incorrect
+user-config and system-config paths are covered without launching FreeCAD.
+
+Development runs exposed test-harness assumptions about compound mass properties,
+display-mesh bounds, deferred assembly creation, native joint view providers on
+reopen and the return contract when a mated component refuses free rotation.
+These were corrected and original failed results retained, including
+`scratch/gui_6bmy54ec` and `scratch/baseline_hoyibm9z`. No geometry tolerance was
+widened to obtain a pass. NIST snapshots use summed solid volume and a weighted
+solid center, with exact geometry bounds. Analytic references remain independent
+formulas/upstream truth data, with symmetric-difference checks for rebuilds.
+
+**Not certified:** full NIST sketch reconstruction, NIST mating arrangements,
+complex NIST round trips and the three NURBS candidates whose native mass
+properties disagree with analytic truth. They are explicitly listed as follow-on
+or diagnostic cases, not counted as passing coverage. Native CAD tests are a
+mandatory local workflow rule; no hosted FreeCAD job or remote branch-protection
+rule has been configured.
 
 ## Consolidated PR Verification (2026-11-08)
 
@@ -869,6 +1050,9 @@ for the reproducible commands.
 
 ## Test results
 
+This table is a historical checkpoint. Use the dated verification sections above,
+starting with the two-host audit, for current counts and results.
+
 | Suite | Environment | Result |
 |---|---|---|
 | [`tests/test_headless.py`](../tests/test_headless.py) | FreeCAD 1.1.4 bundled Python 3.11, stubbed `FreeCAD` / `FreeCADGui` ([`tests/headless_stubs.py`](../tests/headless_stubs.py)), Qt offscreen | **489 tests, all pass**, 0 skipped, exit code 0 (two runs, the same result). |
@@ -924,6 +1108,10 @@ code against fake documents and a fake transaction API; they check logic, not Fr
 
 ## Area summary
 
+Historical inventory: later dated sections above supersede individual status
+cells here. In particular, this table does not include the subsequent full native
+sweeps, drawing/assembly integration coverage or the current CAD baseline.
+
 | Area | Spec | Overall | Headless coverage | GUI coverage (FreeCAD 1.1.4) |
 |---|---|---|---|---|
 | Core: packaging, lifecycle, quit guard, autoload, recovery, commands, document helpers | [core.md](specs/core.md) | Implemented; crash recovery, Diagnostics dialog and Qt filter Partial | Test01, Test03 to Test09, Test22DocumentHelpers | gui_smoke, gui_lifecycle (all modes), check_saved_cfg |
@@ -945,6 +1133,10 @@ code against fake documents and a fake transaction API; they check logic, not Fr
 | Icons and source hygiene | [core.md](specs/core.md) 2, [ribbon-content.md](specs/ribbon-content.md) 2.4 | Implemented | Test02, Test21 | none needed |
 
 ## Feature status by area
+
+The detailed cells below are retained from earlier checkpoints. A "Not verified"
+cell is not a statement about the latest run; consult the dated results above.
+Passing a suite still does not certify every manual acceptance criterion.
 
 ### Core
 
@@ -1158,6 +1350,10 @@ Spec: [drawing-symbols-export.md](specs/drawing-symbols-export.md). Code: [`surf
 | Export DXF (`JellyJams_SaveAsDXF`, "Save as DXF" on the ribbon) | Not verified | H `Test19DrawingHelpers.test_export_naming` (`per_sheet_paths`) | AC 43. |
 
 ## Known gaps and limitations
+
+This is the historical gap inventory. Some items have subsequent fixes and tests
+documented in the dated sections above; unresolved scope must be assessed against
+those later results rather than inferred from this inventory alone.
 
 ### 1. Acceptance criteria not verified in GUI
 

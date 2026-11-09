@@ -8,10 +8,27 @@ from pathlib import Path
 import unittest
 import xml.etree.ElementTree as ET
 
-from run_gui import autoload_config, validate_result
+from run_gui import autoload_config, select_suites, validate_result
 
 
 class TestGuiResults(unittest.TestCase):
+    def test_repeated_suites_run_once_in_first_requested_order(self):
+        self.assertEqual(select_suites(["smoke", "sketch", "smoke", "features", "sketch"]),
+                         ["smoke", "sketch", "features"])
+
+    def test_empty_and_unknown_suite_selections_fail(self):
+        for requested in ([], ["smoke", "typo"]):
+            with self.subTest(requested=requested), self.assertRaises(ValueError):
+                select_suites(requested)
+
+    def test_dependent_suites_still_require_prior_run_in_same_session(self):
+        for before, after in (("discard", "after"), ("crash", "recover"), ("report_view", "report_startup")):
+            with self.subTest(suite=after):
+                self.assertEqual(select_suites([before, after, before]), [before, after])
+                for requested in ([after], [after, before], [after, before, after]):
+                    with self.assertRaisesRegex(ValueError, "must follow"):
+                        select_suites(requested)
+
     def test_success(self):
         self.assertEqual(validate_result({"checks": {"one": {"ok": True}}, "errors": []}), 1)
 

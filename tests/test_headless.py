@@ -29,6 +29,7 @@ import io
 import itertools
 import json
 import os
+from pathlib import Path
 import re
 import shutil
 import subprocess
@@ -38,6 +39,7 @@ import time
 import traceback
 import types
 import unittest
+from unittest import mock
 import xml.etree.ElementTree as ET
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1209,8 +1211,12 @@ def _modules_on_disk():
 
 
 for _name in sorted(set(EXPECTED_MODULES) | set(_modules_on_disk())):
-    setattr(Test02Hygiene, "test_import_%s" % _name, _make_import_test("jellyjams." + _name))
-setattr(Test02Hygiene, "test_import___package__", _make_import_test("jellyjams"))
+    # An API test already imports its module before checking the public names.
+    # Keep import-only tests for modules without an API contract, including new files.
+    if "jellyjams." + _name not in API_NAMES:
+        setattr(Test02Hygiene, "test_import_%s" % _name, _make_import_test("jellyjams." + _name))
+if "jellyjams" not in API_NAMES:
+    setattr(Test02Hygiene, "test_import___package__", _make_import_test("jellyjams"))
 for _module_name, _names in API_NAMES.items():
     setattr(Test02Hygiene, "test_api_%s" % _module_name.replace(".", "_"), _make_api_test(_module_name, _names))
 
@@ -1492,6 +1498,115 @@ class Test04Recovery(HarnessCase):
 # ==========================================================================
 # 5. Commands
 # ==========================================================================
+
+
+class Test04BackupFailurePaths(HarnessCase):
+    def test_backup_read_failure_preserves_settings_and_record(self):
+        for area, action, key in (
+                ('navigation', 'install', 'OriginalNavigationStyle'),
+                ('navigation', 'recover', 'OriginalNavigationStyle'),
+                ('shortcuts', 'install', 'OriginalShortcuts'),
+                ('shortcuts', 'recover', 'OriginalShortcuts'),
+                ('viewport', 'apply', 'OriginalViewColors'),
+                ('viewport', 'recover', 'OriginalViewColors'),
+                ('sketch_assist', 'recover', 'OriginalSketchSnapping')):
+            with self.subTest(area=area, action=action):
+                STUBS.reset()
+                STUBS.set_commands(SHORTCUT_COMMANDS + JJ_SHORTCUT_COMMANDS)
+                module = self.module('jellyjams.' + area, fresh=True)
+                own, view = param(P_OWN), param(P_VIEW)
+                if area == 'navigation':
+                    record = {'existed': True, 'value': 'original'}
+                elif area == 'shortcuts':
+                    record = {'Std_ViewFront': [True, 'original']}
+                elif area == 'viewport':
+                    record = {'BackgroundColor2': ['Unsigned', True, 123]}
+                else:
+                    record = {key: [False, None] for key in module.SNAP_KEYS}
+                raw = json.dumps(record)
+                own.SetString(key, raw)
+                view.SetString('NavigationStyle', 'current')
+                before = view.GetContents()
+                with mock.patch.object(own, 'GetString', side_effect=OSError('read unavailable')):
+                    getattr(module, action)()
+                self.assertEqual(own.GetString(key), raw)
+                self.assertEqual(view.GetContents(), before)
+                self.assertFalse(param(P_SHORTCUT).GetContents())
+                self.assertTrue(self.jj('warning') + self.jj('error'))
+                module.recover()
+                self.assertFalse(own.GetString(key), 'a readable retry must finish recovery')
+
+    def test_unreadable_preference_is_not_backed_up_as_absent(self):
+        navigation = self.module('jellyjams.navigation', fresh=True)
+        view = param(P_VIEW)
+        view.SetString('NavigationStyle', 'original')
+        with mock.patch.object(view, 'GetContents', side_effect=OSError('unavailable')):
+            with mock.patch.object(view, 'GetStrings', side_effect=OSError('unavailable')):
+                navigation.install()
+        self.assertEqual(view.GetString('NavigationStyle'), 'original')
+        self.assertFalse(param(P_OWN).GetString('OriginalNavigationStyle'))
+
+    def test_partial_viewport_backup_defers_new_overrides(self):
+        viewport = self.module('jellyjams.viewport', fresh=True)
+        own, view = param(P_OWN), param(P_VIEW)
+        raw = json.dumps({'BackgroundColor2': ['Unsigned', True, 123]})
+        own.SetString('OriginalViewColors', raw)
+        view.SetUnsigned('BackgroundColor2', 456)
+        before = view.GetContents()
+        viewport.apply()
+        self.assertEqual(view.GetContents(), before)
+        self.assertEqual(own.GetString('OriginalViewColors'), raw)
+        self.assertFalse(viewport.is_applied())
+        viewport.recover()
+        self.assertEqual(view.GetContents(), [('Unsigned Long', 'BackgroundColor2', 123)])
+
+    def test_partial_shortcut_backup_defers_new_overrides(self):
+        shortcuts = self.module('jellyjams.shortcuts', fresh=True)
+        STUBS.set_commands(SHORTCUT_COMMANDS + JJ_SHORTCUT_COMMANDS)
+        own, group = param(P_OWN), param(P_SHORTCUT)
+        raw = json.dumps({'Std_ViewFront': [True, '1']})
+        own.SetString('OriginalShortcuts', raw)
+        group.SetString('Std_ViewFront', 'current')
+        before = group.GetContents()
+        shortcuts.install()
+        self.assertEqual(group.GetContents(), before)
+        self.assertEqual(own.GetString('OriginalShortcuts'), raw)
+        self.assertFalse(shortcuts.is_installed())
+        self.module('jellyjams.shortcuts', fresh=True).recover()
+        self.assertEqual(group.GetContents(), [('String', 'Std_ViewFront', '1')])
+
+    def test_navigation_rejects_non_boolean_backup_flag(self):
+        for flag in ('false', 1, None):
+            for startup in (False, True):
+                with self.subTest(flag=flag, startup=startup):
+                    param(P_VIEW).SetString('NavigationStyle', 'original')
+                    param(P_OWN).SetString('OriginalNavigationStyle',
+                                             json.dumps({'existed': flag, 'value': 'bad'}))
+                    if startup:
+                        self.module('jellyjams.recovery').run_startup_recovery()
+                    else:
+                        self.module('jellyjams.navigation', fresh=True).recover()
+                    self.assertEqual(param(P_VIEW).GetString('NavigationStyle'), 'original')
+                    self.assertFalse(param(P_OWN).GetString('OriginalNavigationStyle'))
+
+    def test_complete_pending_backups_can_reapply_and_recover(self):
+        for area, apply, active, group_path, key in (
+                ('viewport', 'apply', 'is_applied', P_VIEW, 'OriginalViewColors'),
+                ('shortcuts', 'install', 'is_installed', P_SHORTCUT, 'OriginalShortcuts')):
+            with self.subTest(area=area):
+                STUBS.reset()
+                STUBS.set_commands(SHORTCUT_COMMANDS + JJ_SHORTCUT_COMMANDS)
+                module = self.module('jellyjams.' + area, fresh=True)
+                before = param(group_path).GetContents()
+                getattr(module, apply)()
+                raw = param(P_OWN).GetString(key)
+                self.assertTrue(raw)
+                module = self.module('jellyjams.' + area, fresh=True)
+                getattr(module, apply)()
+                self.assertTrue(getattr(module, active)())
+                self.assertEqual(param(P_OWN).GetString(key), raw)
+                self.module('jellyjams.' + area, fresh=True).recover()
+                self.assertEqual(param(group_path).GetContents(), before)
 
 
 class Test05Commands(HarnessCase):
@@ -2609,7 +2724,9 @@ class Test10Look(HarnessCase):
 
     def test_viewport_leftover_backup_not_overwritten(self):
         viewport = self.module("jellyjams.viewport", fresh=True)
-        leftover = json.dumps({"BackgroundColor2": ["Unsigned", True, 123456]})
+        record = {name: [suffix, False, None] for name, suffix, _value in viewport.MANAGED_KEYS}
+        record["BackgroundColor2"] = ["Unsigned", True, 123456]
+        leftover = json.dumps(record)
         param(P_OWN).SetString("OriginalViewColors", leftover)
         viewport.apply()
         self.assertEqual(param(P_OWN).GetString("OriginalViewColors"), leftover)
@@ -6063,6 +6180,91 @@ class Test20PdfMerge(HarnessCase):
 # ==========================================================================
 
 
+class Test20FilePublication(HarnessCase):
+    def test_merge_does_not_clobber_neighboring_partial_file(self):
+        folder = Path(self.tmpdir())
+        source, target = folder / 'source.pdf', folder / 'merged.pdf'
+        neighbor = folder / 'merged.pdf.part'
+        neighbor.write_bytes(b'unrelated data')
+        write_qt_pdf(str(source), QtGui.QPageSize.PageSizeId.A4, False, 'Audit')
+        merge = self.module('jellyjams.pdf_merge')
+        self.assertEqual(merge.merge([source, source], target), 2)
+        self.assertEqual(neighbor.read_bytes(), b'unrelated data')
+        self.assertEqual(set(p.name for p in folder.iterdir()),
+                         {'source.pdf', 'merged.pdf', 'merged.pdf.part'})
+
+    def test_native_export_failure_preserves_existing_output(self):
+        export = self.module('jellyjams.drawing_export')
+        for kind, module, function in (('pdf', 'TechDrawGui', 'exportPageAsPdf'),
+                                       ('dxf', 'TechDraw', 'writeDXFPage')):
+            for failure in ('partial', 'empty', 'replace'):
+                with self.subTest(kind=kind, failure=failure):
+                    folder = Path(self.tmpdir())
+                    target = folder / ('drawing.' + kind)
+                    target.write_bytes(b'previous valid drawing')
+                    def writer(page, path):
+                        Path(path).write_bytes(b'' if failure == 'empty' else b'new output')
+                        if failure == 'partial':
+                            raise OSError('renderer failed')
+                    with fake_modules({module: fake_module(module, **{function: writer})}):
+                        replacement = (mock.patch.object(export.os, 'replace', side_effect=OSError('locked'))
+                                       if failure == 'replace' else contextlib.nullcontext())
+                        with replacement, self.assertRaises(OSError):
+                            getattr(export, 'write_' + kind)([types.SimpleNamespace(Label='Sheet1')], str(target))
+                    self.assertEqual(target.read_bytes(), b'previous valid drawing')
+                    self.assertEqual(list(folder.iterdir()), [target])
+
+    def test_template_cache_does_not_clobber_neighboring_temporary_file(self):
+        templates = self.module('jellyjams.templates')
+        folder = Path(self.tmpdir())
+        source = folder / 'drawing.svg'
+        source.write_text('original', encoding='utf-8')
+        target = folder / 'drawing_third_angle.svg'
+        neighbor = folder / 'drawing_third_angle.svg.tmp'
+        neighbor.write_bytes(b'unrelated data')
+        with mock.patch.object(templates, 'transform_symbol', return_value='derived'):
+            with mock.patch.object(templates.paths, 'user_cache_dir', return_value=str(folder)):
+                self.assertEqual(templates.derive_third_angle(str(source)), str(target))
+        self.assertEqual(target.read_text(encoding='utf-8'), 'derived')
+        self.assertEqual(neighbor.read_bytes(), b'unrelated data')
+        target.write_text('previous template', encoding='utf-8')
+        with mock.patch.object(templates, 'transform_symbol', return_value='derived'):
+            with mock.patch.object(templates.paths, 'user_cache_dir', return_value=str(folder)):
+                with mock.patch.object(templates.os, 'replace', side_effect=OSError('locked')):
+                    self.assertIsNone(templates.derive_third_angle(str(source)))
+        self.assertEqual(target.read_text(encoding='utf-8'), 'previous template')
+        self.assertEqual(neighbor.read_bytes(), b'unrelated data')
+        self.assertEqual(set(folder.iterdir()), {source, target, neighbor})
+
+    def test_failed_replace_preserves_output_and_cleans_owned_temporaries(self):
+        folder = Path(self.tmpdir())
+        source, target = folder / 'source.pdf', folder / 'merged.pdf'
+        target.write_bytes(b'previous output')
+        write_qt_pdf(str(source), QtGui.QPageSize.PageSizeId.A4, False, 'Audit')
+        merge = self.module('jellyjams.pdf_merge')
+        with mock.patch.object(merge.os, 'replace', side_effect=OSError('destination locked')):
+            with self.assertRaises(OSError):
+                merge.merge([source, source], target)
+        self.assertEqual(target.read_bytes(), b'previous output')
+        self.assertEqual(set(p.name for p in folder.iterdir()), {'source.pdf', 'merged.pdf'})
+
+    def test_pdf_fallback_cannot_publish_empty_sheets(self):
+        export = self.module('jellyjams.drawing_export')
+        folder = Path(self.tmpdir())
+        target, first = folder / 'drawing.pdf', folder / 'drawing_Sheet1.pdf'
+        for path in (target, first):
+            path.write_bytes(b'previous drawing')
+        def empty(page, path):
+            Path(path).write_bytes(b'')
+        with fake_modules({'TechDrawGui': fake_module('TechDrawGui', exportPageAsPdf=empty)}):
+            with self.assertRaises(OSError):
+                export.write_pdf([types.SimpleNamespace(Label='Sheet1'),
+                                  types.SimpleNamespace(Label='Sheet2')], str(target))
+        self.assertEqual(target.read_bytes(), b'previous drawing')
+        self.assertEqual(first.read_bytes(), b'previous drawing')
+        self.assertEqual(set(folder.iterdir()), {target, first})
+
+
 class Test21Icons(HarnessCase):
     FORBIDDEN = ("<text", "<style", "<image", "<script", "<filter", "<mask", "<pattern", "<marker",
                  "<foreignobject", "data:image")
@@ -6606,6 +6808,26 @@ class Test22AssemblySelection(DocumentCase):
         del self.calls[:]
         self.assertEqual(commands.selected_components(types.SimpleNamespace(Name="Assembly")), [])
         self.assertEqual(self.calls, [])
+
+
+    def test_failed_rotation_releases_its_empty_application_transaction(self):
+        commands = self.module("jellyjams.assembly_commands")
+        transactions = self.use_transactions(closes_on_commit=False)
+        doc = FakeDocument("RotationFailure", transactions=transactions)
+        doc.openTransaction("Rotate Component")
+        opened = transactions.active[1]
+        tool = commands._RotateTool.__new__(commands._RotateTool)
+        tool.document = lambda: doc
+        tool.left_down = True
+        tool.in_transaction = True
+        tool._transaction_id = opened
+        tool.finish_drag()
+        tool.finish_drag()
+        self.assertIsNone(transactions.active)
+        self.assertEqual(transactions.closed, [(False, opened)])
+        self.assertFalse(tool.in_transaction)
+        self.assertFalse(tool.left_down)
+        self.assertEqual(tool._transaction_id, 0)
 
 
 class Test22MakeDrawing(DocumentCase):

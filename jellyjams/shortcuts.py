@@ -15,8 +15,8 @@ does not have are skipped.
 Before the first write, the state of every touched command is saved in the JellyJams group
 under ``OriginalShortcuts`` as ``{command: [existed, value]}`` (the 0.1.0 format), so the next
 start can undo a session that crashed. A readable backup found at install time is kept
-untouched because it holds the user's real settings; commands it does not cover are
-remembered in memory for this session only.
+untouched because it holds the user's real settings. If it does not cover every new
+override, installation is deferred until that backup has been restored.
 
 None of the public functions raise; problems are reported through ``jellyjams.console``.
 """
@@ -42,8 +42,6 @@ SHORTCUTS = [
 ]
 
 _installed = False
-# Entries the persisted backup lacks when it was a leftover from an earlier session.
-_session_extra = {}
 
 
 def install():
@@ -90,21 +88,19 @@ def uninstall():
     Works from the saved backup alone, so it also undoes a leftover one. Without a backup it
     does nothing and prints nothing.
     """
-    global _installed, _session_extra
-    extra, _session_extra = _session_extra, {}
+    global _installed
     _installed = False
     with console.guard("restore the keyboard shortcuts"):
-        _put_back(extra)
+        _put_back()
 
 
 def recover():
     """Startup crash recovery: undo shortcut changes an earlier session left behind."""
-    global _installed, _session_extra
+    global _installed
     _installed = False
-    _session_extra = {}
     with console.guard("restore the keyboard shortcuts left over from the previous session",
                        level="warning"):
-        if _put_back({}):
+        if _put_back():
             console.message(
                 "restored the keyboard shortcuts that the previous session left changed "
                 "(unclean exit)"
@@ -218,12 +214,12 @@ def _ensure_backup(group, targets):
     Returns False when the current state could not be saved; the caller must then write
     nothing, because the change could not be undone exactly.
     """
-    global _session_extra
     state, detail = _read_backup()
     if state == "ok":
-        _session_extra = {
-            cmd: _state(group, cmd) for cmd in targets if not _entry_ok(detail.get(cmd))
-        }
+        if any(not _entry_ok(detail.get(cmd)) for cmd in targets):
+            console.warning("kept the current keyboard shortcuts: the pending backup "
+                            "does not cover every target; it must be restored first")
+            return False
         return True
     if state == "bad":
         console.warning(
@@ -239,7 +235,6 @@ def _ensure_backup(group, targets):
             % exc
         )
         return False
-    _session_extra = {}
     return True
 
 
@@ -278,8 +273,8 @@ def _restore_entries(group, entries):
     return failed
 
 
-def _put_back(extra):
-    """Restore the saved record plus `extra`, then remove the record.
+def _put_back():
+    """Restore the saved record, then remove it.
 
     Returns True when a persisted record with at least one entry was restored completely.
     """
@@ -303,9 +298,6 @@ def _put_back(extra):
         if skipped:
             console.warning("ignored unreadable shortcut backup entries for %s"
                             % ", ".join(skipped))
-    for cmd, entry in (extra or {}).items():
-        if cmd not in entries and _entry_ok(entry):
-            entries[cmd] = entry
     if not entries and not persisted:
         return False
     failed = _restore_entries(params.group(constants.PARAM_SHORTCUT), entries)

@@ -15,9 +15,9 @@ from jellyjams import console, constants, params
 
 
 def _navigation_backup_problem(data):
-    if not isinstance(data, dict) or "existed" not in data:
-        return "not a JSON object with an 'existed' field"
-    return None
+    from jellyjams import navigation
+
+    return navigation._backup_problem(data)
 
 
 def _shortcut_backup_problem(data):

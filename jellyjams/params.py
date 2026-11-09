@@ -48,16 +48,13 @@ def contents(grp):
 
 
 def has_key(grp, name, suffix):
-    """True when `grp` holds an entry named `name` whose type matches `suffix`."""
+    """Typed key presence; an unreadable group raises rather than claiming absence."""
     _check_suffix(suffix)
     type_name = CONTENTS_TYPE_NAMES[suffix]
     try:
         entries = grp.GetContents()
     except Exception:
-        try:
-            return name in (getattr(grp, "Get%ss" % suffix)() or [])
-        except Exception:
-            return False
+        return name in (getattr(grp, "Get%ss" % suffix)() or [])
     for entry in entries or []:
         try:
             if entry[0] == type_name and entry[1] == name:
@@ -116,19 +113,16 @@ def get_string(path, name, default=""):
 
 
 def backup_pending(key):
-    """True when the backup string `key` holds anything. Never raises."""
-    try:
-        return bool(own().GetString(key, ""))
-    except Exception:
-        return False
+    """True when the backup string holds anything; parameter read failures raise."""
+    return bool(own().GetString(key, ""))
 
 
 def load_backup(key):
-    """("none", None) | ("ok", parsed JSON) | ("corrupt", reason). Never raises."""
-    try:
-        raw = own().GetString(key, "")
-    except Exception as exc:
-        return ("corrupt", "reading the parameter failed: %s" % exc)
+    """Read/parse a backup; access failures raise, malformed JSON is "corrupt".
+
+    Callers must keep a backup they could not read, so recovery can retry later.
+    """
+    raw = own().GetString(key, "")
     if not raw:
         return ("none", None)
     try:

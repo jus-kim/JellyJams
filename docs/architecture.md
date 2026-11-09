@@ -16,11 +16,12 @@ of each feature is defined by the specifications in [`specs/`](specs). Related d
 | [freecad-facts.md](freecad-facts.md) | Which FreeCAD 1.1 behaviors the code relies on |
 | [`specs/*.md`](specs) | What each feature must do, with acceptance criteria |
 
-**Source of truth.** When this document and the code disagree, the code and the tests in
-[`tests/`](../tests) win. Fix this document in the same change.
+**Source of truth.** The behavior specifications are normative. If code, tests or
+this architecture document disagree with them, fix the implementation or change
+the specification deliberately, and record the decision in [status.md](status.md).
 
-Version 0.1.0 (2026-10-28), minimum FreeCAD 1.1, license MIT. Checked against
-the code on 2026-10-28.
+Version 0.1.0 (2026-10-28), minimum FreeCAD 1.1, license MIT. Repository audit
+and verification results from 2026-11-09 are recorded in [status.md](status.md).
 
 ## Contents
 
@@ -72,7 +73,7 @@ InitGui.py              registers the workbench, runs startup crash recovery
 package.xml             Addon Manager manifest (version, freecadmin 1.1.0, branch main)
 README.md, CHANGELOG.md
 LICENSE, LICENSES/      MIT License (LICENSES/MIT.txt mirrors LICENSE)
-resources/icons/        jellyjams.svg (workbench) + 28 original SVGs: JellyJams commands, relations, two Orientation panel buttons
+resources/icons/        jellyjams.svg (workbench) + 29 original SVGs: JellyJams commands, relations, two Orientation panel buttons
 jellyjams/              the package (flat, one level; see section 3)
 tests/                  headless harness + GUI scripts (see section 13)
 docs/                   this document, decisions, FreeCAD facts, specs/
@@ -294,7 +295,8 @@ contract. These modules install no UI hooks, commands, or preference overrides.
    inside functions only.
 4. **Pure modules** import nothing from FreeCAD, FreeCADGui, PySide or shiboken, not even
    lazily: `__init__`, `constants`, `palette`, `ribbon_layout`, `ribbon_model`, `ribbon_text`,
-   `naming_rules`, `relations_rules`, `mate_rules`, `dialog_terms_data`, `pdf_merge`, `surface_rules`. The list
+   `naming_rules`, `relations_rules`, `mate_rules`, `dialog_terms_data`, `pdf_merge`,
+   `surface_rules`, `appearance_rules`, `orbit_rules`, `access_rules`. The list
    lives in `PURE_MODULES` in [`tests/test_headless.py`](../tests/test_headless.py), which
    checks it by AST and by running the modules in a plain interpreter.
 5. Every module must import cleanly under the headless stubs (`EXPECTED_MODULES` in the test
@@ -494,11 +496,16 @@ overrides were in effect. Each step runs under `console.guard(..., level="warnin
 | 2 | navigation: `params.load_backup("OriginalNavigationStyle")`, validate (object with `existed`), then `navigation.recover()` | recovery deletes it with one warning (`deleted the navigation style backup left by the last session because it could not be used (...)`) |
 | 3 | shortcuts: validate (object of `[bool, string-or-null]` entries), then `shortcuts.recover()` | same, naming the `keyboard shortcut` backup |
 | 4 | `switch_prefs.recover()`: each of the three records on its own, one message per restored module | values other than `1`/`0`/`absent` are removed with one warning naming the module; that setting is left as it is, the other modules still restore |
+| 5 | `sketch_assist.recover()`: restore `Snap` and `SnapToObjects` | malformed JSON/entries are discarded with a warning; parameter read failures retain the record for retry |
 
 [`recovery.py`](../jellyjams/recovery.py) checks the navigation and shortcut records before
 it calls the modules. The modules also check a record themselves whenever they read it:
-`install()` replaces an unreadable leftover with one warning, `uninstall()` discards one with
-one warning, and `shortcuts` skips single malformed entries with a warning. A clean start (all
+`install()` replaces corrupt contents with one warning, `uninstall()` discards corrupt
+contents with one warning, and `shortcuts` skips single malformed entries with a warning.
+Parameter access failures propagate to the guarded caller without deleting or replacing
+the backup. `params.has_key` likewise raises when neither presence API can be read.
+Shortcut and viewport installation defers when a valid pending record does not cover
+every intended override; all originals must be persisted before writing. A clean start (all
 backups empty) prints nothing. Recovery failures are warnings; registration and FreeCAD
 startup always continue.
 
@@ -617,6 +624,7 @@ because it holds the real original.
 | `OriginalNavigationStyle` | `{"existed": bool, "value": string-or-null}` | `{"existed": false, "value": null}` |
 | `OriginalShortcuts` | `{commandId: [existed, previousValue]}` | `{"Std_ViewTop": [true, "T"], "Std_ViewBoxZoom": [false, null]}` |
 | `OriginalSwitchToWB`, `OriginalPartDesignSwitchToWB`, `OriginalTechDrawSwitchToWB` | plain string, not JSON | `"1"`, `"0"` or `"absent"` |
+| `OriginalSketchSnapping` | `{key: [existed, previousBoolOrNull]}`, exactly `Snap` and `SnapToObjects` | `{"Snap": [false, null], "SnapToObjects": [true, false]}` |
 
 Do not change these formats: a backup written by one version must be recoverable by the next.
 
@@ -792,8 +800,9 @@ datums (`PartDesign_*` ids), `PartDesign_NewSketch` (`Sketcher_NewSketch`),
 also in the JellyJams menu. `JellyJams_NormalTo` is the Evaluate tab's Normal To (the first entry
 of its View Orientation text stack, in place of FreeCAD's `Std_AlignToSelection`, which has no
 button) and is also in the JellyJams menu and on `Ctrl+8`; the Sketch tab keeps
-`Sketcher_ViewSketch`. `JellyJams_ViewOrientation` is the only JellyJams command without a ribbon
-button (`OFF_RIBBON_COMMANDS` in the headless tests); it is in the JellyJams menu and on `Space`.
+`Sketcher_ViewSketch`. `JellyJams_ViewOrientation` and `JellyJams_Appearances` have no ribbon
+button (`OFF_RIBBON_COMMANDS` in the headless tests); both are in the JellyJams menu,
+and View Orientation is on `Space`.
 
 ### 9.4 Build
 
@@ -1023,6 +1032,18 @@ headless tests, `SWITCH_GROUPS` in the GUI scripts and `check_saved_cfg.py`).
 ---
 
 ## 13. Tests and current status
+
+The required pre-feature gate is now `tests/run_baseline.py`: fixture/runner unit
+tests, the existing headless suite and two core native suites (CAD baseline and
+smoke). `--extra-suites` adds affected-area checks; `--full` selects all 27 native
+suites without repeating the core. `run_gui.select_suites` de-duplicates selections
+and checks shared-profile ordering. Import/API hygiene shares one import per
+module contract. `tests/cad_fixtures.py` fetches only hash-pinned data into
+scratch. `cad_models.py` builds independent native sketch/feature recipes;
+`gui_cad_baseline.py` compares them with external STEP references and tests solved
+assemblies. No add-on modules or persistent settings are added. See the
+[catalog](cad-fixtures.md) and [test contract](specs/cad-baseline.md). The historical
+verification table below remains dated; current results belong in `status.md`.
 
 Widgets and the viewport share the read-only `theme.is_dark()` native menu-palette
 decision. `palette.viewport_colors(dark)` and `viewport.managed_keys(dark)` choose
