@@ -8,9 +8,26 @@ test mentioned here: [testing.md](testing.md).
 After any code change, re-run the suites and update this page (see
 [Updating this page](#updating-this-page)).
 
+## Publication and hosted CI (2026-11-09)
+
+The CAD baseline, test-selection optimization and audit fixes were committed as
+[`d8099e1`](https://github.com/jus-kim/JellyJams/commit/d8099e1db08831d324485c718faf1598b99d8572)
+and pushed to `main`. Its
+[hosted Tests run](https://github.com/jus-kim/JellyJams/actions/runs/42686593897)
+passed on both `ubuntu-latest` and `windows-latest`, using Python 3.11 and
+PySide6 6.8.3. No CI failure or follow-up code fix was needed.
+
+Each host discovered **582 headless tests** (579 passed, three skipped because
+FreeCAD's ISO templates are not installed), and passed all **13 runner** and
+**24 fixture/gate** tests: **616 passes and three expected skips per host**.
+Those three template checks passed locally on both installed FreeCAD versions.
+Hosted CI stubs FreeCAD; native CAD and GUI evidence remains the disposable-profile
+verification recorded below. The CI follow-up does not change production code,
+tests, fixtures or tolerances.
+
 ## Full two-host sweep and repository audit (2026-11-09)
 
-This is the latest verification checkpoint. The sections below retain historical
+This is the latest native verification checkpoint. The sections below retain historical
 results and the limitations that applied when each earlier checkpoint was run.
 
 Both requested full sweeps ran before production changes. Every selected native
@@ -95,8 +112,8 @@ The adjusted orientation scenario also passed all 84 assertions on both hosts.
 Saved-config validation passed after Save and Discard. Five unaffected native
 suites retain their initial full-sweep results; selected suites were deduplicated
 within each gate and no separate headless rerun followed a successful unchanged
-gate. Final local link/inventory checks and `git diff --check` passed. Changes are
-local; no commit, push or hosted CI run was performed for this audit.
+gate. Final local link/inventory checks and `git diff --check` passed. Changes were
+still local at this checkpoint; publication and hosted CI are recorded above.
 
 ## Test selection and duplication (2026-11-09)
 
